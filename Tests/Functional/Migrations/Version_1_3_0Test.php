@@ -20,7 +20,7 @@ class Version_1_3_0Test extends MauticMysqlTestCase
         $this->createPreMigrationSchema();
     }
 
-    public function testMigrationAddsMerchantLocationAndItemsTable(): void
+    public function testMigrationAddsLocationAndItemsTable(): void
     {
         $plugin = $this->em->getRepository(Plugin::class)->findOneBy(['bundle' => 'EcommerceConnectorBundle']);
         if (null === $plugin) {
@@ -43,7 +43,7 @@ class Version_1_3_0Test extends MauticMysqlTestCase
         $schema      = $this->connection->createSchemaManager()->introspectSchema();
         $ordersTable = $schema->getTable(MAUTIC_TABLE_PREFIX.'ecommerce_orders');
 
-        Assert::assertTrue($ordersTable->hasColumn('merchant'));
+        Assert::assertFalse($ordersTable->hasColumn('merchant'));
         Assert::assertTrue($ordersTable->hasColumn('location'));
         Assert::assertTrue($schema->hasTable(MAUTIC_TABLE_PREFIX.'ecommerce_order_items'));
     }

@@ -44,7 +44,7 @@ You are also responsible for:
 
 When orders are tracked, Mautic may store and display:
 
-- Order identifiers, totals, currency, source, merchant, location, and order date
+- Order identifiers, totals, currency, source, location, and order date
 - Line items (product/item ID, name, quantity, category), when provided
 - Links between orders and contacts, and optional attribution to Mautic emails
 - Contact commerce fields (for example lifetime value, order count, last order date, last order total)
@@ -83,7 +83,7 @@ This tab controls whether the plugin is active and holds your webhook credential
    - Use a long, random string. Your store uses this to sign webhook requests.
    - This field is required for server-side order tracking.
 3. Note the **Webhook URL** shown in the info box below the form.
-   - Example: `https://your-mautic-site.com/mtc/ecommerce`
+   - Example: `https://your-mautic-site.com/ecommerce/order`
    - Use this URL in your eCommerce platform or custom integration.
 
 Click **Save** or **Save & Close** before continuing, or configure the Features tab first and save once at the end.
@@ -131,8 +131,10 @@ Mautic compares the version in `Config/config.php` with the installed version an
 Send a signed `POST` request to:
 
 ```
-/mtc/ecommerce
+/ecommerce/order
 ```
+
+The previous path `/mtc/ecommerce` is still accepted as a legacy alias to the same handler.
 
 ### Parameters
 
@@ -142,12 +144,22 @@ Send a signed `POST` request to:
 | `order_total` | Yes | Order total (must be greater than zero) |
 | `order_source` | No | Source identifier (default: `web`) |
 | `order_currency` | No | 3-letter ISO 4217 code (default: configured default currency) |
+| `email` | No | Contact email. The order is linked only if this email already exists in Mautic. Contacts are never created from the webhook. |
 | `email_id` | No | Mautic email ID to attribute revenue to |
-| `ct` | No | Mautic clickthrough token for contact and email attribution |
+| `ct` | No | Mautic clickthrough token for email attribution |
+| `location` | No | Store location label stored on the order |
+| `items` | No | Line items as a JSON array (or JSON string) with `item_id`, `item_name`, `qty`, and optional `category` |
 
 ### Signing requests
 
-Sort parameters alphabetically, build a query string, then sign with HMAC SHA-256 using your webhook secret. Send the result in the `X-Mautic-Ecommerce-Signature` header.
+**JSON body (`Content-Type: application/json`):** HMAC-SHA256 the exact raw request body using your webhook secret.
+
+```php
+$body = '{"order_id":"12345","order_total":"99.99","order_source":"woocommerce"}';
+$signature = hash_hmac('sha256', $body, 'YOUR_WEBHOOK_SECRET');
+```
+
+**Form body (`application/x-www-form-urlencoded`):** Sort parameters alphabetically, build a query string, then sign.
 
 ```php
 $params = [
@@ -160,10 +172,24 @@ ksort($params);
 $signature = hash_hmac('sha256', http_build_query($params), 'YOUR_WEBHOOK_SECRET');
 ```
 
-### Example (cURL)
+Send the result in the `X-Mautic-Ecommerce-Signature` header.
+
+### Example (JSON)
 
 ```bash
-curl -X POST "https://your-mautic-site.com/mtc/ecommerce" \
+BODY='{"order_id":"12345","order_total":"99.99","order_source":"woocommerce","order_currency":"USD"}'
+SIG=$(php -r "echo hash_hmac('sha256', getenv('BODY'), 'YOUR_WEBHOOK_SECRET');")
+
+curl -X POST "https://your-mautic-site.com/ecommerce/order" \
+  -H "Content-Type: application/json" \
+  -H "X-Mautic-Ecommerce-Signature: $SIG" \
+  -d "$BODY"
+```
+
+### Example (form)
+
+```bash
+curl -X POST "https://your-mautic-site.com/ecommerce/order" \
   -H "X-Mautic-Ecommerce-Signature: YOUR_SIGNATURE" \
   -d "order_id=12345" \
   -d "order_total=99.99" \
@@ -205,11 +231,19 @@ ddev exec php bin/phpunit -c app/phpunit.xml.dist plugins/EcommerceConnectorBund
 ```
 - Added: Line items on tracked orders (item ID, name, qty, category).
 - Added: Merchant and location on tracked orders.
-- Added: Contact eCommerce tab columns for merchant and location.
+- Added: Contact eCommerce tab columns for location.
 - Added: Line items shown under each order on the contact eCommerce tab.
 - Added: Segment filters for purchased product ID, name, and category.
 - Added: EMPTY and NOT_EMPTY operators on eCommerce text segment filters.
 - Added: Support for zero and missing order totals on webhook payloads.
+- Added: Order details modal on the contact eCommerce tab (click a row to view details and line items)
+- Added: Order details modal from the contact timeline
+- Added: Total revenue column on the contacts list
+- Added: JSON webhook body support with HMAC signing of the raw request body
+- Added: Optional webhook email field to link orders to an existing contact only (never creates contacts)
+- Updated: Webhook URL from /mtc/ecommerce to /ecommerce/order
+- Updated: Contact eCommerce tab table to a simpler order summary (details moved into the modal)
+- Updated: Location labels display with cleaned formatting
 - Updated: Plugin upgrades now apply schema via migrations instead of reinstalling schema on update.
 ```
 

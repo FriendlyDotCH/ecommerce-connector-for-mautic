@@ -1,0 +1,11 @@
+<td class="{{ class }}">
+    {% set revenue = null %}
+    {% for fieldGroup in fields %}
+        {% if fieldGroup[column] is defined and fieldGroup[column].value is defined and fieldGroup[column].value is not same as(null) and fieldGroup[column].value is not same as('') %}
+            {% set revenue = fieldGroup[column].value %}
+        {% endif %}
+    {% endfor %}
+    <span size="sm" class="label label-warm-gray">
+        <i class="ri-money-dollar-circle-line"></i>{{ (revenue ?? 0)|ecommerce_money }}
+    </span>
+</td>

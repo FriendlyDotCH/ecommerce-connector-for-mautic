@@ -51,31 +51,30 @@ class LeadSubscriber implements EventSubscriberInterface
         }
 
         foreach ($orders['results'] as $order) {
+            $orderPk  = (int) $order['id'];
             $currency = strtoupper((string) ($order['order_currency'] ?? ''));
             $amount   = number_format((float) $order['order_total'], 2, '.', '');
             $label    = trim(sprintf('%s %s (%s)', $currency, $amount, $order['order_source']));
-
-            $eventLabel = $label;
-            if (!empty($order['email_id'])) {
-                $eventLabel = [
-                    'label' => $label,
-                    'href'  => $this->router->generate('mautic_email_action', [
-                        'objectAction' => 'view',
-                        'objectId'     => (int) $order['email_id'],
-                    ]),
-                ];
-            }
+            $orderId  = (string) $order['order_id'];
 
             $event->addEvent([
-                'event'      => EcommerceEvents::ORDER_RECORDED,
-                'eventId'    => EcommerceEvents::ORDER_RECORDED.'.'.$order['id'],
-                'eventLabel' => $eventLabel,
-                'eventType'  => $eventTypeName,
-                'timestamp'  => $order['date_added'],
-                'icon'       => 'ri-shopping-cart-2-line',
-                'contactId'  => $leadId,
-                'extra'      => [
-                    'orderId' => $order['order_id'],
+                'event'           => EcommerceEvents::ORDER_RECORDED,
+                'eventId'         => EcommerceEvents::ORDER_RECORDED.'.'.$orderPk,
+                'eventLabel'      => $label,
+                'eventType'       => $eventTypeName,
+                'timestamp'       => $order['date_added'],
+                'icon'            => 'ri-shopping-cart-2-line',
+                'contactId'       => $leadId,
+                'contentTemplate' => '@EcommerceConnector/SubscribedEvents/Timeline/order.html.twig',
+                'extra'           => [
+                    'orderId'     => $orderId,
+                    'modalUrl'    => $this->router->generate('mautic_ecommerce_order_action', [
+                        'leadId'   => $leadId,
+                        'objectId' => $orderPk,
+                    ]),
+                    'modalHeader' => $this->translator->trans('mautic.plugin.ecommerce.tab.order_details', [
+                        '%order%' => $orderId,
+                    ]),
                 ],
             ]);
         }

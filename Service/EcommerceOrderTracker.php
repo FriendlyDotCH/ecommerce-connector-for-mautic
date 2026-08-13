@@ -50,7 +50,6 @@ class EcommerceOrderTracker
         $order->setOrderTotal($payload->orderTotal);
         $order->setOrderCurrency($payload->orderCurrency);
         $order->setOrderSource($payload->orderSource);
-        $order->setMerchant($payload->merchant);
         $order->setLocation($payload->location);
         $order->setDateAdded(new \DateTime());
         $order->setLead($lead);

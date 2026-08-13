@@ -10,10 +10,10 @@ use Symfony\Component\HttpFoundation\Request;
 
 class WebhookSignatureValidatorTest extends TestCase
 {
-    public function testValidSignatureIsAccepted(): void
+    public function testValidFormSignatureIsAccepted(): void
     {
         $request = Request::create(
-            '/mtc/ecommerce',
+            '/ecommerce/order',
             'POST',
             [
                 'order_id'    => 'abc-123',
@@ -33,10 +33,32 @@ class WebhookSignatureValidatorTest extends TestCase
         $this->assertTrue($validator->isValid($request, 'secret-key'));
     }
 
+    public function testValidJsonSignatureIsAccepted(): void
+    {
+        $body = '{"order_id":"abc-123","order_total":"25.50","items":[{"item_id":"1","item_name":"Water","qty":1}]}';
+        $request = Request::create(
+            '/ecommerce/order',
+            'POST',
+            [],
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            $body
+        );
+        $request->headers->set(
+            WebhookSignatureValidator::SIGNATURE_HEADER,
+            hash_hmac('sha256', $body, 'secret-key')
+        );
+
+        $validator = new WebhookSignatureValidator();
+
+        $this->assertTrue($validator->isValid($request, 'secret-key'));
+    }
+
     public function testInvalidSignatureIsRejected(): void
     {
         $request = Request::create(
-            '/mtc/ecommerce',
+            '/ecommerce/order',
             'POST',
             [
                 'order_id'    => 'abc-123',

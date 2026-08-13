@@ -11,6 +11,7 @@ use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
 use MauticPlugin\EcommerceConnectorBundle\EventSubscriber\ContactProfileTabSubscriber;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use MauticPlugin\EcommerceConnectorBundle\Service\CurrencyFormatter;
+use MauticPlugin\EcommerceConnectorBundle\Service\LocationFormatter;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Routing\RouterInterface;
@@ -27,6 +28,8 @@ class ContactProfileTabSubscriberTest extends TestCase
 
     private CurrencyFormatter $currencyFormatter;
 
+    private LocationFormatter $locationFormatter;
+
     protected function setUp(): void
     {
         $this->orderRepository     = $this->createMock(EcommerceOrderRepository::class);
@@ -34,6 +37,19 @@ class ContactProfileTabSubscriberTest extends TestCase
         $this->config              = $this->createMock(Config::class);
         $this->router              = $this->createMock(RouterInterface::class);
         $this->currencyFormatter   = new CurrencyFormatter();
+        $this->locationFormatter   = new LocationFormatter();
+    }
+
+    private function createSubscriber(): ContactProfileTabSubscriber
+    {
+        return new ContactProfileTabSubscriber(
+            $this->orderRepository,
+            $this->orderItemRepository,
+            $this->config,
+            $this->currencyFormatter,
+            $this->locationFormatter,
+            $this->router
+        );
     }
 
     public function testTabTemplatesAreInjectedForContactProfile(): void
@@ -57,7 +73,6 @@ class ContactProfileTabSubscriberTest extends TestCase
                     'order_total'    => '150.0000',
                     'order_currency' => 'USD',
                     'order_source'   => 'woocommerce',
-                    'merchant'       => 'acme',
                     'location'       => 'hixson',
                     'date_added'     => '2026-06-28 12:00:00',
                     'email_id'       => null,
@@ -77,13 +92,7 @@ class ContactProfileTabSubscriberTest extends TestCase
             ],
         ]);
 
-        $subscriber = new ContactProfileTabSubscriber(
-            $this->orderRepository,
-            $this->orderItemRepository,
-            $this->config,
-            $this->currencyFormatter,
-            $this->router
-        );
+        $subscriber = $this->createSubscriber();
 
         $tabEvent = new CustomContentEvent('@MauticLead/Lead/lead.html.twig', 'tabs', ['lead' => $lead]);
         $subscriber->onInjectCustomContent($tabEvent);
@@ -103,8 +112,47 @@ class ContactProfileTabSubscriberTest extends TestCase
         );
         $this->assertSame($lead, $contentEvent->getTemplates()[0]['vars']['lead']);
         $this->assertCount(1, $contentEvent->getTemplates()[0]['vars']['orders']);
-        $this->assertSame('acme', $contentEvent->getTemplates()[0]['vars']['orders'][0]['merchant']);
+        $this->assertSame('Hixson', $contentEvent->getTemplates()[0]['vars']['orders'][0]['location']);
         $this->assertCount(1, $contentEvent->getTemplates()[0]['vars']['orders'][0]['items']);
+    }
+
+    public function testLocationSlugIsFormattedToSentenceCase(): void
+    {
+        $lead = new Lead();
+        $lead->setId(8);
+
+        $this->config->method('isPublished')->willReturn(true);
+        $this->config->method('getDefaultCurrency')->willReturn('USD');
+        $this->orderRepository->method('getCommerceStatsForLead')->willReturn([
+            'order_count'      => 1,
+            'lifetime_value'   => '10.00',
+            'last_order_date'  => '2026-06-28 12:00:00',
+            'last_order_total' => '10.00',
+        ]);
+        $this->orderRepository->method('getOrdersForLeadTimeline')->willReturn([
+            'results' => [
+                [
+                    'id'             => 2,
+                    'order_id'       => 'order-2',
+                    'order_total'    => '10.0000',
+                    'order_currency' => 'USD',
+                    'order_source'   => 'WooCommerce',
+                    'location'       => 'the-dragon',
+                    'date_added'     => '2026-06-28 12:00:00',
+                    'email_id'       => null,
+                    'email_name'     => null,
+                ],
+            ],
+            'total' => 1,
+        ]);
+        $this->orderItemRepository->method('getItemsGroupedByOrderIds')->willReturn([]);
+
+        $subscriber = $this->createSubscriber();
+
+        $contentEvent = new CustomContentEvent('@MauticLead/Lead/lead.html.twig', 'tabs.content', ['lead' => $lead]);
+        $subscriber->onInjectCustomContent($contentEvent);
+
+        $this->assertSame('The dragon', $contentEvent->getTemplates()[0]['vars']['orders'][0]['location']);
     }
 
     public function testUnpublishedIntegrationDoesNotInjectTabs(): void
@@ -114,13 +162,7 @@ class ContactProfileTabSubscriberTest extends TestCase
 
         $this->config->method('isPublished')->willReturn(false);
 
-        $subscriber = new ContactProfileTabSubscriber(
-            $this->orderRepository,
-            $this->orderItemRepository,
-            $this->config,
-            $this->currencyFormatter,
-            $this->router
-        );
+        $subscriber = $this->createSubscriber();
         $event = new CustomContentEvent('@MauticLead/Lead/lead.html.twig', 'tabs', ['lead' => $lead]);
         $subscriber->onInjectCustomContent($event);
 

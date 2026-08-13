@@ -90,13 +90,12 @@ class OrderPayloadParserTest extends TestCase
         ]));
     }
 
-    public function testParseIncludesLineItemsMerchantAndLocation(): void
+    public function testParseIncludesLineItemsAndLocation(): void
     {
         $payload = $this->parser->parse([
-            'order_id'  => 'order-789',
-            'merchant'  => 'example',
-            'location'  => 'hixson',
-            'items'     => [
+            'order_id' => 'order-789',
+            'location' => 'hixson',
+            'items'    => [
                 [
                     'item_id'   => '1722',
                     'item_name' => 'Smart Water 1 Liter',
@@ -107,7 +106,6 @@ class OrderPayloadParserTest extends TestCase
         ]);
 
         $this->assertNotNull($payload);
-        $this->assertSame('example', $payload->merchant);
         $this->assertSame('hixson', $payload->location);
         $this->assertCount(1, $payload->items);
         $this->assertSame('1722', $payload->items[0]->itemId);

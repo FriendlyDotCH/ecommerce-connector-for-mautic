@@ -29,6 +29,10 @@ class WebhookSignatureValidator
 
     private function buildPayload(Request $request): string
     {
+        if (WebhookRequestBody::isJson($request)) {
+            return $request->getContent();
+        }
+
         $data = array_merge($request->query->all(), $request->request->all());
         unset($data['signature']);
 

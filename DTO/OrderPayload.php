@@ -17,7 +17,6 @@ final readonly class OrderPayload
         public ?string $orderCurrency,
         public ?int $emailId,
         public ?array $clickthrough,
-        public ?string $merchant = null,
         public ?string $location = null,
         public array $items = [],
     ) {

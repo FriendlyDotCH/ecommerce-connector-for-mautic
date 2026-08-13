@@ -27,8 +27,6 @@ class EcommerceOrder
 
     private string $orderSource;
 
-    private ?string $merchant = null;
-
     private ?string $location = null;
 
     private \DateTimeInterface $dateAdded;
@@ -73,7 +71,6 @@ class EcommerceOrder
         ]);
         $builder->addNamedField('orderCurrency', 'string', 'order_currency', true);
         $builder->addNamedField('orderSource', 'string', 'order_source');
-        $builder->addNamedField('merchant', 'string', 'merchant', true);
         $builder->addNamedField('location', 'string', 'location', true);
         $builder->addNamedField('dateAdded', 'datetime', 'date_added');
 
@@ -149,16 +146,6 @@ class EcommerceOrder
     public function setOrderSource(string $orderSource): void
     {
         $this->orderSource = $orderSource;
-    }
-
-    public function getMerchant(): ?string
-    {
-        return $this->merchant;
-    }
-
-    public function setMerchant(?string $merchant): void
-    {
-        $this->merchant = $merchant;
     }
 
     public function getLocation(): ?string

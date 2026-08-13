@@ -11,6 +11,7 @@ use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderItemRepository;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use MauticPlugin\EcommerceConnectorBundle\Service\CurrencyFormatter;
+use MauticPlugin\EcommerceConnectorBundle\Service\LocationFormatter;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Routing\RouterInterface;
 
@@ -23,6 +24,7 @@ final class ContactProfileTabSubscriber implements EventSubscriberInterface
         private EcommerceOrderItemRepository $orderItemRepository,
         private Config $config,
         private CurrencyFormatter $currencyFormatter,
+        private LocationFormatter $locationFormatter,
         private RouterInterface $router,
     ) {
     }
@@ -112,8 +114,9 @@ final class ContactProfileTabSubscriber implements EventSubscriberInterface
                 'id'                  => $orderPk,
                 'orderId'             => (string) $order['order_id'],
                 'orderSource'         => (string) $order['order_source'],
-                'merchant'            => !empty($order['merchant']) ? (string) $order['merchant'] : null,
-                'location'            => !empty($order['location']) ? (string) $order['location'] : null,
+                'location'            => $this->locationFormatter->format(
+                    !empty($order['location']) ? (string) $order['location'] : null
+                ),
                 'orderTotal'          => $amount,
                 'orderTotalFormatted' => $this->currencyFormatter->format($currency, $amount),
                 'orderCurrency'       => $currency,

@@ -175,7 +175,6 @@ class SegmentFilterSubscriberFunctionalTest extends MauticMysqlTestCase
                 'USD',
                 null,
                 null,
-                'example',
                 'hixson',
                 [new OrderItemPayload('1722', 'Smart Water 1 Liter', 1, 'Beverages')]
             ),
@@ -189,7 +188,6 @@ class SegmentFilterSubscriberFunctionalTest extends MauticMysqlTestCase
                 'USD',
                 null,
                 null,
-                'example',
                 'hixson',
                 [new OrderItemPayload('3015', 'Swisher Sweet', 1, 'Cigars')]
             ),

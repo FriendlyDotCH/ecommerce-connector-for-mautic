@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace MauticPlugin\EcommerceConnectorBundle\Controller;
 
 use Mautic\CoreBundle\Controller\CommonController;
-use Mautic\LeadBundle\Helper\ContactRequestHelper;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use MauticPlugin\EcommerceConnectorBundle\Service\EcommerceOrderTracker;
+use MauticPlugin\EcommerceConnectorBundle\Service\ExistingContactLookup;
 use MauticPlugin\EcommerceConnectorBundle\Service\OrderPayloadParser;
+use MauticPlugin\EcommerceConnectorBundle\Service\WebhookRequestBody;
 use MauticPlugin\EcommerceConnectorBundle\Service\WebhookSignatureValidator;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,7 +19,7 @@ class PublicController extends CommonController
 {
     public function ecommerceAction(
         Request $request,
-        ContactRequestHelper $contactRequestHelper,
+        ExistingContactLookup $existingContactLookup,
         EcommerceOrderTracker $orderTracker,
         OrderPayloadParser $payloadParser,
         WebhookSignatureValidator $signatureValidator,
@@ -38,13 +39,14 @@ class PublicController extends CommonController
             return new Response('', Response::HTTP_NO_CONTENT);
         }
 
-        $input = array_merge($request->query->all(), $request->request->all());
+        $input = WebhookRequestBody::getInput($request);
         $payload = $payloadParser->parse($input, 'webhook');
         if (null === $payload) {
             return new Response('', Response::HTTP_NO_CONTENT);
         }
 
-        $lead = $contactRequestHelper->getContactFromQuery($input);
+        // Link only when email matches an existing contact. Never create contacts here.
+        $lead = $existingContactLookup->findByEmail($input['email'] ?? null);
 
         $orderTracker->recordOrder($payload, $lead);
 

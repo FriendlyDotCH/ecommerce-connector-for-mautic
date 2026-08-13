@@ -1,0 +1,64 @@
+<div class="row mb-md">
+    <div class="col-sm-6 col-md-3">
+        <h5 class="fw-sb mb-xs">{{ 'mautic.plugin.ecommerce.tab.order_number'|trans }}</h5>
+        <p class="mb-0">{{ order.orderId|purify }}</p>
+    </div>
+    <div class="col-sm-6 col-md-3">
+        <h5 class="fw-sb mb-xs">{{ 'mautic.plugin.ecommerce.tab.order_total'|trans }}</h5>
+        <p class="mb-0">{{ order.orderTotalFormatted|purify }}</p>
+    </div>
+    <div class="col-sm-6 col-md-3">
+        <h5 class="fw-sb mb-xs">{{ 'mautic.plugin.ecommerce.tab.location'|trans }}</h5>
+        <p class="mb-0">
+            {% if order.location %}
+                {{ order.location|purify }}
+            {% else %}
+                {{ 'mautic.core.no.info'|trans }}
+            {% endif %}
+        </p>
+    </div>
+    <div class="col-sm-6 col-md-3">
+        <h5 class="fw-sb mb-xs">{{ 'mautic.plugin.ecommerce.tab.source'|trans }}</h5>
+        <p class="mb-0">{{ order.orderSource|purify }}</p>
+    </div>
+</div>
+<div class="row mb-md">
+    <div class="col-sm-6 col-md-3">
+        <h5 class="fw-sb mb-xs">{{ 'mautic.plugin.ecommerce.tab.date'|trans }}</h5>
+        <p class="mb-0">{{ dateToText(order.dateAdded, 'local', 'Y-m-d H:i:s', true) }}</p>
+    </div>
+</div>
+
+<h5 class="fw-sb mb-sm">{{ 'mautic.plugin.ecommerce.tab.line_items'|trans }}</h5>
+{% if order.items is empty %}
+    <p class="text-secondary mb-0">{{ 'mautic.plugin.ecommerce.tab.no_line_items'|trans }}</p>
+{% else %}
+    <div class="table-responsive">
+        <table class="table table-condensed mb-0">
+            <thead>
+            <tr>
+                <th>{{ 'mautic.plugin.ecommerce.tab.item_name'|trans }}</th>
+                <th>{{ 'mautic.plugin.ecommerce.tab.item_id'|trans }}</th>
+                <th>{{ 'mautic.plugin.ecommerce.tab.item_qty'|trans }}</th>
+                <th>{{ 'mautic.plugin.ecommerce.tab.item_category'|trans }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for item in order.items %}
+                <tr>
+                    <td>{{ item.itemName|purify }}</td>
+                    <td>{{ item.itemId|purify }}</td>
+                    <td>{{ item.qty }}</td>
+                    <td>
+                        {% if item.category %}
+                            {{ item.category|purify }}
+                        {% else %}
+                            {{ 'mautic.core.no.info'|trans }}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}

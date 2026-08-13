@@ -99,7 +99,7 @@ $signature = hash_hmac(\'sha256\', $payload, \'YOUR_WEBHOOK_SECRET\');',
         <p class="mb-sm">{{ 'mautic.plugin.ecommerce.install.step6_body'|trans|purify }}</p>
         {{ include('@MauticCore/Components/code-snippet.html.twig', {
             variant: 'multi',
-            innerText: 'curl -X POST "' ~ webhookUrl|default('https://your-mautic-site.com/mtc/ecommerce') ~ '" \\
+            innerText: 'curl -X POST "' ~ webhookUrl|default('https://your-mautic-site.com/ecommerce/order') ~ '" \\
   -H "X-Mautic-Ecommerce-Signature: YOUR_SIGNATURE" \\
   -d "order_id=12345" \\
   -d "order_total=99.99" \\

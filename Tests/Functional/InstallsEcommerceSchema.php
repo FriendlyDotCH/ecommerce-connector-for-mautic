@@ -25,7 +25,6 @@ trait InstallsEcommerceSchema
                 order_total DECIMAL(19,4) NOT NULL,
                 order_currency VARCHAR(191) DEFAULT NULL,
                 order_source VARCHAR(191) NOT NULL,
-                merchant VARCHAR(191) DEFAULT NULL,
                 location VARCHAR(191) DEFAULT NULL,
                 date_added DATETIME NOT NULL,
                 UNIQUE INDEX ecommerce_order_source_unique (order_id, order_source),

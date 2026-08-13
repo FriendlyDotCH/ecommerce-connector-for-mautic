@@ -22,7 +22,11 @@ class Version_1_3_0 extends AbstractMigration
             return false;
         }
 
-        if (!$ordersTable->hasColumn('merchant') || !$ordersTable->hasColumn('location')) {
+        if ($ordersTable->hasColumn('merchant')) {
+            return true;
+        }
+
+        if (!$ordersTable->hasColumn('location')) {
             return true;
         }
 
@@ -38,8 +42,8 @@ class Version_1_3_0 extends AbstractMigration
         $schema        = $schemaManager->introspectSchema();
         $ordersTable   = $schema->getTable($ordersTableName);
 
-        if (!$ordersTable->hasColumn('merchant')) {
-            $this->addSql("ALTER TABLE `{$ordersTableName}` ADD `merchant` VARCHAR(191) DEFAULT NULL");
+        if ($ordersTable->hasColumn('merchant')) {
+            $this->addSql("ALTER TABLE `{$ordersTableName}` DROP COLUMN `merchant`");
         }
 
         if (!$ordersTable->hasColumn('location')) {

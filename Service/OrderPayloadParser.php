@@ -14,7 +14,6 @@ class OrderPayloadParser
 {
     public const ORDER_ID_MAX     = 191;
     public const ORDER_SOURCE_MAX = 64;
-    public const MERCHANT_MAX     = 191;
     public const LOCATION_MAX     = 191;
     public const ITEM_ID_MAX      = 191;
     public const ITEM_NAME_MAX    = 191;
@@ -101,7 +100,6 @@ class OrderPayloadParser
             }
         }
 
-        $merchant = $this->optionalSanitizedString($input['merchant'] ?? null, self::MERCHANT_MAX);
         $location = $this->optionalSanitizedString($input['location'] ?? null, self::LOCATION_MAX);
         $items    = $this->parseItems($input['items'] ?? null, $context);
 
@@ -112,7 +110,6 @@ class OrderPayloadParser
             $orderCurrency,
             $emailId > 0 ? $emailId : null,
             is_array($clickthrough) ? $clickthrough : null,
-            $merchant,
             $location,
             $items,
         );

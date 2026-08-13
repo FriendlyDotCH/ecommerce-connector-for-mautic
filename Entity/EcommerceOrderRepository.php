@@ -67,7 +67,6 @@ class EcommerceOrderRepository extends CommonRepository
             'eo.order_total',
             'eo.order_currency',
             'eo.order_source',
-            'eo.merchant',
             'eo.location',
             'eo.date_added',
             'e.id AS email_id',

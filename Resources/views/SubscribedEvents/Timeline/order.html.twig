@@ -1,0 +1,7 @@
+{#
+  Marker used by Assets/js/ecommerce.js to open the order details modal from History.
+#}
+<span class="js-ecommerce-order-timeline hide"
+      data-order-url="{{ event.extra.modalUrl|e('html_attr') }}"
+      data-order-header="{{ event.extra.modalHeader|e('html_attr') }}"
+      data-order-title="{{ 'mautic.plugin.ecommerce.tab.view_order'|trans|e('html_attr') }}"></span>
