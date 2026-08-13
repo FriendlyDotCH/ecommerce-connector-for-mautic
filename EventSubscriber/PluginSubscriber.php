@@ -62,12 +62,7 @@ class PluginSubscriber implements EventSubscriberInterface
 
     public function onUpdate(PluginUpdateEvent $event): void
     {
-        $metadata = self::getMetadata($this->entityManager);
-
-        if (count($metadata) > 0) {
-            $this->pluginDatabase->installPluginSchema($metadata);
-        }
-
+        // Schema changes for upgrades are handled by Migrations (via core PluginSubscriber).
         $this->leadCommerceFieldInstaller->installFields();
         $this->leadCommerceFieldUpdater->backfillAllContacts();
     }
@@ -94,7 +89,7 @@ class PluginSubscriber implements EventSubscriberInterface
                 continue;
             }
 
-            $classes[$meta->namespace] = $meta;
+            $classes[$meta->getName()] = $meta;
         }
 
         return $classes;

@@ -4,29 +4,29 @@ declare(strict_types=1);
 
 namespace MauticPlugin\EcommerceConnectorBundle\Tests\Functional\Service;
 
-use Doctrine\ORM\Tools\SchemaTool;
 use Mautic\CoreBundle\Test\MauticMysqlTestCase;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Model\FieldModel;
 use Mautic\LeadBundle\Model\LeadModel;
 use MauticPlugin\EcommerceConnectorBundle\DTO\OrderPayload;
-use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrder;
 use MauticPlugin\EcommerceConnectorBundle\Service\EcommerceOrderTracker;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldDefinition;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldInstaller;
+use MauticPlugin\EcommerceConnectorBundle\Tests\Functional\InstallsEcommerceSchema;
 use PHPUnit\Framework\Assert;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 class LeadCommerceFieldUpdaterFunctionalTest extends MauticMysqlTestCase
 {
+    use InstallsEcommerceSchema;
+
     protected $useCleanupRollback = false;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $schemaTool = new SchemaTool($this->em);
-        $schemaTool->updateSchema([$this->em->getClassMetadata(EcommerceOrder::class)], true);
+        $this->installEcommerceSchema($this->connection);
     }
 
     public function testOrderRecordingUpdatesContactCommerceFields(): void

@@ -8,6 +8,7 @@ final readonly class OrderPayload
 {
     /**
      * @param array<string, mixed>|null $clickthrough
+     * @param list<OrderItemPayload>    $items
      */
     public function __construct(
         public string $orderId,
@@ -16,6 +17,9 @@ final readonly class OrderPayload
         public ?string $orderCurrency,
         public ?int $emailId,
         public ?array $clickthrough,
+        public ?string $merchant = null,
+        public ?string $location = null,
+        public array $items = [],
     ) {
     }
 }

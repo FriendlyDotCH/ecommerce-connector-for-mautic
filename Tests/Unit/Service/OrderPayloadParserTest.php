@@ -45,13 +45,26 @@ class OrderPayloadParserTest extends TestCase
         $this->assertSame('EUR', $payload->orderCurrency);
     }
 
-    public function testParseRejectsNonPositiveTotals(): void
+    public function testParseAllowsZeroTotalsAndMissingTotal(): void
     {
-        $this->assertNull($this->parser->parse([
+        $zeroPayload = $this->parser->parse([
             'order_id'    => 'order-123',
             'order_total' => '0',
-        ]));
+        ]);
 
+        $this->assertNotNull($zeroPayload);
+        $this->assertSame('0.0000', $zeroPayload->orderTotal);
+
+        $missingTotal = $this->parser->parse([
+            'order_id' => 'order-456',
+        ]);
+
+        $this->assertNotNull($missingTotal);
+        $this->assertSame('0.0000', $missingTotal->orderTotal);
+    }
+
+    public function testParseRejectsNegativeTotals(): void
+    {
         $this->assertNull($this->parser->parse([
             'order_id'    => 'order-123',
             'order_total' => '-10',
@@ -75,5 +88,29 @@ class OrderPayloadParserTest extends TestCase
             'order_total'  => '10',
             'order_source' => 'shopify',
         ]));
+    }
+
+    public function testParseIncludesLineItemsMerchantAndLocation(): void
+    {
+        $payload = $this->parser->parse([
+            'order_id'  => 'order-789',
+            'merchant'  => 'example',
+            'location'  => 'hixson',
+            'items'     => [
+                [
+                    'item_id'   => '1722',
+                    'item_name' => 'Smart Water 1 Liter',
+                    'qty'       => 1,
+                    'category'  => 'Beverages',
+                ],
+            ],
+        ]);
+
+        $this->assertNotNull($payload);
+        $this->assertSame('example', $payload->merchant);
+        $this->assertSame('hixson', $payload->location);
+        $this->assertCount(1, $payload->items);
+        $this->assertSame('1722', $payload->items[0]->itemId);
+        $this->assertSame('Beverages', $payload->items[0]->category);
     }
 }

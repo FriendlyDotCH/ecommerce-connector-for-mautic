@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MauticPlugin\EcommerceConnectorBundle\Service;
 
 use Mautic\CoreBundle\Helper\ClickthroughHelper;
+use MauticPlugin\EcommerceConnectorBundle\DTO\OrderItemPayload;
 use MauticPlugin\EcommerceConnectorBundle\DTO\OrderPayload;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use Psr\Log\LoggerInterface;
@@ -13,6 +14,11 @@ class OrderPayloadParser
 {
     public const ORDER_ID_MAX     = 191;
     public const ORDER_SOURCE_MAX = 64;
+    public const MERCHANT_MAX     = 191;
+    public const LOCATION_MAX     = 191;
+    public const ITEM_ID_MAX      = 191;
+    public const ITEM_NAME_MAX    = 191;
+    public const CATEGORY_MAX     = 191;
 
     public function __construct(
         private Config $config,
@@ -25,7 +31,7 @@ class OrderPayloadParser
      */
     public function parse(array $input, string $context = 'request'): ?OrderPayload
     {
-        if (!isset($input['order_id'], $input['order_total'])) {
+        if (!isset($input['order_id'])) {
             return null;
         }
 
@@ -36,17 +42,21 @@ class OrderPayloadParser
             return null;
         }
 
-        if (!is_numeric($input['order_total'])) {
-            $this->logInvalidPayload($context, 'order_total must be numeric.');
+        if (array_key_exists('order_total', $input) && null !== $input['order_total'] && '' !== $input['order_total']) {
+            if (!is_numeric($input['order_total'])) {
+                $this->logInvalidPayload($context, 'order_total must be numeric.');
 
-            return null;
-        }
+                return null;
+            }
 
-        $orderTotal = $this->normalizeAmount((string) $input['order_total']);
-        if (null === $orderTotal) {
-            $this->logInvalidPayload($context, 'order_total must be greater than zero and within configured limits.');
+            $orderTotal = $this->normalizeAmount((string) $input['order_total']);
+            if (null === $orderTotal) {
+                $this->logInvalidPayload($context, 'order_total must be zero or greater and within configured limits.');
 
-            return null;
+                return null;
+            }
+        } else {
+            $orderTotal = '0.0000';
         }
 
         $orderSource = isset($input['order_source'])
@@ -91,6 +101,10 @@ class OrderPayloadParser
             }
         }
 
+        $merchant = $this->optionalSanitizedString($input['merchant'] ?? null, self::MERCHANT_MAX);
+        $location = $this->optionalSanitizedString($input['location'] ?? null, self::LOCATION_MAX);
+        $items    = $this->parseItems($input['items'] ?? null, $context);
+
         return new OrderPayload(
             $orderId,
             $orderTotal,
@@ -98,7 +112,56 @@ class OrderPayloadParser
             $orderCurrency,
             $emailId > 0 ? $emailId : null,
             is_array($clickthrough) ? $clickthrough : null,
+            $merchant,
+            $location,
+            $items,
         );
+    }
+
+    /**
+     * @return list<OrderItemPayload>
+     */
+    private function parseItems(mixed $items, string $context): array
+    {
+        if (null === $items || '' === $items) {
+            return [];
+        }
+
+        if (is_string($items)) {
+            $decoded = json_decode($items, true);
+            if (!is_array($decoded)) {
+                $this->logInvalidPayload($context, 'items must be a JSON array.');
+
+                return [];
+            }
+            $items = $decoded;
+        }
+
+        if (!is_array($items)) {
+            return [];
+        }
+
+        $parsed = [];
+
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $itemId   = $this->sanitizeString((string) ($item['item_id'] ?? ''), self::ITEM_ID_MAX);
+            $itemName = $this->sanitizeString((string) ($item['item_name'] ?? ''), self::ITEM_NAME_MAX);
+            $qty      = isset($item['qty']) && is_numeric($item['qty']) ? (int) $item['qty'] : 0;
+
+            if ('' === $itemId || '' === $itemName || $qty < 1) {
+                continue;
+            }
+
+            $category = $this->optionalSanitizedString($item['category'] ?? null, self::CATEGORY_MAX);
+
+            $parsed[] = new OrderItemPayload($itemId, $itemName, $qty, $category);
+        }
+
+        return $parsed;
     }
 
     private function normalizeAmount(string $amount): ?string
@@ -108,7 +171,7 @@ class OrderPayloadParser
         }
 
         $value = round((float) $amount, 4);
-        if ($value <= 0 || $value > $this->config->getMaxOrderTotal()) {
+        if ($value < 0 || $value > $this->config->getMaxOrderTotal()) {
             return null;
         }
 
@@ -123,6 +186,17 @@ class OrderPayloadParser
         }
 
         return in_array($orderSource, $allowedSources, true);
+    }
+
+    private function optionalSanitizedString(mixed $value, int $maxLength): ?string
+    {
+        if (!is_scalar($value)) {
+            return null;
+        }
+
+        $sanitized = $this->sanitizeString((string) $value, $maxLength);
+
+        return '' !== $sanitized ? $sanitized : null;
     }
 
     private function sanitizeString(string $value, int $maxLength): string

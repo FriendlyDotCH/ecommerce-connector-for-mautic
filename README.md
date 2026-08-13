@@ -27,15 +27,38 @@ Segment contacts by ecommerce activity and commerce field values (order count, l
 - Mautic 7.0+
 - PHP 8.2+
 
+## GDPR and privacy
+
+This plugin stores order and revenue data linked to Mautic contacts. That data may be personal data under the GDPR and similar privacy laws.
+
+**Before you enable tracking, update your privacy policy** so it discloses that order, purchase, and revenue information may be sent to and stored in Mautic for marketing analytics, email attribution, segmentation, and contact profiling. Do not rely on this plugin’s settings alone; your public-facing privacy policy (and any other required notices) must reflect this processing.
+
+You are also responsible for:
+
+- Having a lawful basis for processing (for example consent or legitimate interests, as applicable in your jurisdiction)
+- Obtaining consent where required before enabling order tracking
+- Handling data subject requests (access, erasure, and related rights) for ecommerce data stored in Mautic
+- Configuring retention and security in line with your policies and legal obligations
+
+### Data this plugin may store
+
+When orders are tracked, Mautic may store and display:
+
+- Order identifiers, totals, currency, source, merchant, location, and order date
+- Line items (product/item ID, name, quantity, category), when provided
+- Links between orders and contacts, and optional attribution to Mautic emails
+- Contact commerce fields (for example lifetime value, order count, last order date, last order total)
+- Contact timeline entries and report data derived from those orders
+
+A GDPR notice also appears in the plugin settings when you configure the integration.
+
 ## Installation
 
-### 1. Take a backup
-
-### 2. Add the plugin files
+### 1. Add the plugin files
 
 Copy the `EcommerceConnectorBundle` folder into your Mautic `plugins/` directory.
 
-### 3. Install or upgrade the plugin (Settings → Plugins)
+### 2. Install or upgrade the plugin (Settings → Plugins)
 
 1. Log in to Mautic as an administrator.
 2. Open **Settings** (gear icon) → **Plugins**.
@@ -45,7 +68,7 @@ Copy the `EcommerceConnectorBundle` folder into your Mautic `plugins/` directory
 
 You should see **Ecommerce Connector** appear in the plugin grid after installation.
 
-### 4. Configure the integration (three settings tabs)
+### 3. Configure the integration (three settings tabs)
 
 Click the **Ecommerce Connector** plugin tile to open the integration settings modal. Configuration is split across three tabs.
 
@@ -55,6 +78,7 @@ This tab controls whether the plugin is active and holds your webhook credential
 
 1. Set **Active** to **Yes**.
    - Webhook requests are rejected while the integration is inactive.
+   - Before enabling, update your privacy policy and confirm you have a lawful basis for processing. See [GDPR and privacy](#gdpr-and-privacy).
 2. Enter a **Webhook secret**.
    - Use a long, random string. Your store uses this to sign webhook requests.
    - This field is required for server-side order tracking.
@@ -86,7 +110,7 @@ Step-by-step setup instructions for connecting your store:
 - **Custom stores:** signed webhook integration guide with example PHP and cURL requests
 - Contact information if you need a custom integration built for you
 
-### 5. Connect your store
+### 4. Connect your store
 
 Configure your eCommerce platform to send signed `POST` requests to the webhook URL from step 3. See [Webhook tracking](#webhook-tracking) below for payload and signing details.
 
@@ -177,8 +201,19 @@ ddev exec php bin/phpunit -c app/phpunit.xml.dist plugins/EcommerceConnectorBund
 
 ## Changelog
 
-### 1.2.0
+### 1.3.0
+```
+- Added: Line items on tracked orders (item ID, name, qty, category).
+- Added: Merchant and location on tracked orders.
+- Added: Contact eCommerce tab columns for merchant and location.
+- Added: Line items shown under each order on the contact eCommerce tab.
+- Added: Segment filters for purchased product ID, name, and category.
+- Added: EMPTY and NOT_EMPTY operators on eCommerce text segment filters.
+- Added: Support for zero and missing order totals on webhook payloads.
+- Updated: Plugin upgrades now apply schema via migrations instead of reinstalling schema on update.
+```
 
+### 1.2.0
 ```
 - Added: Contact profile eCommerce fields (lifetime value, order count, last order date, last order total)
 - Added: Automatic eCommerce field updates when orders are recorded

@@ -7,6 +7,7 @@ namespace MauticPlugin\EcommerceConnectorBundle\EventSubscriber;
 use Mautic\CoreBundle\CoreEvents;
 use Mautic\CoreBundle\Event\CustomContentEvent;
 use Mautic\LeadBundle\Entity\Lead;
+use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderItemRepository;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use MauticPlugin\EcommerceConnectorBundle\Service\CurrencyFormatter;
@@ -19,6 +20,7 @@ final class ContactProfileTabSubscriber implements EventSubscriberInterface
 
     public function __construct(
         private EcommerceOrderRepository $orderRepository,
+        private EcommerceOrderItemRepository $orderItemRepository,
         private Config $config,
         private CurrencyFormatter $currencyFormatter,
         private RouterInterface $router,
@@ -60,12 +62,12 @@ final class ContactProfileTabSubscriber implements EventSubscriberInterface
             $defaultCurrency = $this->config->getDefaultCurrency();
 
             $event->addTemplate('@EcommerceConnector/Lead/Tab/ecommerce-tab-content.html.twig', [
-                'lead'                  => $lead,
-                'stats'                 => $stats,
-                'orders'                => $this->formatOrders($orders['results']),
-                'defaultCurrency'       => $defaultCurrency,
+                'lead'                   => $lead,
+                'stats'                  => $stats,
+                'orders'                 => $this->formatOrders($orders['results']),
+                'defaultCurrency'        => $defaultCurrency,
                 'lifetimeValueFormatted' => $this->currencyFormatter->format($defaultCurrency, $stats['lifetime_value']),
-                'lastOrderTotalFormatted' => $stats['last_order_date']
+                'lastOrderTotalFormatted'=> $stats['last_order_date']
                     ? $this->currencyFormatter->format($defaultCurrency, $stats['last_order_total'])
                     : null,
             ]);
@@ -79,11 +81,14 @@ final class ContactProfileTabSubscriber implements EventSubscriberInterface
      */
     private function formatOrders(array $orders): array
     {
-        $formatted = [];
+        $orderIds = array_map(static fn (array $order): int => (int) $order['id'], $orders);
+        $itemsByOrderId = $this->orderItemRepository->getItemsGroupedByOrderIds($orderIds);
+        $formatted      = [];
 
         foreach ($orders as $order) {
             $currency = strtoupper((string) ($order['order_currency'] ?? $this->config->getDefaultCurrency()));
             $amount   = number_format((float) $order['order_total'], 2, '.', '');
+            $orderPk  = (int) $order['id'];
 
             $emailLink = null;
             if (!empty($order['email_id'])) {
@@ -93,17 +98,30 @@ final class ContactProfileTabSubscriber implements EventSubscriberInterface
                 ]);
             }
 
+            $items = [];
+            foreach ($itemsByOrderId[$orderPk] ?? [] as $item) {
+                $items[] = [
+                    'itemId'   => $item['item_id'],
+                    'itemName' => $item['item_name'],
+                    'qty'      => $item['qty'],
+                    'category' => $item['category'],
+                ];
+            }
+
             $formatted[] = [
-                'id'            => (int) $order['id'],
-                'orderId'       => (string) $order['order_id'],
-                'orderSource'   => (string) $order['order_source'],
+                'id'                  => $orderPk,
+                'orderId'             => (string) $order['order_id'],
+                'orderSource'         => (string) $order['order_source'],
+                'merchant'            => !empty($order['merchant']) ? (string) $order['merchant'] : null,
+                'location'            => !empty($order['location']) ? (string) $order['location'] : null,
                 'orderTotal'          => $amount,
                 'orderTotalFormatted' => $this->currencyFormatter->format($currency, $amount),
                 'orderCurrency'       => $currency,
-                'dateAdded'     => $order['date_added'],
-                'emailId'       => !empty($order['email_id']) ? (int) $order['email_id'] : null,
-                'emailName'     => !empty($order['email_name']) ? (string) $order['email_name'] : null,
-                'emailLink'     => $emailLink,
+                'dateAdded'           => $order['date_added'],
+                'emailId'             => !empty($order['email_id']) ? (int) $order['email_id'] : null,
+                'emailName'           => !empty($order['email_name']) ? (string) $order['email_name'] : null,
+                'emailLink'           => $emailLink,
+                'items'               => $items,
             ];
         }
 

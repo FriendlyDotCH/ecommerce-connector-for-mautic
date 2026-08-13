@@ -23,6 +23,9 @@ final class SegmentFilterSubscriber implements EventSubscriberInterface
     public const FILTER_ORDER_TOTAL    = 'ecommerce_order_total';
     public const FILTER_ORDER_DATE     = 'ecommerce_order_date';
     public const FILTER_ORDER_SOURCE   = 'ecommerce_order_source';
+    public const FILTER_PRODUCT_ID     = 'ecommerce_product_id';
+    public const FILTER_PRODUCT_NAME   = 'ecommerce_product_name';
+    public const FILTER_PRODUCT_CATEGORY = 'ecommerce_product_category';
 
     public function __construct(
         private TypeOperatorProviderInterface $typeOperatorProvider,
@@ -46,6 +49,18 @@ final class SegmentFilterSubscriber implements EventSubscriberInterface
         if (!$event->isForSegmentation()) {
             return;
         }
+
+        $textOperators = $this->typeOperatorProvider->getOperatorsIncluding([
+            OperatorOptions::EQUAL_TO,
+            OperatorOptions::NOT_EQUAL_TO,
+            OperatorOptions::LIKE,
+            OperatorOptions::NOT_LIKE,
+            OperatorOptions::STARTS_WITH,
+            OperatorOptions::ENDS_WITH,
+            OperatorOptions::CONTAINS,
+            OperatorOptions::EMPTY,
+            OperatorOptions::NOT_EMPTY,
+        ]);
 
         $choices = [
             self::FILTER_HAS_ORDER => [
@@ -86,16 +101,26 @@ final class SegmentFilterSubscriber implements EventSubscriberInterface
             self::FILTER_ORDER_SOURCE => [
                 'label'      => $this->translator->trans('mautic.plugin.ecommerce.segment.order_source'),
                 'properties' => ['type' => 'text'],
-                'operators'  => $this->typeOperatorProvider->getOperatorsIncluding([
-                    OperatorOptions::EQUAL_TO,
-                    OperatorOptions::NOT_EQUAL_TO,
-                    OperatorOptions::LIKE,
-                    OperatorOptions::NOT_LIKE,
-                    OperatorOptions::STARTS_WITH,
-                    OperatorOptions::ENDS_WITH,
-                    OperatorOptions::CONTAINS,
-                ]),
-                'object' => 'lead',
+                'operators'  => $textOperators,
+                'object'     => 'lead',
+            ],
+            self::FILTER_PRODUCT_ID => [
+                'label'      => $this->translator->trans('mautic.plugin.ecommerce.segment.product_id'),
+                'properties' => ['type' => 'text'],
+                'operators'  => $textOperators,
+                'object'     => 'lead',
+            ],
+            self::FILTER_PRODUCT_NAME => [
+                'label'      => $this->translator->trans('mautic.plugin.ecommerce.segment.product_name'),
+                'properties' => ['type' => 'text'],
+                'operators'  => $textOperators,
+                'object'     => 'lead',
+            ],
+            self::FILTER_PRODUCT_CATEGORY => [
+                'label'      => $this->translator->trans('mautic.plugin.ecommerce.segment.product_category'),
+                'properties' => ['type' => 'text'],
+                'operators'  => $textOperators,
+                'object'     => 'lead',
             ],
         ];
 
@@ -136,6 +161,27 @@ final class SegmentFilterSubscriber implements EventSubscriberInterface
             'foreign_table'       => 'ecommerce_orders',
             'foreign_table_field' => 'lead_id',
             'field'               => 'order_source',
+        ]);
+
+        $event->addTranslation(self::FILTER_PRODUCT_ID, [
+            'type'                => ForeignValueFilterQueryBuilder::getServiceId(),
+            'foreign_table'       => 'ecommerce_order_items',
+            'foreign_table_field' => 'lead_id',
+            'field'               => 'item_id',
+        ]);
+
+        $event->addTranslation(self::FILTER_PRODUCT_NAME, [
+            'type'                => ForeignValueFilterQueryBuilder::getServiceId(),
+            'foreign_table'       => 'ecommerce_order_items',
+            'foreign_table_field' => 'lead_id',
+            'field'               => 'item_name',
+        ]);
+
+        $event->addTranslation(self::FILTER_PRODUCT_CATEGORY, [
+            'type'                => ForeignValueFilterQueryBuilder::getServiceId(),
+            'foreign_table'       => 'ecommerce_order_items',
+            'foreign_table_field' => 'lead_id',
+            'field'               => 'category',
         ]);
     }
 

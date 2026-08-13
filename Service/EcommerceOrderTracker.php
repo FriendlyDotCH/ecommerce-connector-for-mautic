@@ -9,8 +9,10 @@ use Doctrine\ORM\EntityManagerInterface;
 use Mautic\EmailBundle\Entity\Email;
 use Mautic\EmailBundle\Entity\Stat;
 use Mautic\LeadBundle\Entity\Lead;
+use MauticPlugin\EcommerceConnectorBundle\DTO\OrderItemPayload;
 use MauticPlugin\EcommerceConnectorBundle\DTO\OrderPayload;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrder;
+use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderItem;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use Psr\Log\LoggerInterface;
@@ -48,9 +50,15 @@ class EcommerceOrderTracker
         $order->setOrderTotal($payload->orderTotal);
         $order->setOrderCurrency($payload->orderCurrency);
         $order->setOrderSource($payload->orderSource);
+        $order->setMerchant($payload->merchant);
+        $order->setLocation($payload->location);
         $order->setDateAdded(new \DateTime());
         $order->setLead($lead);
         $order->setEmail($email);
+
+        foreach ($payload->items as $itemPayload) {
+            $order->addItem($this->createOrderItem($itemPayload, $lead));
+        }
 
         try {
             $this->entityManager->persist($order);
@@ -72,6 +80,18 @@ class EcommerceOrderTracker
         }
 
         return $order;
+    }
+
+    private function createOrderItem(OrderItemPayload $itemPayload, ?Lead $lead): EcommerceOrderItem
+    {
+        $item = new EcommerceOrderItem();
+        $item->setItemId($itemPayload->itemId);
+        $item->setItemName($itemPayload->itemName);
+        $item->setQty($itemPayload->qty);
+        $item->setCategory($itemPayload->category);
+        $item->setLead($lead);
+
+        return $item;
     }
 
     private function resolveEmailFromLead(Lead $lead): ?Email

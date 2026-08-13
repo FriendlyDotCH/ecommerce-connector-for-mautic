@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace MauticPlugin\EcommerceConnectorBundle\Tests\Functional\Migrations;
 
-use Doctrine\ORM\Tools\SchemaTool;
 use Mautic\CoreBundle\Test\MauticMysqlTestCase;
 use Mautic\IntegrationsBundle\Migration\Engine;
 use Mautic\PluginBundle\Entity\Plugin;
-use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrder;
 use PHPUnit\Framework\Assert;
 
-class Version_1_1_0MigrationTest extends MauticMysqlTestCase
+class Version_1_1_0Test extends MauticMysqlTestCase
 {
+    protected $useCleanupRollback = false;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -22,9 +22,12 @@ class Version_1_1_0MigrationTest extends MauticMysqlTestCase
 
     public function testMigrationUpgradesLegacySchema(): void
     {
-        $plugin = new Plugin();
-        $plugin->setName('Ecommerce Connector');
-        $plugin->setBundle('EcommerceConnectorBundle');
+        $plugin = $this->em->getRepository(Plugin::class)->findOneBy(['bundle' => 'EcommerceConnectorBundle']);
+        if (null === $plugin) {
+            $plugin = new Plugin();
+            $plugin->setName('Ecommerce Connector');
+            $plugin->setBundle('EcommerceConnectorBundle');
+        }
         $plugin->setVersion('1.0.0');
         $this->em->persist($plugin);
         $this->em->flush();
@@ -46,8 +49,8 @@ class Version_1_1_0MigrationTest extends MauticMysqlTestCase
 
     private function createLegacySchema(): void
     {
-        $schemaTool = new SchemaTool($this->em);
-        $schemaTool->dropSchema([$this->em->getClassMetadata(EcommerceOrder::class)]);
+        $this->connection->executeStatement('DROP TABLE IF EXISTS '.MAUTIC_TABLE_PREFIX.'ecommerce_order_items');
+        $this->connection->executeStatement('DROP TABLE IF EXISTS '.MAUTIC_TABLE_PREFIX.'ecommerce_orders');
 
         $this->connection->executeStatement(
             'CREATE TABLE '.MAUTIC_TABLE_PREFIX.'ecommerce_orders (

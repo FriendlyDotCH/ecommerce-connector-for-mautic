@@ -67,6 +67,14 @@
                         'class': 'visible-md visible-lg',
                     }) }}
                     {{ include('@MauticCore/Helper/tableheader.html.twig', {
+                        'text': 'mautic.plugin.ecommerce.tab.merchant',
+                        'class': 'visible-md visible-lg',
+                    }) }}
+                    {{ include('@MauticCore/Helper/tableheader.html.twig', {
+                        'text': 'mautic.plugin.ecommerce.tab.location',
+                        'class': 'visible-md visible-lg',
+                    }) }}
+                    {{ include('@MauticCore/Helper/tableheader.html.twig', {
                         'text': 'mautic.plugin.ecommerce.tab.source',
                         'class': 'visible-md visible-lg timeline-type',
                     }) }}
@@ -83,7 +91,7 @@
                     {% if lastDate != eventDate %}
                         {% set dateLabel = dateToTextShort(order.dateAdded, 'local', 'Y-m-d H:i:s') %}
                         <tr class="timeline-date-header">
-                            <td colspan="6" class="text-center">
+                            <td colspan="8" class="text-center">
                                 <span size="md" class="label label-warm-gray" style="font-weight: normal; font-size:13px;">
                                     <i class="ri-time-line"></i>{{ dateLabel }}
                                 </span>
@@ -104,9 +112,56 @@
                         </td>
                         <td class="visible-md visible-lg">{{ order.orderTotalFormatted|purify }}</td>
                         <td class="visible-md visible-lg">{{ order.orderId|purify }}</td>
+                        <td class="visible-md visible-lg">
+                            {% if order.merchant %}
+                                {{ order.merchant|purify }}
+                            {% else %}
+                                {{ 'mautic.core.no.info'|trans }}
+                            {% endif %}
+                        </td>
+                        <td class="visible-md visible-lg">
+                            {% if order.location %}
+                                {{ order.location|purify }}
+                            {% else %}
+                                {{ 'mautic.core.no.info'|trans }}
+                            {% endif %}
+                        </td>
                         <td class="timeline-type visible-md visible-lg">{{ order.orderSource|purify }}</td>
                         <td class="timeline-timestamp visible-md visible-lg">{{ dateToText(order.dateAdded, 'local', 'Y-m-d H:i:s', true) }}</td>
                     </tr>
+                    {% if order.items is not empty %}
+                        <tr class="{% if loop.index is divisible by(2) %}timeline-row-highlighted{% endif %}">
+                            <td></td>
+                            <td colspan="7">
+                                <table class="table table-condensed mb-0">
+                                    <thead>
+                                    <tr>
+                                        <th>{{ 'mautic.plugin.ecommerce.tab.item_name'|trans }}</th>
+                                        <th>{{ 'mautic.plugin.ecommerce.tab.item_id'|trans }}</th>
+                                        <th>{{ 'mautic.plugin.ecommerce.tab.item_qty'|trans }}</th>
+                                        <th>{{ 'mautic.plugin.ecommerce.tab.item_category'|trans }}</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for item in order.items %}
+                                        <tr>
+                                            <td>{{ item.itemName|purify }}</td>
+                                            <td>{{ item.itemId|purify }}</td>
+                                            <td>{{ item.qty }}</td>
+                                            <td>
+                                                {% if item.category %}
+                                                    {{ item.category|purify }}
+                                                {% else %}
+                                                    {{ 'mautic.core.no.info'|trans }}
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    {% endif %}
                 {% endfor %}
                 </tbody>
             </table>

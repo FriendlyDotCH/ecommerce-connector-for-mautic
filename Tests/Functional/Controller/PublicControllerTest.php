@@ -4,34 +4,31 @@ declare(strict_types=1);
 
 namespace MauticPlugin\EcommerceConnectorBundle\Tests\Functional\Controller;
 
-use Doctrine\ORM\Tools\SchemaTool;
 use Mautic\CoreBundle\Helper\EncryptionHelper;
 use Mautic\CoreBundle\Test\MauticMysqlTestCase;
 use Mautic\PluginBundle\Entity\Integration;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrder;
 use MauticPlugin\EcommerceConnectorBundle\Integration\EcommerceConnectorIntegration;
 use MauticPlugin\EcommerceConnectorBundle\Service\WebhookSignatureValidator;
+use MauticPlugin\EcommerceConnectorBundle\Tests\Functional\InstallsEcommerceSchema;
 use PHPUnit\Framework\Assert;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class PublicControllerTest extends MauticMysqlTestCase
 {
+    use InstallsEcommerceSchema;
+
     private const WEBHOOK_SECRET = 'test-webhook-secret';
+
+    protected $useCleanupRollback = false;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->installSchema();
+        $this->installEcommerceSchema($this->connection);
         $this->configureIntegration();
-    }
-
-    private function installSchema(): void
-    {
-        $metadata = $this->em->getClassMetadata(EcommerceOrder::class);
-        $schemaTool = new SchemaTool($this->em);
-        $schemaTool->updateSchema([$metadata], true);
     }
 
     public function testWebhookRecordsOrderWithValidSignature(): void

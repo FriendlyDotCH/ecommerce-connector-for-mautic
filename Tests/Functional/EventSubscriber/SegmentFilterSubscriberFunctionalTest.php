@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace MauticPlugin\EcommerceConnectorBundle\Tests\Functional\EventSubscriber;
 
-use Doctrine\ORM\Tools\SchemaTool;
 use Mautic\CoreBundle\Test\MauticMysqlTestCase;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Entity\LeadList;
 use Mautic\LeadBundle\Entity\ListLead;
 use Mautic\LeadBundle\Model\FieldModel;
+use MauticPlugin\EcommerceConnectorBundle\DTO\OrderItemPayload;
 use MauticPlugin\EcommerceConnectorBundle\DTO\OrderPayload;
-use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrder;
 use MauticPlugin\EcommerceConnectorBundle\EventSubscriber\SegmentFilterSubscriber;
 use MauticPlugin\EcommerceConnectorBundle\Service\EcommerceOrderTracker;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldDefinition;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldInstaller;
+use MauticPlugin\EcommerceConnectorBundle\Tests\Functional\InstallsEcommerceSchema;
 use PHPUnit\Framework\Assert;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Tester\ApplicationTester;
@@ -23,14 +23,15 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 class SegmentFilterSubscriberFunctionalTest extends MauticMysqlTestCase
 {
+    use InstallsEcommerceSchema;
+
     protected $useCleanupRollback = false;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $schemaTool = new SchemaTool($this->em);
-        $schemaTool->updateSchema([$this->em->getClassMetadata(EcommerceOrder::class)], true);
+        $this->installEcommerceSchema($this->connection);
     }
 
     public function testSegmentFiltersMatchPurchasingContacts(): void
@@ -155,6 +156,63 @@ class SegmentFilterSubscriberFunctionalTest extends MauticMysqlTestCase
 
         $memberLeadIds = $this->getSegmentMemberLeadIds($segment);
         Assert::assertContains($buyer->getId(), $memberLeadIds);
+    }
+
+    public function testProductCategorySegmentFilter(): void
+    {
+        $this->installCommerceFields();
+
+        $buyer = $this->createLead('category-buyer@example.com');
+        $other = $this->createLead('category-other@example.com');
+
+        /** @var EcommerceOrderTracker $tracker */
+        $tracker = static::getContainer()->get(EcommerceOrderTracker::class);
+        $tracker->recordOrder(
+            new OrderPayload(
+                'category-order-1',
+                '0.0000',
+                'WooCommerce',
+                'USD',
+                null,
+                null,
+                'example',
+                'hixson',
+                [new OrderItemPayload('1722', 'Smart Water 1 Liter', 1, 'Beverages')]
+            ),
+            $buyer
+        );
+        $tracker->recordOrder(
+            new OrderPayload(
+                'category-order-2',
+                '0.0000',
+                'WooCommerce',
+                'USD',
+                null,
+                null,
+                'example',
+                'hixson',
+                [new OrderItemPayload('3015', 'Swisher Sweet', 1, 'Cigars')]
+            ),
+            $other
+        );
+
+        $segment = $this->createSegment([
+            [
+                'glue'     => 'and',
+                'field'    => SegmentFilterSubscriber::FILTER_PRODUCT_CATEGORY,
+                'object'   => 'lead',
+                'type'     => 'text',
+                'operator' => '=',
+                'filter'   => 'Beverages',
+                'display'  => null,
+            ],
+        ]);
+
+        $this->rebuildSegment($segment);
+
+        $memberLeadIds = $this->getSegmentMemberLeadIds($segment);
+        Assert::assertContains($buyer->getId(), $memberLeadIds);
+        Assert::assertNotContains($other->getId(), $memberLeadIds);
     }
 
     /**

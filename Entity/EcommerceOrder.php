@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace MauticPlugin\EcommerceConnectorBundle\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Mautic\CoreBundle\Doctrine\Mapping\ClassMetadataBuilder;
 use Mautic\EmailBundle\Entity\Email;
@@ -25,7 +27,21 @@ class EcommerceOrder
 
     private string $orderSource;
 
+    private ?string $merchant = null;
+
+    private ?string $location = null;
+
     private \DateTimeInterface $dateAdded;
+
+    /**
+     * @var Collection<int, EcommerceOrderItem>
+     */
+    private Collection $items;
+
+    public function __construct()
+    {
+        $this->items = new ArrayCollection();
+    }
 
     public static function loadMetadata(ORM\ClassMetadata $metadata): void
     {
@@ -57,7 +73,17 @@ class EcommerceOrder
         ]);
         $builder->addNamedField('orderCurrency', 'string', 'order_currency', true);
         $builder->addNamedField('orderSource', 'string', 'order_source');
+        $builder->addNamedField('merchant', 'string', 'merchant', true);
+        $builder->addNamedField('location', 'string', 'location', true);
         $builder->addNamedField('dateAdded', 'datetime', 'date_added');
+
+        $builder->createOneToMany('items', EcommerceOrderItem::class)
+            ->setIndexBy('id')
+            ->mappedBy('ecommerceOrder')
+            ->cascadePersist()
+            ->cascadeRemove()
+            ->fetchExtraLazy()
+            ->build();
     }
 
     public function getId(): int
@@ -125,6 +151,26 @@ class EcommerceOrder
         $this->orderSource = $orderSource;
     }
 
+    public function getMerchant(): ?string
+    {
+        return $this->merchant;
+    }
+
+    public function setMerchant(?string $merchant): void
+    {
+        $this->merchant = $merchant;
+    }
+
+    public function getLocation(): ?string
+    {
+        return $this->location;
+    }
+
+    public function setLocation(?string $location): void
+    {
+        $this->location = $location;
+    }
+
     public function getDateAdded(): \DateTimeInterface
     {
         return $this->dateAdded;
@@ -133,5 +179,21 @@ class EcommerceOrder
     public function setDateAdded(\DateTimeInterface $dateAdded): void
     {
         $this->dateAdded = $dateAdded;
+    }
+
+    /**
+     * @return Collection<int, EcommerceOrderItem>
+     */
+    public function getItems(): Collection
+    {
+        return $this->items;
+    }
+
+    public function addItem(EcommerceOrderItem $item): void
+    {
+        if (!$this->items->contains($item)) {
+            $this->items->add($item);
+            $item->setEcommerceOrder($this);
+        }
     }
 }
