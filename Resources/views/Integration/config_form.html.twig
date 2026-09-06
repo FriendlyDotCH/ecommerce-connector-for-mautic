@@ -116,9 +116,26 @@
     <div class="tab-pane fade {% if 'details-container' == activeTab %}in active{% endif %} bdr-w-0" id="details-container">
         {{ include('@EcommerceConnector/Integration/_notice_styles.html.twig') }}
 
-        {% embed '@EcommerceConnector/Integration/notice.html.twig' with { variant: 'warning' } %}
+        {% if ecommerce_privacy_upgrade_notice_pending() %}
+            {{ include('@EcommerceConnector/Notification/admin_notice.html.twig') }}
+        {% endif %}
+
+        {% embed '@EcommerceConnector/Integration/notice.html.twig' with {
+            variant: 'warning',
+        } %}
             {% block content %}
-                <p class="mb-0">{{ 'mautic.plugin.ecommerce.gdpr_warning'|trans|purify }}</p>
+                <p class="mb-xs"><strong>{{ 'mautic.plugin.ecommerce.gdpr_warning_title'|trans }}</strong></p>
+                <p>{{ 'mautic.plugin.ecommerce.gdpr_warning'|trans|purify }}</p>
+                <p>{{ 'mautic.plugin.ecommerce.gdpr_data_intro'|trans }}</p>
+                <ul class="mb-xs pl-md">
+                    <li>{{ 'mautic.plugin.ecommerce.gdpr_data_orders'|trans }}</li>
+                    <li>{{ 'mautic.plugin.ecommerce.gdpr_data_items'|trans }}</li>
+                    <li>{{ 'mautic.plugin.ecommerce.gdpr_data_attribution'|trans }}</li>
+                    <li>{{ 'mautic.plugin.ecommerce.gdpr_data_fields'|trans }}</li>
+                    <li>{{ 'mautic.plugin.ecommerce.gdpr_data_timeline'|trans }}</li>
+                </ul>
+                <p>{{ 'mautic.plugin.ecommerce.gdpr_erasure'|trans }}</p>
+                <p class="mb-0">{{ 'mautic.plugin.ecommerce.gdpr_export'|trans }}</p>
             {% endblock %}
         {% endembed %}
 
@@ -166,6 +183,12 @@
     </div>
 
     <div class="tab-pane fade {% if 'webhook-container' == activeTab %}in active{% endif %} bdr-w-0" id="webhook-container">
+        {% embed '@EcommerceConnector/Integration/notice.html.twig' with { variant: 'warning' } %}
+            {% block content %}
+                <p class="mb-0">{{ 'mautic.plugin.ecommerce.webhook_privacy_notice'|trans }}</p>
+            {% endblock %}
+        {% endembed %}
+
         {%- if form.apiKeys is defined -%}
             {{- form_row(form.apiKeys) -}}
         {%- endif -%}

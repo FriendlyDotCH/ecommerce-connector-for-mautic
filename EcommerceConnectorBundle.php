@@ -6,6 +6,7 @@ namespace MauticPlugin\EcommerceConnectorBundle;
 
 use Mautic\IntegrationsBundle\Bundle\AbstractPluginBundle;
 use MauticPlugin\EcommerceConnectorBundle\DependencyInjection\Compiler\OverrideContactColumnsDictionaryPass;
+use MauticPlugin\EcommerceConnectorBundle\DependencyInjection\Compiler\OverrideExportHelperPass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 class EcommerceConnectorBundle extends AbstractPluginBundle
@@ -15,5 +16,6 @@ class EcommerceConnectorBundle extends AbstractPluginBundle
         parent::build($container);
 
         $container->addCompilerPass(new OverrideContactColumnsDictionaryPass());
+        $container->addCompilerPass(new OverrideExportHelperPass());
     }
 }

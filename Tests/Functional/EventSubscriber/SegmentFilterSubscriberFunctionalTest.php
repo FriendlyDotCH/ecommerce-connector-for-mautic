@@ -189,7 +189,7 @@ class SegmentFilterSubscriberFunctionalTest extends MauticMysqlTestCase
                 null,
                 null,
                 'hixson',
-                [new OrderItemPayload('3015', 'Swisher Sweet', 1, 'Cigars')]
+                [new OrderItemPayload('3015', 'Sunglasses', 1, 'Accessories')]
             ),
             $other
         );

@@ -24,33 +24,41 @@ Segment contacts by ecommerce activity and commerce field values (order count, l
 
 ## Requirements
 
-- Mautic 7.0+
-- PHP 8.2+
+* Mautic 7.0+
+* PHP 8.2+
 
 ## GDPR and privacy
 
 This plugin stores order and revenue data linked to Mautic contacts. That data may be personal data under the GDPR and similar privacy laws.
 
+Cookies are not the threshold. The signed webhook is server-to-server and does not set cookies, but it still processes personal data. Page-hit tracking uses Mautic's existing visitor identification, which typically involves cookies.
+
 **Before you enable tracking, update your privacy policy** so it discloses that order, purchase, and revenue information may be sent to and stored in Mautic for marketing analytics, email attribution, segmentation, and contact profiling. Do not rely on this plugin’s settings alone; your public-facing privacy policy (and any other required notices) must reflect this processing.
 
 You are also responsible for:
 
-- Having a lawful basis for processing (for example consent or legitimate interests, as applicable in your jurisdiction)
-- Obtaining consent where required before enabling order tracking
-- Handling data subject requests (access, erasure, and related rights) for ecommerce data stored in Mautic
-- Configuring retention and security in line with your policies and legal obligations
+* Having a lawful basis for processing (for example consent or legitimate interests, as applicable in your jurisdiction)
+* Obtaining consent where required before enabling order tracking
+* Handling data subject requests (access, erasure, and related rights) for ecommerce data stored in Mautic
+* Configuring retention and security in line with your policies and legal obligations
 
 ### Data this plugin may store
 
 When orders are tracked, Mautic may store and display:
 
-- Order identifiers, totals, currency, source, location, and order date
-- Line items (product/item ID, name, quantity, category), when provided
-- Links between orders and contacts, and optional attribution to Mautic emails
-- Contact commerce fields (for example lifetime value, order count, last order date, last order total)
-- Contact timeline entries and report data derived from those orders
+* Order identifiers, totals, currency, source, location, and order date
+* Line items (product/item ID, name, quantity, category), when provided
+* Links between orders and contacts, and optional attribution to Mautic emails
+* Contact commerce fields (lifetime value, order count, last order date, last order total)
+* Contact timeline entries and report data derived from those orders
 
-A GDPR notice also appears in the plugin settings when you configure the integration.
+### Access and erasure
+
+* **Contact export** includes order history (order ID, totals, currency, source, location, date, attributed email, and line items) so you can fulfill access requests.
+* **Deleting a contact** also deletes that contact's ecommerce orders and line items. Commerce fields on the contact are removed with the contact. Email revenue totals for those orders will drop after deletion.
+* Merging contacts moves ecommerce orders to the remaining contact.
+
+You are solely responsible for any data protection measures required for your use of this integration.
 
 ## Installation
 
@@ -58,57 +66,65 @@ A GDPR notice also appears in the plugin settings when you configure the integra
 
 Copy the `EcommerceConnectorBundle` folder into your Mautic `plugins/` directory.
 
-### 2. Install or upgrade the plugin (Settings → Plugins)
+### 2. Install the plugin (Settings → Plugins)
 
 1. Log in to Mautic as an administrator.
 2. Open **Settings** (gear icon) → **Plugins**.
 3. Click **Install/Upgrade Plugins** in the top toolbar.
-   - Mautic scans the `plugins/` directory and installs any new or updated plugins.
-   - When upgrading from an older version, this also triggers database migrations automatically.
+   * Mautic scans the `plugins/` directory and installs any new plugins.
 
 You should see **Ecommerce Connector** appear in the plugin grid after installation.
 
-### 3. Configure the integration (three settings tabs)
+### 3. Configure the integration
 
-Click the **Ecommerce Connector** plugin tile to open the integration settings modal. Configuration is split across three tabs.
+Click the **Ecommerce Connector** plugin tile to open the integration settings modal. Configuration is split across six tabs: General, Validation, Formatting, Webhook, Installation, and Support.
 
-#### Tab 1: Enabled/Auth
+#### General
 
-This tab controls whether the plugin is active and holds your webhook credentials.
+This tab controls whether the plugin is active and how orders are attributed.
 
 1. Set **Active** to **Yes**.
-   - Webhook requests are rejected while the integration is inactive.
-   - Before enabling, update your privacy policy and confirm you have a lawful basis for processing. See [GDPR and privacy](#gdpr-and-privacy).
-2. Enter a **Webhook secret**.
-   - Use a long, random string. Your store uses this to sign webhook requests.
-   - This field is required for server-side order tracking.
-3. Note the **Webhook URL** shown in the info box below the form.
-   - Example: `https://your-mautic-site.com/ecommerce/order`
-   - Use this URL in your eCommerce platform or custom integration.
+   * Webhook requests are rejected while the integration is inactive.
+   * Before enabling, update your privacy policy and confirm you have a lawful basis for processing. See [GDPR and privacy](#gdpr-and-privacy).
+2. Optionally enable **Track orders from page hits** to record orders from thank-you page URL query parameters. Recommended for simple setups.
+3. Leave **Attribute revenue to last email sent** off unless you accept possible misattribution. When no email is provided, this links the order to the most recently sent email.
 
-Click **Save** or **Save & Close** before continuing, or configure the Features tab first and save once at the end.
-
-#### Tab 2: Features
-
-This tab controls how orders are validated and attributed.
+#### Validation
 
 | Setting | Recommended | Description |
 |---------|-------------|-------------|
-| Track orders from page hits | Yes (for simple setups) | Record orders from thank-you page URL query parameters |
-| Attribute revenue to last email sent | No | When no email is provided, link the order to the most recently sent email. Can misattribute revenue. |
 | Allowed order sources | Leave blank | Comma-separated list (e.g. `web,woocommerce,shopify`). Blank allows any source. |
-| Default currency | `USD` | Used when `order_currency` is not sent in the payload |
 | Maximum order total | `1000000` | Orders above this amount are rejected |
 
-Click **Save & Close** when finished.
+#### Formatting
 
-#### Tab 3: Installation
+| Setting | Recommended | Description |
+|---------|-------------|-------------|
+| Default currency | `USD` | Used when `order_currency` is not sent in the payload |
+
+#### Webhook
+
+This tab holds your webhook credentials. The signed webhook is server-to-server and does not set cookies, but it still processes personal data.
+
+1. Enter a **Webhook secret**.
+   * Use a long, random string. Your store uses this to sign webhook requests.
+   * This field is required for server-side order tracking.
+2. Note the **Webhook URL** shown in the info box below the form.
+   * Example: `https://your-mautic-site.com/ecommerce/order`
+   * Use this URL in your eCommerce platform or custom integration.
+
+#### Installation
 
 Step-by-step setup instructions for connecting your store:
 
-- **WordPress / WooCommerce:** use the [Sync Mautic](https://wordpress.org/plugins/sync-mautic/) plugin with WP Mautic and this connector
-- **Custom stores:** signed webhook integration guide with example PHP and cURL requests
-- Contact information if you need a custom integration built for you
+* **WordPress / WooCommerce:** use the [Sync Mautic](https://wordpress.org/plugins/sync-mautic/) plugin with WP Mautic and this connector
+* **Custom stores:** signed webhook integration guide with example PHP and cURL requests
+
+#### Support
+
+Contact information if you need help or a custom integration built for you.
+
+Click **Save** or **Save & Close** when finished, or save once after configuring every tab you need.
 
 ### 4. Connect your store
 
@@ -116,15 +132,37 @@ Configure your eCommerce platform to send signed `POST` requests to the webhook 
 
 For a quick test without a store integration, enable **Track orders from page hits** and send visitors to a thank-you page with order query parameters. See [Page hit tracking](#page-hit-tracking).
 
-## Upgrading
+## Upgrade
 
-When deploying a new plugin version:
+Use these steps when replacing an older Ecommerce Connector version with a newer one. Use either [Replace the plugin files](#1-replace-the-plugin-files) or [Update with Composer](#2-update-with-composer), then run [Install/Upgrade Plugins](#3-run-installupgrade-plugins).
 
-1. Replace the files in `plugins/EcommerceConnectorBundle/`.
-2. Open **Settings → Plugins**.
-3. Click **Install/Upgrade Plugins**.
+### 1. Replace the plugin files
 
-Mautic compares the version in `Config/config.php` with the installed version and runs database migrations automatically when needed.
+Replace the existing `plugins/EcommerceConnectorBundle/` folder with the new plugin files. Keep the folder name `EcommerceConnectorBundle`.
+
+Do not delete the plugin from **Settings → Plugins** first. That is an uninstall, not an upgrade.
+
+### 2. Update with Composer
+
+If you installed the plugin with Composer, update it from your Mautic root directory:
+
+```bash
+composer update dogbytemarketing/ecommerce-connector-for-mautic
+```
+
+Composer installs the plugin as `plugins/EcommerceConnectorBundle/`. After Composer finishes, continue with the step below.
+
+### 3. Run Install/Upgrade Plugins
+
+1. Log in to Mautic as an administrator.
+2. Open **Settings** (gear icon) → **Plugins**.
+3. Click **Install/Upgrade Plugins** in the top toolbar.
+
+Mautic compares the version in the plugin files with the installed version and runs database migrations automatically when needed. Your webhook secret and other integration settings are kept.
+
+When upgrading from a version before 1.3.0, the integration is turned off automatically so you can update your privacy policy. Admins see a dashboard notice and a Mautic notification. Dismissing the notice does not turn tracking back on. After you update your privacy policy, open the plugin tile, set **Active** to **Yes**, and save.
+
+After the upgrade, confirm **Ecommerce Connector** still appears in the plugin grid, then open the plugin tile if you need to review settings.
 
 ## Webhook tracking
 
@@ -141,7 +179,7 @@ The previous path `/mtc/ecommerce` is still accepted as a legacy alias to the sa
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `order_id` | Yes | Unique order ID from your store |
-| `order_total` | Yes | Order total (must be greater than zero) |
+| `order_total` | No | Order total. Missing or empty values default to `0`. Must be zero or greater and within the configured maximum. |
 | `order_source` | No | Source identifier (default: `web`) |
 | `order_currency` | No | 3-letter ISO 4217 code (default: configured default currency) |
 | `email` | No | Contact email. The order is linked only if this email already exists in Mautic. Contacts are never created from the webhook. |
@@ -209,13 +247,15 @@ https://your-mautic-site.com/thank-you?order_id=12345&order_total=99.99&order_so
 
 ## Features
 
-- Revenue badges on the email list and email detail views (currency symbols such as `$0.00`, grouped by currency when multiple currencies exist)
-- Contact timeline entries for recorded orders
-- Report builder data source: **Ecommerce orders**
-- Duplicate order protection via unique constraint on `order_id` + `order_source`
-- Contact profile commerce fields (lifetime value, order count, last order date, last order total)
-- Segment filters for ecommerce activity and commerce field values
-- Automatic database migrations on plugin update
+* Revenue badges on the email list and email detail views (currency symbols such as `$0.00`, grouped by currency when multiple currencies exist)
+* Contact timeline entries for recorded orders
+* Report builder data source: **Ecommerce orders**
+* Duplicate order protection via unique constraint on `order_id` + `order_source`
+* Contact profile commerce fields (lifetime value, order count, last order date, last order total)
+* Segment filters for ecommerce activity and commerce field values
+* Automatic database migrations on plugin update
+* Contact export includes ecommerce order history
+* Deleting a contact also deletes related ecommerce orders and line items
 
 ## Development
 
@@ -225,70 +265,83 @@ Run plugin tests:
 ddev exec php bin/phpunit -c app/phpunit.xml.dist plugins/EcommerceConnectorBundle/Tests
 ```
 
+## Disclaimer
+
+This software is provided **as is**, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages, or other liability arising from use of this software.
+
+You are solely responsible for how you deploy and use this plugin, including compliance with applicable laws and data protection obligations.
+
 ## Changelog
 
 ### 1.3.0
 ```
-- Added: Line items on tracked orders (item ID, name, qty, category).
-- Added: Merchant and location on tracked orders.
-- Added: Contact eCommerce tab columns for location.
-- Added: Line items shown under each order on the contact eCommerce tab.
-- Added: Segment filters for purchased product ID, name, and category.
-- Added: EMPTY and NOT_EMPTY operators on eCommerce text segment filters.
-- Added: Support for zero and missing order totals on webhook payloads.
-- Added: Order details modal on the contact eCommerce tab (click a row to view details and line items)
-- Added: Order details modal from the contact timeline
-- Added: Total revenue column on the contacts list
-- Added: JSON webhook body support with HMAC signing of the raw request body
-- Added: Optional webhook email field to link orders to an existing contact only (never creates contacts)
-- Updated: Webhook URL from /mtc/ecommerce to /ecommerce/order
-- Updated: Contact eCommerce tab table to a simpler order summary (details moved into the modal)
-- Updated: Location labels display with cleaned formatting
-- Updated: Plugin upgrades now apply schema via migrations instead of reinstalling schema on update.
+* Added: Line items on tracked orders (item ID, name, qty, category).
+* Added: Location on tracked orders.
+* Added: Contact eCommerce tab columns for location.
+* Added: Line items shown under each order on the contact eCommerce tab.
+* Added: Segment filters for purchased product ID, name, and category.
+* Added: EMPTY and NOT_EMPTY operators on eCommerce text segment filters.
+* Added: Support for zero and missing order totals on webhook payloads.
+* Added: Order details modal on the contact eCommerce tab (click a row to view details and line items)
+* Added: Order details modal from the contact timeline
+* Added: Total revenue column on the contacts list
+* Added: JSON webhook body support with HMAC signing of the raw request body
+* Added: Optional webhook email field to link orders to an existing contact only (never creates contacts)
+* Added: Upgrades from versions before 1.3.0 disable the integration and notify admins so the privacy policy can be reviewed before tracking is turned back on.
+* Added: Dismissable admin notice listing ecommerce data stored for contacts.
+* Added: Webhook tab notice that server-to-server tracking still processes personal data.
+* Added: Order history (including line items) to contact export.
+* Added: Contact deletion now removes related ecommerce orders and line items.
+* Added: Contact merge reassigns ecommerce orders to the remaining contact.
+* Updated: Webhook URL from /mtc/ecommerce to /ecommerce/order
+* Updated: Contact eCommerce tab table to a simpler order summary (details moved into the modal)
+* Updated: Location labels display with cleaned formatting
+* Updated: Plugin upgrades now apply schema via migrations instead of reinstalling schema on update.
+* Updated: GDPR documentation with cookies vs webhook processing, access, and erasure.
 ```
 
 ### 1.2.0
 ```
-- Added: Contact profile eCommerce fields (lifetime value, order count, last order date, last order total)
-- Added: Automatic eCommerce field updates when orders are recorded
-- Added: Contact profile eCommerce tab with commerce stats and order history
-- Added: Segment filters for ecommerce orders (has order, order total, order date, order source)
-- Updated: Settings organization into General, Validation, Formatting, Webhook, Installation, and Support tabs
+* Added: Contact profile eCommerce fields (lifetime value, order count, last order date, last order total)
+* Added: Automatic eCommerce field updates when orders are recorded
+* Added: Contact profile eCommerce tab with commerce stats and order history
+* Added: Segment filters for ecommerce orders (has order, order total, order date, order source)
+* Updated: Settings organization into General, Validation, Formatting, Webhook, Installation, and Support tabs
 ```
 
 ### 1.1.1
 ```
-- Bugfix: composer.json
+* Bugfix: composer.json
 ```
 
 ### 1.1.0
 
 ```
-- Added: Webhook HMAC signature validation (X-Mautic-Ecommerce-Signature)
-- Added: Plugin integration settings (webhook secret, page hit tracking, allowed sources, default currency, max order total)
-- Added: Shared order payload parser with amount, currency, and source validation
-- Added: Revenue display grouped by currency on email stats using currency symbols (for example $0.00)
-- Added: Contact timeline entries for orders
-- Added: Report builder data source for ecommerce orders
-- Added: Installation tab with WordPress Sync Mautic and custom signed-webhook setup guides
-- Added: Plugin config notices for webhook URL and GDPR compliance
-- Added: Duplicate order race condition handling
-- Added: Unit and functional tests
-- Added: Translations for plugin UI strings
-- Added: Verified order-to-contact tracking via Mautic clickthrough token (ct)
-- Updated: order_total storage from float to decimal (19,4)
-- Updated: Last-email attribution disabled by default (configurable)
-- Updated: Revenue badge to show $0.00 (or configured default currency symbol) when active with no orders yet
-- Updated: Integration settings UI with compact stacked notice boxes
+* Added: Webhook HMAC signature validation (X-Mautic-Ecommerce-Signature)
+* Added: Plugin integration settings (webhook secret, page hit tracking, allowed sources, default currency, max order total)
+* Added: Shared order payload parser with amount, currency, and source validation
+* Added: Revenue display grouped by currency on email stats using currency symbols (for example $0.00)
+* Added: Contact timeline entries for orders
+* Added: Report builder data source for ecommerce orders
+* Added: Installation tab with WordPress Sync Mautic and custom signed-webhook setup guides
+* Added: Plugin config notices for webhook URL and GDPR compliance
+* Added: Duplicate order race condition handling
+* Added: Unit and functional tests
+* Added: Translations for plugin UI strings
+* Added: Verified order-to-contact tracking via Mautic clickthrough token (ct)
+* Updated: order_total storage from float to decimal (19,4)
+* Updated: Last-email attribution disabled by default (configurable)
+* Updated: Revenue badge to show $0.00 (or configured default currency symbol) when active with no orders yet
+* Updated: Integration settings UI with compact stacked notice boxes
 ```
 
 ### 1.0.0
 
 ```
-- Added: Initial release
-- Added: Track orders via webhook endpoint (POST /mtc/ecommerce)
-- Added: Track orders from page hit query parameters
-- Added: Store orders linked to contacts and emails
-- Added: Display revenue on email list stats
-- Added: Plugin schema install on first install
+* Added: Initial release
+* Added: Track orders via webhook endpoint (POST /mtc/ecommerce)
+* Added: Track orders from page hit query parameters
+* Added: Store orders linked to contacts and emails
+* Added: Display revenue on email list stats
+* Added: Plugin schema install on first install
 ```

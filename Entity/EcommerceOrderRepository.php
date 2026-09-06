@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MauticPlugin\EcommerceConnectorBundle\Entity;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Mautic\CoreBundle\Entity\CommonRepository;
 
 /**
@@ -152,5 +153,76 @@ class EcommerceOrderRepository extends CommonRepository
         $results = $query->executeQuery()->fetchFirstColumn();
 
         return array_map('intval', $results);
+    }
+
+    public function deleteByLeadId(int $leadId): void
+    {
+        if ($leadId <= 0) {
+            return;
+        }
+
+        $connection  = $this->getEntityManager()->getConnection();
+        $ordersTable = MAUTIC_TABLE_PREFIX.'ecommerce_orders';
+        $itemsTable  = MAUTIC_TABLE_PREFIX.'ecommerce_order_items';
+
+        $orderIds = $connection->createQueryBuilder()
+            ->select('eo.id')
+            ->from($ordersTable, 'eo')
+            ->where('eo.lead_id = :leadId')
+            ->setParameter('leadId', $leadId)
+            ->executeQuery()
+            ->fetchFirstColumn();
+
+        $itemDelete = $connection->createQueryBuilder()->delete($itemsTable);
+        if ([] !== $orderIds) {
+            $itemDelete
+                ->where(
+                    $itemDelete->expr()->or(
+                        $itemDelete->expr()->in('order_id', ':orderIds'),
+                        $itemDelete->expr()->eq('lead_id', ':leadId')
+                    )
+                )
+                ->setParameter('orderIds', array_map('intval', $orderIds), ArrayParameterType::INTEGER)
+                ->setParameter('leadId', $leadId)
+                ->executeStatement();
+
+            $connection->createQueryBuilder()
+                ->delete($ordersTable)
+                ->where('lead_id = :leadId')
+                ->setParameter('leadId', $leadId)
+                ->executeStatement();
+
+            return;
+        }
+
+        $itemDelete
+            ->where('lead_id = :leadId')
+            ->setParameter('leadId', $leadId)
+            ->executeStatement();
+    }
+
+    public function updateLead(int $fromLeadId, int $toLeadId): void
+    {
+        if ($fromLeadId <= 0 || $toLeadId <= 0 || $fromLeadId === $toLeadId) {
+            return;
+        }
+
+        $connection = $this->getEntityManager()->getConnection();
+
+        $connection->createQueryBuilder()
+            ->update(MAUTIC_TABLE_PREFIX.'ecommerce_orders')
+            ->set('lead_id', ':toLeadId')
+            ->where('lead_id = :fromLeadId')
+            ->setParameter('toLeadId', $toLeadId)
+            ->setParameter('fromLeadId', $fromLeadId)
+            ->executeStatement();
+
+        $connection->createQueryBuilder()
+            ->update(MAUTIC_TABLE_PREFIX.'ecommerce_order_items')
+            ->set('lead_id', ':toLeadId')
+            ->where('lead_id = :fromLeadId')
+            ->setParameter('toLeadId', $toLeadId)
+            ->setParameter('fromLeadId', $fromLeadId)
+            ->executeStatement();
     }
 }

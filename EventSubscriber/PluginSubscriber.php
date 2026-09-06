@@ -12,15 +12,21 @@ use Mautic\PluginBundle\Event\PluginUpdateEvent;
 use Mautic\PluginBundle\PluginEvents;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldInstaller;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldUpdater;
+use MauticPlugin\EcommerceConnectorBundle\Service\PrivacyUpdateNotifier;
+use MauticPlugin\EcommerceConnectorBundle\Service\PrivacyUpgradeNotice;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class PluginSubscriber implements EventSubscriberInterface
 {
+    private const BUNDLE = 'EcommerceConnectorBundle';
+
     public function __construct(
         private EntityManagerInterface $entityManager,
         private PluginDatabase $pluginDatabase,
         private LeadCommerceFieldInstaller $leadCommerceFieldInstaller,
         private LeadCommerceFieldUpdater $leadCommerceFieldUpdater,
+        private PrivacyUpdateNotifier $privacyUpdateNotifier,
+        private PrivacyUpgradeNotice $privacyUpgradeNotice,
     ) {
     }
 
@@ -62,9 +68,18 @@ class PluginSubscriber implements EventSubscriberInterface
 
     public function onUpdate(PluginUpdateEvent $event): void
     {
+        if (self::BUNDLE !== $event->getPlugin()->getBundle()) {
+            return;
+        }
+
         // Schema changes for upgrades are handled by Migrations (via core PluginSubscriber).
         $this->leadCommerceFieldInstaller->installFields();
         $this->leadCommerceFieldUpdater->backfillAllContacts();
+
+        if ($this->privacyUpgradeNotice->shouldPromptOnUpdate($event->getOldVersion())) {
+            $this->privacyUpgradeNotice->disableIntegrationAndShowNotice();
+            $this->privacyUpdateNotifier->notifyAdmins();
+        }
     }
 
     /**

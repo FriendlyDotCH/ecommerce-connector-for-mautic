@@ -43,7 +43,7 @@ class EcommerceOrderItem
             ->build();
 
         $builder->createManyToOne('lead', Lead::class)
-            ->addJoinColumn('lead_id', 'id', true, false, 'SET NULL')
+            ->addJoinColumn('lead_id', 'id', true, false, 'CASCADE')
             ->build();
 
         $builder->addNamedField('itemId', 'string', 'item_id');

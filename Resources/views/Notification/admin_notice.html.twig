@@ -1,0 +1,90 @@
+<style>
+    .js-ecommerce-privacy-notice.alert {
+        align-items: flex-start;
+        margin-bottom: 16px;
+        padding: 16px 40px 16px 16px;
+        width: 100%;
+    }
+
+    .ecommerce-privacy-notice-content {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .ecommerce-privacy-notice-content h3 {
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 1.3;
+        margin: 0 0 8px;
+    }
+
+    .ecommerce-privacy-notice-content p {
+        margin: 0 0 8px;
+    }
+
+    .ecommerce-privacy-notice-content ul {
+        margin: 0 0 8px;
+        padding-left: 20px;
+    }
+
+    .js-ecommerce-privacy-notice .close {
+        font-size: 18px;
+        opacity: 0.8;
+        right: 12px;
+        top: 12px;
+    }
+</style>
+<div class="alert alert-danger js-ecommerce-privacy-notice" id="ecommerce-privacy-upgrade-notice" role="alert">
+    <div class="ecommerce-privacy-notice-content">
+        <button type="button" class="close js-ecommerce-privacy-notice-dismiss" aria-label="{{ 'mautic.core.close'|trans }}">
+            <i class="ri-close-line"></i>
+        </button>
+        <h3>{{ 'mautic.plugin.ecommerce.admin_notice.title'|trans }}</h3>
+        <p>{{ 'mautic.plugin.ecommerce.admin_notice.intro'|trans }}</p>
+        <p>{{ 'mautic.plugin.ecommerce.admin_notice.data_intro'|trans }}</p>
+        <ul>
+            <li>{{ 'mautic.plugin.ecommerce.gdpr_data_orders'|trans }}</li>
+            <li>{{ 'mautic.plugin.ecommerce.gdpr_data_items'|trans }}</li>
+            <li>{{ 'mautic.plugin.ecommerce.gdpr_data_attribution'|trans }}</li>
+            <li>{{ 'mautic.plugin.ecommerce.gdpr_data_timeline'|trans }}</li>
+            <li>{{ 'mautic.plugin.ecommerce.gdpr_data_fields'|trans }}</li>
+        </ul>
+        <p class="mb-0">{{ 'mautic.plugin.ecommerce.admin_notice.dismiss_note'|trans }}</p>
+    </div>
+</div>
+<script>
+    (function () {
+        var $notice = mQuery('#ecommerce-privacy-upgrade-notice');
+        var $pageHeader = $notice.closest('.page-header');
+        if ($notice.length && $pageHeader.length) {
+            $pageHeader.after($notice);
+        }
+
+        if (window.ecommercePrivacyNoticeDismissBound) {
+            return;
+        }
+        window.ecommercePrivacyNoticeDismissBound = true;
+        mQuery(document).on('click', '.js-ecommerce-privacy-notice-dismiss', function (e) {
+            e.preventDefault();
+            var $target = mQuery(this).closest('.js-ecommerce-privacy-notice');
+            if ($target.data('ecommerce-privacy-dismissing')) {
+                return;
+            }
+            $target.data('ecommerce-privacy-dismissing', 1);
+            mQuery.ajax({
+                url: mauticAjaxUrl,
+                type: 'POST',
+                dataType: 'json',
+                data: { action: 'plugin:EcommerceConnector:dismissPrivacyNotice' }
+            }).done(function (response) {
+                if (response && 1 == response.success) {
+                    $target.remove();
+                } else {
+                    $target.data('ecommerce-privacy-dismissing', 0);
+                }
+            }).fail(function () {
+                $target.data('ecommerce-privacy-dismissing', 0);
+            });
+        });
+    })();
+</script>

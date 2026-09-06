@@ -6,6 +6,7 @@ namespace MauticPlugin\EcommerceConnectorBundle\Integration;
 
 use Mautic\CoreBundle\Form\Type\YesNoButtonGroupType;
 use Mautic\PluginBundle\Integration\AbstractIntegration;
+use MauticPlugin\EcommerceConnectorBundle\Service\PrivacyUpgradeNotice;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Form;
@@ -154,9 +155,14 @@ class EcommerceConnectorIntegration extends AbstractIntegration
     public function mergeConfigToFeatureSettings($config = [])
     {
         $featureSettings = $this->settings->getFeatureSettings();
+        $privacyNotice   = $featureSettings[PrivacyUpgradeNotice::FEATURE_KEY] ?? null;
 
         if (empty($config['integration']) || $config['integration'] === $this->getName()) {
             $featureSettings = array_merge($featureSettings, $config['config'] ?? []);
+        }
+
+        if (is_string($privacyNotice)) {
+            $featureSettings[PrivacyUpgradeNotice::FEATURE_KEY] = $privacyNotice;
         }
 
         if (!array_key_exists('enable_page_hit_tracking', $featureSettings)) {

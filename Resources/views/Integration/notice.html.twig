@@ -1,4 +1,9 @@
 {% set noticeVariant = variant|default('info') %}
-<div class="ecommerce-notice ecommerce-notice--{{ noticeVariant }}">
+{% set noticeId = id|default(null) %}
+{% set dismissible = dismissible|default(false) %}
+<div{% if noticeId %} id="{{ noticeId }}"{% endif %} class="ecommerce-notice ecommerce-notice--{{ noticeVariant }}{% if dismissible %} alert{% endif %}">
+    {% if dismissible %}
+        <button type="button" class="close" user-dismiss="alert" aria-hidden="true"><i class="ri-close-line"></i></button>
+    {% endif %}
     {% block content %}{% endblock %}
 </div>
