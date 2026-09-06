@@ -21,6 +21,6 @@ final class OverrideContactColumnsDictionaryPass implements CompilerPassInterfac
         $definition = $container->getDefinition('mautic.lead.columns.dictionary');
         $definition->setClass(EcommerceContactColumnsDictionary::class);
         $definition->setAutowired(true);
-        $definition->addArgument(new Reference(Config::class));
+        $definition->setArgument('$ecommerceConfig', new Reference(Config::class));
     }
 }

@@ -47,6 +47,34 @@ Mautic.ecommerceBindTimelineOrderLinks = function (container) {
     });
 };
 
+Mautic.ecommerceInitContactTab = function () {
+    var $pane = mQuery('#ecommerce-container');
+    if (!$pane.length) {
+        return;
+    }
+
+    var $tabContent = $pane.closest('.tab-content');
+    if ($tabContent.length) {
+        $tabContent.append($pane);
+    }
+
+    mQuery('body > .modal[id^="ecommerce-order-modal-"]').remove();
+    $pane.find('.modal').appendTo(document.body);
+};
+
+mQuery(document).on('click.ecommerceTab', 'a[href="#ecommerce-container"][data-toggle="tab"]', function () {
+    window.setTimeout(function () {
+        var $pane = mQuery('#ecommerce-container');
+        if (!$pane.length || $pane.hasClass('active')) {
+            return;
+        }
+
+        $pane.closest('.tab-content').children('.tab-pane.active').removeClass('active in');
+        $pane.addClass('active in');
+    }, 200);
+});
+
 mQuery(document).on('mautic:onPageLoad:before', function (event, container) {
     Mautic.ecommerceBindTimelineOrderLinks(container);
+    Mautic.ecommerceInitContactTab();
 });

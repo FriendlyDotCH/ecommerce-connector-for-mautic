@@ -62,11 +62,15 @@ You are solely responsible for any data protection measures required for your us
 
 ## Installation
 
-### 1. Add the plugin files
+### 1. Back up before install
+
+Take a backup of your Mautic database and files before you install. The plugin adds database tables and contact fields. A backup lets you restore Mautic if something goes wrong.
+
+### 2. Add the plugin files
 
 Copy the `EcommerceConnectorBundle` folder into your Mautic `plugins/` directory.
 
-### 2. Install the plugin (Settings → Plugins)
+### 3. Install the plugin (Settings → Plugins)
 
 1. Log in to Mautic as an administrator.
 2. Open **Settings** (gear icon) → **Plugins**.
@@ -75,7 +79,7 @@ Copy the `EcommerceConnectorBundle` folder into your Mautic `plugins/` directory
 
 You should see **Ecommerce Connector** appear in the plugin grid after installation.
 
-### 3. Configure the integration
+### 4. Configure the integration
 
 Click the **Ecommerce Connector** plugin tile to open the integration settings modal. Configuration is split across six tabs: General, Validation, Formatting, Webhook, Installation, and Support.
 
@@ -126,23 +130,27 @@ Contact information if you need help or a custom integration built for you.
 
 Click **Save** or **Save & Close** when finished, or save once after configuring every tab you need.
 
-### 4. Connect your store
+### 5. Connect your store
 
-Configure your eCommerce platform to send signed `POST` requests to the webhook URL from step 3. See [Webhook tracking](#webhook-tracking) below for payload and signing details.
+Configure your eCommerce platform to send signed `POST` requests to the webhook URL from step 4. See [Webhook tracking](#webhook-tracking) below for payload and signing details.
 
 For a quick test without a store integration, enable **Track orders from page hits** and send visitors to a thank-you page with order query parameters. See [Page hit tracking](#page-hit-tracking).
 
 ## Upgrade
 
-Use these steps when replacing an older Ecommerce Connector version with a newer one. Use either [Replace the plugin files](#1-replace-the-plugin-files) or [Update with Composer](#2-update-with-composer), then run [Install/Upgrade Plugins](#3-run-installupgrade-plugins).
+Use these steps when replacing an older Ecommerce Connector version with a newer one. Back up first, then use either [Replace the plugin files](#2-replace-the-plugin-files) or [Update with Composer](#3-update-with-composer), then run [Install/Upgrade Plugins](#4-run-installupgrade-plugins).
 
-### 1. Replace the plugin files
+### 1. Back up before upgrade
+
+Take a backup of your Mautic database and files before you upgrade.
+
+### 2. Replace the plugin files
 
 Replace the existing `plugins/EcommerceConnectorBundle/` folder with the new plugin files. Keep the folder name `EcommerceConnectorBundle`.
 
 Do not delete the plugin from **Settings → Plugins** first. That is an uninstall, not an upgrade.
 
-### 2. Update with Composer
+### 3. Update with Composer
 
 If you installed the plugin with Composer, update it from your Mautic root directory:
 
@@ -152,7 +160,7 @@ composer update dogbytemarketing/ecommerce-connector-for-mautic
 
 Composer installs the plugin as `plugins/EcommerceConnectorBundle/`. After Composer finishes, continue with the step below.
 
-### 3. Run Install/Upgrade Plugins
+### 4. Run Install/Upgrade Plugins
 
 1. Log in to Mautic as an administrator.
 2. Open **Settings** (gear icon) → **Plugins**.
@@ -292,7 +300,7 @@ You are solely responsible for how you deploy and use this plugin, including com
 * Added: Webhook tab notice that server-to-server tracking still processes personal data.
 * Added: Order history (including line items) to contact export.
 * Added: Contact deletion now removes related ecommerce orders and line items.
-* Added: Contact merge reassigns ecommerce orders to the remaining contact.
+* Added: Backup steps before install and upgrade.
 * Updated: Webhook URL from /mtc/ecommerce to /ecommerce/order
 * Updated: Contact eCommerce tab table to a simpler order summary (details moved into the modal)
 * Updated: Location labels display with cleaned formatting
