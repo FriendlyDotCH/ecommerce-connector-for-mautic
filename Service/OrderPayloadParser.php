@@ -182,7 +182,13 @@ class OrderPayloadParser
             return true;
         }
 
-        return in_array($orderSource, $allowedSources, true);
+        foreach ($allowedSources as $allowedSource) {
+            if (strcasecmp($orderSource, $allowedSource) === 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function optionalSanitizedString(mixed $value, int $maxLength): ?string

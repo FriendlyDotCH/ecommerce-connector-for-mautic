@@ -90,6 +90,28 @@ class OrderPayloadParserTest extends TestCase
         ]));
     }
 
+    public function testParseAllowsOrderSourceCaseInsensitively(): void
+    {
+        $config = $this->createMock(Config::class);
+        $config->method('getMaxOrderTotal')->willReturn(1000000.0);
+        $config->method('getDefaultCurrency')->willReturn('USD');
+        $config->method('getAllowedOrderSources')->willReturn(['WooCommerce']);
+
+        $parser = new OrderPayloadParser(
+            $config,
+            $this->createMock(LoggerInterface::class)
+        );
+
+        $payload = $parser->parse([
+            'order_id'     => 'order-123',
+            'order_total'  => '10',
+            'order_source' => 'woocommerce',
+        ]);
+
+        $this->assertNotNull($payload);
+        $this->assertSame('woocommerce', $payload->orderSource);
+    }
+
     public function testParseIncludesLineItemsAndLocation(): void
     {
         $payload = $this->parser->parse([

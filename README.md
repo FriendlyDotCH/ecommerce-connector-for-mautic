@@ -33,6 +33,8 @@ This plugin stores order and revenue data linked to Mautic contacts. That data m
 
 Cookies are not the threshold. The signed webhook is server-to-server and does not set cookies, but it still processes personal data. Page-hit tracking uses Mautic's existing visitor identification, which typically involves cookies.
 
+Page-hit orders are read from the `mtc.js` POST to `/mtc/event` (and from `/mtracking.gif`). Those orders can be stored even when Mautic does not save a page hit, including when the browser sends Do Not Track (DNT) or Global Privacy Control (GPC). Page hits may include a contact email used only to link an existing Mautic contact.
+
 **Before you enable tracking, update your privacy policy** so it discloses that order, purchase, and revenue information may be sent to and stored in Mautic for marketing analytics, email attribution, segmentation, and contact profiling. Do not rely on this plugin’s settings alone; your public-facing privacy policy (and any other required notices) must reflect this processing.
 
 You are also responsible for:
@@ -48,6 +50,7 @@ When orders are tracked, Mautic may store and display:
 
 * Order identifiers, totals, currency, source, location, and order date
 * Line items (product/item ID, name, quantity, category), when provided
+* Optional contact email from page hits or the webhook, used only to link an existing Mautic contact (contacts are never created from these requests)
 * Links between orders and contacts, and optional attribution to Mautic emails
 * Contact commerce fields (lifetime value, order count, last order date, last order total)
 * Contact timeline entries and report data derived from those orders
@@ -90,14 +93,14 @@ This tab controls whether the plugin is active and how orders are attributed.
 1. Set **Active** to **Yes**.
    * Webhook requests are rejected while the integration is inactive.
    * Before enabling, update your privacy policy and confirm you have a lawful basis for processing. See [GDPR and privacy](#gdpr-and-privacy).
-2. Optionally enable **Track orders from page hits** to record orders from thank-you page URL query parameters. Recommended for simple setups.
+2. Optionally enable **Track orders from page hits** to record orders from `mtc.js` pageviews (POST fields or thank-you page query parameters). Recommended for simple setups.
 3. Leave **Attribute revenue to last email sent** off unless you accept possible misattribution. When no email is provided, this links the order to the most recently sent email.
 
 #### Validation
 
 | Setting | Recommended | Description |
 |---------|-------------|-------------|
-| Allowed order sources | Leave blank | Comma-separated list (e.g. `web,woocommerce,shopify`). Blank allows any source. |
+| Allowed order sources | `WooCommerce` for Sync Mautic | Comma-separated list (e.g. `web,WooCommerce,shopify`). For Sync Mautic, set this to `WooCommerce`. Blank allows any source. |
 | Maximum order total | `1000000` | Orders above this amount are rejected |
 
 #### Formatting
@@ -121,7 +124,7 @@ This tab holds your webhook credentials. The signed webhook is server-to-server 
 
 Step-by-step setup instructions for connecting your store:
 
-* **WordPress / WooCommerce:** use the [Sync Mautic](https://wordpress.org/plugins/sync-mautic/) plugin with WP Mautic and this connector
+* **WordPress / WooCommerce:** use the [Sync Mautic](https://wordpress.org/plugins/sync-mautic/) plugin with WP Mautic and this connector. Set **Allowed order sources** on the Validation tab to `WooCommerce`.
 * **Custom stores:** signed webhook integration guide with example PHP and cURL requests
 
 #### Support
@@ -134,7 +137,7 @@ Click **Save** or **Save & Close** when finished, or save once after configuring
 
 Configure your eCommerce platform to send signed `POST` requests to the webhook URL from step 4. See [Webhook tracking](#webhook-tracking) below for payload and signing details.
 
-For a quick test without a store integration, enable **Track orders from page hits** and send visitors to a thank-you page with order query parameters. See [Page hit tracking](#page-hit-tracking).
+For a quick test without a store integration, enable **Track orders from page hits** and send visitors to a thank-you page with order fields on the pageview or in the URL. See [Page hit tracking](#page-hit-tracking).
 
 ## Upgrade
 
@@ -142,7 +145,7 @@ Use these steps when replacing an older Ecommerce Connector version with a newer
 
 ### 1. Back up before upgrade
 
-Take a backup of your Mautic database and files before you upgrade.
+Take a backup of your Mautic database and files before you upgrade. Upgrades can run database migrations. A backup lets you restore Mautic if something goes wrong.
 
 ### 2. Replace the plugin files
 
@@ -170,7 +173,7 @@ Mautic compares the version in the plugin files with the installed version and r
 
 When upgrading from a version before 1.3.0, the integration is turned off automatically so you can update your privacy policy. Admins see a dashboard notice and a Mautic notification. Dismissing the notice does not turn tracking back on. After you update your privacy policy, open the plugin tile, set **Active** to **Yes**, and save.
 
-After the upgrade, confirm **Ecommerce Connector** still appears in the plugin grid, then open the plugin tile if you need to review settings.
+After the upgrade, confirm **Ecommerce Connector** still appears in the plugin grid, then open the plugin tile if you need to review settings. If you use Sync Mautic, open the Validation tab and set **Allowed order sources** to `WooCommerce`.
 
 ## Webhook tracking
 
@@ -188,7 +191,7 @@ The previous path `/mtc/ecommerce` is still accepted as a legacy alias to the sa
 |-----------|----------|-------------|
 | `order_id` | Yes | Unique order ID from your store |
 | `order_total` | No | Order total. Missing or empty values default to `0`. Must be zero or greater and within the configured maximum. |
-| `order_source` | No | Source identifier (default: `web`) |
+| `order_source` | No | Source identifier (default: `web`). Sync Mautic sends `WooCommerce`. |
 | `order_currency` | No | 3-letter ISO 4217 code (default: configured default currency) |
 | `email` | No | Contact email. The order is linked only if this email already exists in Mautic. Contacts are never created from the webhook. |
 | `email_id` | No | Mautic email ID to attribute revenue to |
@@ -245,12 +248,32 @@ curl -X POST "https://your-mautic-site.com/ecommerce/order" \
 
 ## Page hit tracking
 
-When **Track orders from page hits** is enabled, orders can also be recorded from landing page query parameters (for example on a thank-you page). Server-side webhooks are recommended for production stores.
+When **Track orders from page hits** is enabled, orders can be recorded from Mautic tracking requests on a thank-you page:
+
+* Query parameters on a tracked landing page URL
+* Fields posted by `mtc.js` to `/mtc/event` (or `/mtracking.gif`)
+
+The same order fields are accepted as the webhook (`order_id`, `order_total`, `order_source`, `order_currency`, `email`, `items`, and related attribution fields). `email` links the order only if that contact already exists in Mautic. Contacts are never created from page hits.
+
+Orders from these tracking requests can be stored even when Mautic does not save a page hit, including when the visitor is a logged-in Mautic user or the browser sends DNT or GPC.
+
+Server-side webhooks are recommended for production stores.
 
 Example thank-you page URL:
 
 ```
 https://your-mautic-site.com/thank-you?order_id=12345&order_total=99.99&order_source=web
+```
+
+Example `mtc.js` pageview fields:
+
+```
+mt('send', 'pageview', {
+  order_id: '12345',
+  order_total: '99.99',
+  order_source: 'web',
+  email: 'existing@example.com'
+});
 ```
 
 ## Features
@@ -301,11 +324,17 @@ You are solely responsible for how you deploy and use this plugin, including com
 * Added: Order history (including line items) to contact export.
 * Added: Contact deletion now removes related ecommerce orders and line items.
 * Added: Backup steps before install and upgrade.
+* Updated: Upgrade backup notice to mention database migrations.
+* Updated: Installation and upgrade docs, Installation tab, and Allowed order sources tooltip to set the source to WooCommerce for Sync Mautic.
 * Updated: Webhook URL from /mtc/ecommerce to /ecommerce/order
 * Updated: Contact eCommerce tab table to a simpler order summary (details moved into the modal)
 * Updated: Location labels display with cleaned formatting
 * Updated: Plugin upgrades now apply schema via migrations instead of reinstalling schema on update.
 * Updated: GDPR documentation with cookies vs webhook processing, access, and erasure.
+* Updated: GDPR documentation for page-hit billing email and orders recorded from /mtc/event when Mautic does not save a page hit.
+* Updated: Page hit tracking docs to cover mtc.js POST fields, optional email, and DNT/GPC.
+* Updated: Plugin GDPR notice, page-hit tooltip, installation copy, and upgrade notice data list for page-hit email matching and orders recorded when Mautic does not save a page hit.
+* Bugfix: Non-existent service error from 7.2.
 ```
 
 ### 1.2.0
