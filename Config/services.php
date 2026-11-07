@@ -14,7 +14,9 @@ return function (ContainerConfigurator $configurator): void {
         ->defaults()
         ->autowire()
         ->autoconfigure()
-        ->public();
+        ->public()
+        // Log to Mautic's own log (notice and up in production), not the error-only app channel.
+        ->bind(Psr\Log\LoggerInterface::class.' $logger', service('monolog.logger.mautic'));
 
     $services->load('MauticPlugin\\EcommerceConnectorBundle\\', '../')
         ->exclude('../{'.implode(',', Mautic\CoreBundle\DependencyInjection\MauticCoreExtension::DEFAULT_EXCLUDES).'}');

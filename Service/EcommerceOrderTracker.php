@@ -38,6 +38,11 @@ class EcommerceOrderTracker
         ?Email $email = null,
     ): ?EcommerceOrder {
         if ($this->orderRepository->orderExists($payload->orderId, $payload->orderSource)) {
+            $this->logger->warning('Ecommerce order ignored: an order with this order_id and order_source already exists.', [
+                'order_id'     => $payload->orderId,
+                'order_source' => $payload->orderSource,
+            ]);
+
             return null;
         }
 

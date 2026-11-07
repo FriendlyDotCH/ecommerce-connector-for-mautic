@@ -27,14 +27,24 @@ class PublicController extends CommonController
         LoggerInterface $logger,
     ): Response {
         if (!$config->isPublished()) {
-            $logger->debug('Ecommerce webhook rejected because the integration is not published.');
+            // Warnings, so the reason shows in Mautic's log while the response stays 204.
+            $logger->warning('Ecommerce webhook rejected: the integration is not published.');
 
             return new Response('', Response::HTTP_NO_CONTENT);
         }
 
         $secret = $config->getWebhookSecret();
-        if (null === $secret || !$signatureValidator->isValid($request, $secret)) {
-            $logger->debug('Ecommerce webhook rejected due to missing or invalid signature.');
+        if (null === $secret) {
+            $logger->warning('Ecommerce webhook rejected: no webhook secret is configured.');
+
+            return new Response('', Response::HTTP_NO_CONTENT);
+        }
+
+        if (!$signatureValidator->isValid($request, $secret)) {
+            $logger->warning(sprintf(
+                'Ecommerce webhook rejected: %s X-Mautic-Ecommerce-Signature header. For a JSON body, sign the exact raw body with HMAC-SHA256 and the webhook secret.',
+                '' === (string) $request->headers->get('X-Mautic-Ecommerce-Signature', '') ? 'missing' : 'invalid'
+            ));
 
             return new Response('', Response::HTTP_NO_CONTENT);
         }

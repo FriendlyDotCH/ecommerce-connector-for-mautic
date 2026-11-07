@@ -267,7 +267,7 @@ class OrderPayloadParser
 
     private function logInvalidPayload(string $context, string $reason): void
     {
-        $this->logger->debug(
+        $this->logger->warning(
             sprintf('Ecommerce order payload rejected (%s): %s', $context, $reason),
             ['plugin' => 'EcommerceConnector']
         );
