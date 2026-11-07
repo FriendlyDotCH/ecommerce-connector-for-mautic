@@ -33,33 +33,23 @@ class PluginSubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            PluginEvents::ON_PLUGIN_INSTALL => ['onInstall', 100],
+            PluginEvents::ON_PLUGIN_INSTALL => ['onInstall', -100],
             PluginEvents::ON_PLUGIN_UPDATE  => ['onUpdate', 100],
         ];
     }
 
     public function onInstall(PluginInstallEvent $event): void
     {
-        $eventMetadata = $event->getMetadata();
-
-        if (null === $eventMetadata) {
-            $metadata = self::getMetadata($this->entityManager);
-        } else {
-            $metadata = [];
-            foreach ($eventMetadata as $class => $classMetadata) {
-                if (!str_contains($classMetadata->namespace, 'MauticPlugin\\EcommerceConnectorBundle')) {
-                    continue;
-                }
-
-                $metadata[$class] = $classMetadata;
-            }
+        if (self::BUNDLE !== $event->getPlugin()->getBundle()) {
+            return;
         }
 
+        // Runs after core's PluginSubscriber. self::getMetadata() excludes tables that
+        // already exist, so this only fills gaps core did not create.
+        $metadata = self::getMetadata($this->entityManager);
+
         if (count($metadata) > 0) {
-            $this->pluginDatabase->installPluginSchema(
-                $metadata,
-                $event->getInstalledSchema()
-            );
+            $this->pluginDatabase->installPluginSchema($metadata, null);
         }
 
         $this->leadCommerceFieldInstaller->installFields();

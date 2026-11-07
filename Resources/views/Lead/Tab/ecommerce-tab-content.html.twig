@@ -81,7 +81,7 @@
                 {% for order in orders %}
                     {% set eventDate = dateToDate(order.dateAdded, 'local', 'Y-m-d H:i:s') %}
                     {% if lastDate != eventDate %}
-                        {% set dateLabel = dateToTextShort(order.dateAdded, 'local', 'Y-m-d H:i:s') %}
+                        {% set dateLabel = dateToText(order.dateAdded, 'local', 'Y-m-d H:i:s') %}
                         <tr class="timeline-date-header">
                             <td colspan="6" class="text-center">
                                 <span size="md" class="label label-warm-gray" style="font-weight: normal; font-size:13px;">
