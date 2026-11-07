@@ -14,8 +14,11 @@ use MauticPlugin\EcommerceConnectorBundle\DTO\OrderPayload;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrder;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderItem;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
+use MauticPlugin\EcommerceConnectorBundle\EcommerceEvents;
+use MauticPlugin\EcommerceConnectorBundle\Event\EcommerceOrderEvent;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use Psr\Log\LoggerInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 class EcommerceOrderTracker
 {
@@ -25,6 +28,7 @@ class EcommerceOrderTracker
         private Config $config,
         private LoggerInterface $logger,
         private LeadCommerceFieldUpdater $leadCommerceFieldUpdater,
+        private EventDispatcherInterface $dispatcher,
     ) {
     }
 
@@ -79,6 +83,8 @@ class EcommerceOrderTracker
         if (null !== $lead) {
             $this->leadCommerceFieldUpdater->syncForLead($lead);
         }
+
+        $this->dispatcher->dispatch(new EcommerceOrderEvent($order), EcommerceEvents::ORDER_RECORDED);
 
         return $order;
     }
