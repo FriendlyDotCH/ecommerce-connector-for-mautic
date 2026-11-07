@@ -475,6 +475,8 @@ mt('send', 'pageview', {
 
 ## Development
 
+Roadmap status, code layout, conventions and next steps: [DEVELOPMENT.md](DEVELOPMENT.md).
+
 Run plugin tests:
 
 ```bash
