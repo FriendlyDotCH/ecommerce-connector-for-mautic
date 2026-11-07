@@ -16,6 +16,12 @@ final class LeadCommerceFieldDefinition
 
     public const LAST_ORDER_TOTAL = 'ecommerce_last_order_total';
 
+    public const DAYS_SINCE_LAST_ORDER = 'ecommerce_days_since_last_order';
+
+    public const AVG_DAYS_BETWEEN_ORDERS = 'ecommerce_avg_days_between_orders';
+
+    public const NEXT_ORDER_DATE = 'ecommerce_next_order_date';
+
     /**
      * @return array<string, array{label: string, type: string, alias: string}>
      */
@@ -41,6 +47,21 @@ final class LeadCommerceFieldDefinition
                 'label' => 'mautic.plugin.ecommerce.field.last_order_total',
                 'type'  => 'number',
                 'alias' => self::LAST_ORDER_TOTAL,
+            ],
+            self::DAYS_SINCE_LAST_ORDER => [
+                'label' => 'mautic.plugin.ecommerce.field.days_since_last_order',
+                'type'  => 'number',
+                'alias' => self::DAYS_SINCE_LAST_ORDER,
+            ],
+            self::AVG_DAYS_BETWEEN_ORDERS => [
+                'label' => 'mautic.plugin.ecommerce.field.avg_days_between_orders',
+                'type'  => 'number',
+                'alias' => self::AVG_DAYS_BETWEEN_ORDERS,
+            ],
+            self::NEXT_ORDER_DATE => [
+                'label' => 'mautic.plugin.ecommerce.field.next_order_date',
+                'type'  => 'date',
+                'alias' => self::NEXT_ORDER_DATE,
             ],
         ];
     }

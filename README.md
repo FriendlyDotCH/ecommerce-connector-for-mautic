@@ -267,19 +267,29 @@ curl -X POST "https://your-mautic-site.com/ecommerce/order" \
 
 Totals are compared as sent; amounts in different currencies are summed as-is. Refunds are not netted yet.
 
+## Timing fields
+
+Three contact fields describe each customer's buying rhythm, from orders that count (not cancelled or fully refunded):
+
+* **Days since last order**
+* **Average days between orders**, once a contact has orders on at least two different days
+* **Expected next order**, the last order date plus that average
+
+Use them for replenishment and "due to reorder" campaigns, for example a segment on **Expected next order** in the last 7 days and **Days since last order** greater than **Average days between orders**. They update on every order change and in the daily recalculation below. The eCommerce tab on the contact shows them.
+
 ## Behaviours
 
 **Settings → Ecommerce behaviours** (requires the permission to manage custom fields) defines rolling purchase measures. Each behaviour keeps its own number contact field, for example `ecb_candle_spend_90d`, which you can use in segments, campaign conditions and email tokens like any contact field.
 
 A behaviour measures spend, quantity bought or number of orders; optionally only for some categories, products or order sources; over all time or the last N days.
 
-Values update for the contact on every new order, when contacts are merged, and for everyone when you save or recalculate a behaviour. For rolling windows to move on without new orders, run the update command daily from cron:
+Values update for the contact on every new order, when contacts are merged, and for everyone when you save or recalculate a behaviour. For rolling windows and **Days since last order** to move on without new orders, run the recalculation daily from cron:
 
 ```bash
-php bin/console mautic:ecommerce:behaviours:update
+php bin/console mautic:ecommerce:recalculate
 ```
 
-Use `--id=<behaviour ID>` to update a single behaviour. Deleting a behaviour deletes its contact field; this is refused while a segment uses the field.
+It updates the timing fields and all published behaviours. `mautic:ecommerce:behaviours:update` (optionally with `--id=<behaviour ID>`) updates behaviours only. Deleting a behaviour deletes its contact field; this is refused while a segment uses the field.
 
 ## REST API
 
@@ -373,6 +383,8 @@ You are solely responsible for how you deploy and use this plugin, including com
 * Updated: Lifetime value, order count, last order, email revenue, behaviours and purchase history use net totals and skip cancelled and fully refunded orders.
 * Updated: "Places an order" ignores orders that arrive cancelled or refunded, and compares the minimum against the net total.
 * Added: Status and refunds on the contact tab, order details, timeline, export, API and reports.
+* Added: Timing fields: days since last order, average days between orders, expected next order.
+* Added: mautic:ecommerce:recalculate, the daily job for timing fields and behaviours.
 ```
 
 ### 1.4.0

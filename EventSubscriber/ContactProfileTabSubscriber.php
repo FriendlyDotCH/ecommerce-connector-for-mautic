@@ -13,6 +13,7 @@ use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderItemRepository;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use MauticPlugin\EcommerceConnectorBundle\Service\CurrencyFormatter;
+use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldDefinition;
 use MauticPlugin\EcommerceConnectorBundle\Service\LocationFormatter;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Routing\RouterInterface;
@@ -76,6 +77,11 @@ final class ContactProfileTabSubscriber implements EventSubscriberInterface
                     ? $this->currencyFormatter->format($defaultCurrency, $stats['last_order_total'])
                     : null,
                 'behaviours'             => $this->formatBehaviours($lead, $defaultCurrency),
+                'timing'                 => [
+                    'daysSinceLastOrder'   => $lead->getFieldValue(LeadCommerceFieldDefinition::DAYS_SINCE_LAST_ORDER),
+                    'avgDaysBetweenOrders' => $lead->getFieldValue(LeadCommerceFieldDefinition::AVG_DAYS_BETWEEN_ORDERS),
+                    'nextOrderDate'        => $lead->getFieldValue(LeadCommerceFieldDefinition::NEXT_ORDER_DATE),
+                ],
             ]);
         }
     }

@@ -46,6 +46,35 @@
         </div>
     </div>
 
+    {% if timing is defined and timing.daysSinceLastOrder is not null %}
+        <div class="row mb-md">
+            <div class="col-sm-6 col-md-3">
+                <div class="panel panel-default mb-0">
+                    <div class="panel-body text-center">
+                        <h5 class="fw-sb mb-xs">{{ 'mautic.plugin.ecommerce.field.days_since_last_order'|trans }}</h5>
+                        <p class="text-secondary mb-0">{{ timing.daysSinceLastOrder|number_format(0) }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <div class="panel panel-default mb-0">
+                    <div class="panel-body text-center">
+                        <h5 class="fw-sb mb-xs">{{ 'mautic.plugin.ecommerce.field.avg_days_between_orders'|trans }}</h5>
+                        <p class="text-secondary mb-0">{{ timing.avgDaysBetweenOrders is not null ? timing.avgDaysBetweenOrders|number_format(1) : 'mautic.core.no.info'|trans }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <div class="panel panel-default mb-0">
+                    <div class="panel-body text-center">
+                        <h5 class="fw-sb mb-xs">{{ 'mautic.plugin.ecommerce.field.next_order_date'|trans }}</h5>
+                        <p class="text-secondary mb-0">{{ timing.nextOrderDate ? dateToDate(timing.nextOrderDate, 'UTC') : 'mautic.core.no.info'|trans }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
     {% if behaviours is defined and behaviours is not empty %}
         <h5 class="fw-sb mb-sm">{{ 'mautic.plugin.ecommerce.behaviour.header.index'|trans }}</h5>
         <div class="row mb-md">

@@ -8,13 +8,16 @@ use Mautic\LeadBundle\Event\LeadMergeEvent;
 use Mautic\LeadBundle\LeadEvents;
 use MauticPlugin\EcommerceConnectorBundle\EcommerceEvents;
 use MauticPlugin\EcommerceConnectorBundle\Event\EcommerceOrderEvent;
-use MauticPlugin\EcommerceConnectorBundle\Service\BehaviourCalculator;
+use MauticPlugin\EcommerceConnectorBundle\Service\CommerceRecalculator;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
+/**
+ * Keeps computed contact values (timing metrics and behaviours) current after order changes.
+ */
 final class BehaviourSubscriber implements EventSubscriberInterface
 {
     public function __construct(
-        private BehaviourCalculator $behaviourCalculator,
+        private CommerceRecalculator $commerceRecalculator,
     ) {
     }
 
@@ -31,12 +34,12 @@ final class BehaviourSubscriber implements EventSubscriberInterface
     {
         $leadId = $event->getOrder()->getLead()?->getId();
         if (null !== $leadId) {
-            $this->behaviourCalculator->recalculateForLead((int) $leadId);
+            $this->commerceRecalculator->recalculateForLead((int) $leadId);
         }
     }
 
     public function onLeadMerge(LeadMergeEvent $event): void
     {
-        $this->behaviourCalculator->recalculateForLead((int) $event->getVictor()->getId());
+        $this->commerceRecalculator->recalculateForLead((int) $event->getVictor()->getId());
     }
 }

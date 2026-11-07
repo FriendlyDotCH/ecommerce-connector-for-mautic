@@ -21,7 +21,7 @@ class OrderManager
     public function __construct(
         private EntityManagerInterface $entityManager,
         private LeadCommerceFieldUpdater $leadCommerceFieldUpdater,
-        private BehaviourCalculator $behaviourCalculator,
+        private CommerceRecalculator $commerceRecalculator,
         private LeadModel $leadModel,
     ) {
     }
@@ -140,7 +140,7 @@ class OrderManager
             if ($fresh instanceof Lead) {
                 $this->leadCommerceFieldUpdater->syncForLead($fresh);
             }
-            $this->behaviourCalculator->recalculateForLead((int) $leadId);
+            $this->commerceRecalculator->recalculateForLead((int) $leadId);
         }
     }
 }
