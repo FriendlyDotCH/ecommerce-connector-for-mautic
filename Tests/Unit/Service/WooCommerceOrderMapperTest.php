@@ -25,7 +25,7 @@ class WooCommerceOrderMapperTest extends TestCase
 
         $this->assertSame('CND-LAV-200', $mapped['items'][0]['item_id']);
         $this->assertSame(2, $mapped['items'][0]['qty']);
-        $this->assertSame('3935.04', $mapped['items'][0]['unit_price']);
+        $this->assertSame('4997.5', $mapped['items'][0]['unit_price'], '(7870.08 + 2124.92) / 2: including tax.');
         $this->assertSame('164', $mapped['items'][1]['item_id'], 'No SKU: the variation ID.');
     }
 

@@ -399,7 +399,7 @@ How WooCommerce orders map:
 
 * Orders are recorded when they become **processing** or **completed**, with the paid date as order date; **pending**, **on-hold**, **failed** and drafts are skipped until paid.
 * **refunded** and **cancelled** update the order's status; the `refunds` list sets the refunded total, so partial refunds are netted.
-* Order number, total, currency, billing email (existing contacts only), shipping city as location, and line items (SKU, or the variation or product ID; product ID; name; quantity; unit price) are taken over. WooCommerce order webhooks carry no product categories; they come from the catalog.
+* Order number, total, currency, billing email (existing contacts only), shipping city as location, and line items (SKU, or the variation or product ID; product ID; name; quantity; unit price including tax) are taken over. Native webhooks cannot say which lines a refund covered; the store connector sends that. WooCommerce order webhooks carry no product categories; they come from the catalog.
 * Order source is `woocommerce`. If **Allowed order sources** is set, include it.
 
 The signature (`X-WC-Webhook-Signature`) is checked against the same webhook secret. Storefront events (cart, checkout, product views) are not available as WooCommerce webhooks; send them with mtc.js or the store connector.

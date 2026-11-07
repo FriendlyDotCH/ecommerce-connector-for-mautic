@@ -58,10 +58,8 @@ final class WooCommerceOrderMapper
                 'item_name'  => (string) $line['name'],
                 'product_id' => isset($line['product_id']) && (int) $line['product_id'] > 0 ? (string) $line['product_id'] : null,
                 'qty'        => $qty,
-                // Unit price before discounts and tax, as WooCommerce reports it.
-                'unit_price' => isset($line['price']) && is_numeric($line['price'])
-                    ? (string) $line['price']
-                    : (isset($line['subtotal']) && is_numeric($line['subtotal']) ? (string) ((float) $line['subtotal'] / $qty) : null),
+                // Per unit before discounts, including tax, like the WooCommerce connector plugin.
+                'unit_price' => self::unitPrice($line, $qty),
             ];
         }
 
@@ -77,6 +75,20 @@ final class WooCommerceOrderMapper
             'location'       => is_array($order['shipping'] ?? null) && !empty($order['shipping']['city']) ? (string) $order['shipping']['city'] : null,
             'items'          => $items,
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $line
+     */
+    private static function unitPrice(array $line, int $qty): ?string
+    {
+        if (isset($line['subtotal']) && is_numeric($line['subtotal'])) {
+            $tax = isset($line['subtotal_tax']) && is_numeric($line['subtotal_tax']) ? (float) $line['subtotal_tax'] : 0.0;
+
+            return (string) round(((float) $line['subtotal'] + $tax) / $qty, 4);
+        }
+
+        return isset($line['price']) && is_numeric($line['price']) ? (string) $line['price'] : null;
     }
 
     /**
