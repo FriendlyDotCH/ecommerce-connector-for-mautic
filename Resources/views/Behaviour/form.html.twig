@@ -1,0 +1,45 @@
+{#
+  Variables
+    - form
+    - behaviour
+#}
+{% extends '@MauticCore/Default/content.html.twig' %}
+
+{% block mauticContent %}ecommercebehaviour{% endblock %}
+
+{% block headerTitle %}
+    {%- if behaviour.id -%}
+        {{- 'mautic.plugin.ecommerce.behaviour.header.edit'|trans({'%name%': behaviour.name}) -}}
+    {%- else -%}
+        {{- 'mautic.plugin.ecommerce.behaviour.header.new'|trans -}}
+    {%- endif -%}
+{% endblock %}
+
+{% block content %}
+{{ form_start(form) }}
+<div class="box-layout">
+    <div class="col-md-8 height-auto bdr-r">
+        <div class="pa-md">
+            <div class="row">
+                <div class="col-md-6">{{ form_row(form.name) }}</div>
+                <div class="col-md-6">{{ form_row(form.alias) }}</div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">{{ form_row(form.metric) }}</div>
+                <div class="col-md-6">{{ form_row(form.days) }}</div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">{{ form_row(form.scope) }}</div>
+                <div class="col-md-6">{{ form_row(form.values) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 height-auto">
+        <div class="pr-lg pl-lg pt-md pb-md">
+            {{ form_row(form.isPublished) }}
+            <p class="text-secondary">{{ 'mautic.plugin.ecommerce.behaviour.help'|trans }}</p>
+        </div>
+    </div>
+</div>
+{{ form_end(form) }}
+{% endblock %}

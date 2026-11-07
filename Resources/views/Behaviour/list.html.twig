@@ -1,0 +1,82 @@
+{#
+  Variables
+    - items: list of EcommerceBehaviour
+#}
+{% extends '@MauticCore/Default/content.html.twig' %}
+
+{% block mauticContent %}ecommercebehaviour{% endblock %}
+
+{% block headerTitle %}{{ 'mautic.plugin.ecommerce.behaviour.header.index'|trans }}{% endblock %}
+
+{% block actions %}
+    {{- include('@MauticCore/Helper/page_actions.html.twig', {
+        'templateButtons': {'new': true},
+        'routeBase': 'ecommerce_behaviour',
+        'langVar': 'plugin.ecommerce.behaviour',
+    }) -}}
+{% endblock %}
+
+{% block content %}
+<div id="page-list-wrapper" class="panel panel-default">
+    <div class="panel-body">
+        <p class="text-secondary mb-0">{{ 'mautic.plugin.ecommerce.behaviour.intro'|trans }}</p>
+    </div>
+    <div class="page-list">
+    {% if items|length > 0 %}
+        <div class="table-responsive">
+            <table class="table table-hover" id="ecommerceBehaviourTable">
+                <thead>
+                <tr>
+                    <th class="col-actions"></th>
+                    <th>{{ 'mautic.core.name'|trans }}</th>
+                    <th class="visible-md visible-lg">{{ 'mautic.plugin.ecommerce.behaviour.field'|trans }}</th>
+                    <th>{{ 'mautic.plugin.ecommerce.behaviour.definition'|trans }}</th>
+                    <th class="visible-md visible-lg">{{ 'mautic.plugin.ecommerce.behaviour.last_calculated'|trans }}</th>
+                    <th class="visible-md visible-lg">{{ 'mautic.core.id'|trans }}</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for item in items %}
+                    {% set editUrl = path('mautic_ecommerce_behaviour_action', {'objectAction': 'edit', 'objectId': item.id}) %}
+                    <tr>
+                        <td>
+                            {{ include('@MauticCore/Helper/list_actions.html.twig', {
+                                'item': item,
+                                'templateButtons': {'edit': true, 'delete': true},
+                                'routeBase': 'ecommerce_behaviour',
+                                'langVar': 'plugin.ecommerce.behaviour',
+                                'customButtons': [{
+                                    'confirm': {
+                                        'message': 'mautic.plugin.ecommerce.behaviour.confirm_recalculate'|trans({'%name%': item.name}),
+                                        'confirmText': 'mautic.plugin.ecommerce.behaviour.recalculate'|trans,
+                                        'confirmAction': path('mautic_ecommerce_behaviour_action', {'objectAction': 'recalculate', 'objectId': item.id}),
+                                        'btnText': 'mautic.plugin.ecommerce.behaviour.recalculate'|trans,
+                                        'iconClass': 'ri-refresh-line',
+                                    },
+                                    'priority': 100,
+                                }],
+                            }) }}
+                        </td>
+                        <td>
+                            {% if not item.isPublished %}
+                                <span class="label label-gray mr-xs">{{ 'mautic.plugin.ecommerce.behaviour.unpublished'|trans }}</span>
+                            {% endif %}
+                            <a href="{{ editUrl }}" data-toggle="ajax">{{ item.name }}</a>
+                        </td>
+                        <td class="visible-md visible-lg"><code>{{ '{contactfield=' ~ item.fieldAlias ~ '}' }}</code></td>
+                        <td>{{ include('@EcommerceConnector/Behaviour/_definition.html.twig', {'behaviour': item}) }}</td>
+                        <td class="visible-md visible-lg">
+                            {{ item.lastCalculated ? dateToText(item.lastCalculated) : 'mautic.core.never'|trans }}
+                        </td>
+                        <td class="visible-md visible-lg">{{ item.id }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        {{ include('@MauticCore/Helper/noresults.html.twig', {'tip': 'mautic.plugin.ecommerce.behaviour.noresults.tip'}) }}
+    {% endif %}
+    </div>
+</div>
+{% endblock %}

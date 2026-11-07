@@ -16,6 +16,15 @@ return [
                     'objectId' => '\d+',
                 ],
             ],
+            'mautic_ecommerce_behaviour_index' => [
+                'path'       => '/ecommerce/behaviours',
+                'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\BehaviourController::indexAction',
+            ],
+            'mautic_ecommerce_behaviour_action' => [
+                'path'       => '/ecommerce/behaviours/{objectAction}/{objectId}',
+                'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\BehaviourController::executeAction',
+                'defaults'   => ['objectId' => 0],
+            ],
         ],
         'public' => [
             'mautic_ecommerce_track' => [
@@ -27,6 +36,17 @@ return [
                 'path'       => '/mtc/ecommerce',
                 'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\PublicController::ecommerceAction',
                 'method'     => 'POST',
+            ],
+        ],
+    ],
+    'menu' => [
+        'admin' => [
+            'mautic.plugin.ecommerce.behaviour.menu' => [
+                'id'        => 'mautic_ecommerce_behaviour_index',
+                'route'     => 'mautic_ecommerce_behaviour_index',
+                'iconClass' => 'ri-shopping-bag-3-line',
+                'access'    => 'lead:fields:full',
+                'priority'  => 45,
             ],
         ],
     ],

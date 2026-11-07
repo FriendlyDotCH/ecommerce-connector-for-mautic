@@ -14,6 +14,8 @@ class Version_1_4_0 extends AbstractMigration
 
     private const ITEMS_TABLE = 'ecommerce_order_items';
 
+    private const BEHAVIOURS_TABLE = 'ecommerce_behaviours';
+
     protected function isApplicable(Schema $schema): bool
     {
         try {
@@ -23,7 +25,9 @@ class Version_1_4_0 extends AbstractMigration
             return false;
         }
 
-        return !$ordersTable->hasColumn('order_date') || !$itemsTable->hasColumn('unit_price');
+        return !$ordersTable->hasColumn('order_date')
+            || !$itemsTable->hasColumn('unit_price')
+            || !$schema->hasTable($this->concatPrefix(self::BEHAVIOURS_TABLE));
     }
 
     protected function up(): void
@@ -45,6 +49,26 @@ class Version_1_4_0 extends AbstractMigration
 
         if (!$itemsTable->hasColumn('unit_price')) {
             $this->addSql("ALTER TABLE `{$itemsTableName}` ADD `unit_price` DECIMAL(19,4) DEFAULT NULL AFTER `category`");
+        }
+
+        $behavioursTableName = $this->concatPrefix(self::BEHAVIOURS_TABLE);
+        if (!$schema->hasTable($behavioursTableName)) {
+            $this->addSql(
+                "CREATE TABLE `{$behavioursTableName}` (
+                    `id` INT UNSIGNED AUTO_INCREMENT NOT NULL,
+                    `name` VARCHAR(191) NOT NULL,
+                    `field_alias` VARCHAR(191) NOT NULL,
+                    `metric` VARCHAR(16) NOT NULL,
+                    `scope` VARCHAR(16) NOT NULL,
+                    `filter_values` LONGTEXT DEFAULT NULL,
+                    `days` INT NOT NULL,
+                    `is_published` TINYINT(1) NOT NULL,
+                    `date_added` DATETIME DEFAULT NULL,
+                    `last_calculated` DATETIME DEFAULT NULL,
+                    UNIQUE INDEX `ecommerce_behaviour_field_alias` (`field_alias`),
+                    PRIMARY KEY(`id`)
+                ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB"
+            );
         }
     }
 }

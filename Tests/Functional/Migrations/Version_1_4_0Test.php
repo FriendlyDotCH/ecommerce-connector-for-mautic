@@ -47,6 +47,7 @@ class Version_1_4_0Test extends MauticMysqlTestCase
         Assert::assertTrue($ordersTable->getColumn('order_date')->getNotnull());
         Assert::assertTrue($ordersTable->hasIndex('ecommerce_lead_order_date'));
         Assert::assertTrue($schema->getTable($prefix.'ecommerce_order_items')->hasColumn('unit_price'));
+        Assert::assertTrue($schema->hasTable($prefix.'ecommerce_behaviours'));
 
         // Existing orders take their recording time as order date.
         Assert::assertSame(
@@ -61,6 +62,7 @@ class Version_1_4_0Test extends MauticMysqlTestCase
 
         $this->connection->executeStatement("DROP TABLE IF EXISTS {$prefix}ecommerce_order_items");
         $this->connection->executeStatement("DROP TABLE IF EXISTS {$prefix}ecommerce_orders");
+        $this->connection->executeStatement("DROP TABLE IF EXISTS {$prefix}ecommerce_behaviours");
 
         $this->connection->executeStatement(
             "CREATE TABLE {$prefix}ecommerce_orders (

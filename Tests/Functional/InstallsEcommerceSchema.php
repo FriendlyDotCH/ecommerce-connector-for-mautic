@@ -15,6 +15,7 @@ trait InstallsEcommerceSchema
         $connection->executeStatement('SET FOREIGN_KEY_CHECKS=0');
         $connection->executeStatement("DROP TABLE IF EXISTS {$prefix}ecommerce_order_items");
         $connection->executeStatement("DROP TABLE IF EXISTS {$prefix}ecommerce_orders");
+        $connection->executeStatement("DROP TABLE IF EXISTS {$prefix}ecommerce_behaviours");
 
         $connection->executeStatement(
             "CREATE TABLE {$prefix}ecommerce_orders (
@@ -53,6 +54,23 @@ trait InstallsEcommerceSchema
                 INDEX ecommerce_item_item_name (item_name),
                 INDEX ecommerce_item_category (category),
                 INDEX IDX_ECOM_ITEM_ORDER (order_id),
+                PRIMARY KEY(id)
+            ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB"
+        );
+
+        $connection->executeStatement(
+            "CREATE TABLE {$prefix}ecommerce_behaviours (
+                id INT UNSIGNED AUTO_INCREMENT NOT NULL,
+                name VARCHAR(191) NOT NULL,
+                field_alias VARCHAR(191) NOT NULL,
+                metric VARCHAR(16) NOT NULL,
+                scope VARCHAR(16) NOT NULL,
+                filter_values LONGTEXT DEFAULT NULL,
+                days INT NOT NULL,
+                is_published TINYINT(1) NOT NULL,
+                date_added DATETIME DEFAULT NULL,
+                last_calculated DATETIME DEFAULT NULL,
+                UNIQUE INDEX ecommerce_behaviour_field_alias (field_alias),
                 PRIMARY KEY(id)
             ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB"
         );

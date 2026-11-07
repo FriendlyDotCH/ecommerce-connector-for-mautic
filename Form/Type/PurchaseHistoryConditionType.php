@@ -50,13 +50,15 @@ class PurchaseHistoryConditionType extends AbstractType
             'constraints' => [new NotBlank(), new GreaterThanOrEqual(0)],
         ]);
 
-        self::addScopeFields($builder);
+        self::addScopeFields($builder, 'campaignevent_properties_');
     }
 
     /**
      * Window, scope and values fields shared with the behaviour form.
+     *
+     * @param string $idPrefix HTML ID prefix of the fields, used to show values only for a narrowed scope
      */
-    public static function addScopeFields(FormBuilderInterface $builder): void
+    public static function addScopeFields(FormBuilderInterface $builder, string $idPrefix): void
     {
         $builder->add('days', IntegerType::class, [
             'label'       => 'mautic.plugin.ecommerce.purchase.days',
@@ -84,7 +86,7 @@ class PurchaseHistoryConditionType extends AbstractType
             'attr'       => [
                 'class'        => 'form-control',
                 'tooltip'      => 'mautic.plugin.ecommerce.purchase.values.tooltip',
-                'data-show-on' => '{"'.$builder->getName().'_scope":["category","product","source"]}',
+                'data-show-on' => '{"'.$idPrefix.'scope":["category","product","source"]}',
             ],
         ]);
     }
