@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace MauticPlugin\EcommerceConnectorBundle\Tests\Unit\EventSubscriber;
 
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Schema\AbstractSchemaManager;
+use Doctrine\DBAL\Schema\Schema;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadataFactory;
 use Mautic\PluginBundle\Bundle\PluginDatabase;
 use Mautic\PluginBundle\Entity\Plugin;
 use Mautic\PluginBundle\Event\PluginInstallEvent;
@@ -27,17 +31,20 @@ class PluginSubscriberTest extends TestCase
 
     private PrivacyUpgradeNotice&MockObject $privacyUpgradeNotice;
 
+    private EntityManagerInterface&MockObject $entityManager;
+
     private PluginSubscriber $subscriber;
 
     protected function setUp(): void
     {
+        $this->entityManager           = $this->createMock(EntityManagerInterface::class);
         $this->fieldInstaller          = $this->createMock(LeadCommerceFieldInstaller::class);
         $this->fieldUpdater            = $this->createMock(LeadCommerceFieldUpdater::class);
         $this->privacyUpdateNotifier   = $this->createMock(PrivacyUpdateNotifier::class);
         $this->privacyUpgradeNotice    = $this->createMock(PrivacyUpgradeNotice::class);
 
         $this->subscriber = new PluginSubscriber(
-            $this->createMock(EntityManagerInterface::class),
+            $this->entityManager,
             (new \ReflectionClass(PluginDatabase::class))->newInstanceWithoutConstructor(),
             $this->fieldInstaller,
             $this->fieldUpdater,
@@ -76,6 +83,16 @@ class PluginSubscriberTest extends TestCase
         $this->privacyUpgradeNotice->expects($this->never())->method('shouldPromptOnUpdate');
         $this->privacyUpdateNotifier->expects($this->never())->method('notifyAdmins');
 
+        // All plugin tables already exist, so no schema is installed.
+        $metadataFactory = $this->createMock(ClassMetadataFactory::class);
+        $metadataFactory->method('getAllMetadata')->willReturn([]);
+        $schemaManager = $this->createMock(AbstractSchemaManager::class);
+        $schemaManager->method('introspectSchema')->willReturn(new Schema());
+        $connection = $this->createMock(Connection::class);
+        $connection->method('createSchemaManager')->willReturn($schemaManager);
+        $this->entityManager->method('getMetadataFactory')->willReturn($metadataFactory);
+        $this->entityManager->method('getConnection')->willReturn($connection);
+
         $plugin = new Plugin();
         $plugin->setBundle('EcommerceConnectorBundle');
 
@@ -87,6 +104,6 @@ class PluginSubscriberTest extends TestCase
         $plugin = new Plugin();
         $plugin->setBundle($bundle);
 
-        return new PluginUpdateEvent($plugin, $oldVersion, null, null);
+        return new PluginUpdateEvent($plugin, $oldVersion, [], null);
     }
 }
