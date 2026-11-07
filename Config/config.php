@@ -26,6 +26,42 @@ return [
                 'defaults'   => ['objectId' => 0],
             ],
         ],
+        'api' => [
+            'mautic_api_ecommerce_orders' => [
+                'path'       => '/ecommerce/orders',
+                'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\Api\OrderApiController::listAction',
+                'method'     => 'GET',
+            ],
+            'mautic_api_ecommerce_order_new' => [
+                'path'       => '/ecommerce/orders/new',
+                'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\Api\OrderApiController::newAction',
+                'method'     => 'POST',
+            ],
+            'mautic_api_ecommerce_order' => [
+                'path'         => '/ecommerce/orders/{id}',
+                'controller'   => 'MauticPlugin\EcommerceConnectorBundle\Controller\Api\OrderApiController::getAction',
+                'method'       => 'GET',
+                'requirements' => ['id' => '\d+'],
+            ],
+            'mautic_api_ecommerce_order_edit' => [
+                'path'         => '/ecommerce/orders/{id}/edit',
+                'controller'   => 'MauticPlugin\EcommerceConnectorBundle\Controller\Api\OrderApiController::editAction',
+                'method'       => ['PATCH', 'PUT'],
+                'requirements' => ['id' => '\d+'],
+            ],
+            'mautic_api_ecommerce_order_delete' => [
+                'path'         => '/ecommerce/orders/{id}/delete',
+                'controller'   => 'MauticPlugin\EcommerceConnectorBundle\Controller\Api\OrderApiController::deleteAction',
+                'method'       => 'DELETE',
+                'requirements' => ['id' => '\d+'],
+            ],
+            'mautic_api_ecommerce_contact_orders' => [
+                'path'         => '/contacts/{id}/ecommerce/orders',
+                'controller'   => 'MauticPlugin\EcommerceConnectorBundle\Controller\Api\OrderApiController::contactOrdersAction',
+                'method'       => 'GET',
+                'requirements' => ['id' => '\d+'],
+            ],
+        ],
         'public' => [
             'mautic_ecommerce_track' => [
                 'path'       => '/ecommerce/order',

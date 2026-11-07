@@ -227,4 +227,35 @@ class EcommerceOrderRepository extends CommonRepository
             ->setParameter('fromLeadId', $fromLeadId)
             ->executeStatement();
     }
+
+    /**
+     * @return array{total: int, orders: list<EcommerceOrder>}
+     */
+    public function findForApi(?int $leadId, ?string $source, ?\DateTimeInterface $since, int $start, int $limit): array
+    {
+        $query = $this->createQueryBuilder('eo');
+
+        if (null !== $leadId) {
+            $query->andWhere('IDENTITY(eo.lead) = :leadId')->setParameter('leadId', $leadId);
+        }
+
+        if (null !== $source) {
+            $query->andWhere('eo.orderSource = :source')->setParameter('source', $source);
+        }
+
+        if (null !== $since) {
+            $query->andWhere('eo.orderDate >= :since')->setParameter('since', $since);
+        }
+
+        $total = (int) (clone $query)->select('COUNT(eo.id)')->getQuery()->getSingleScalarResult();
+
+        $orders = $query->orderBy('eo.orderDate', 'DESC')
+            ->addOrderBy('eo.id', 'DESC')
+            ->setFirstResult($start)
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+
+        return ['total' => $total, 'orders' => $orders];
+    }
 }
