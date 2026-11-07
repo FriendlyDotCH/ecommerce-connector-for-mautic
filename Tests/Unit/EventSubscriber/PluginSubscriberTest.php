@@ -13,6 +13,7 @@ use Mautic\PluginBundle\Bundle\PluginDatabase;
 use Mautic\PluginBundle\Entity\Plugin;
 use Mautic\PluginBundle\Event\PluginInstallEvent;
 use Mautic\PluginBundle\Event\PluginUpdateEvent;
+use Mautic\PluginBundle\PluginEvents;
 use MauticPlugin\EcommerceConnectorBundle\EventSubscriber\PluginSubscriber;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldInstaller;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldUpdater;
@@ -51,6 +52,14 @@ class PluginSubscriberTest extends TestCase
             $this->privacyUpdateNotifier,
             $this->privacyUpgradeNotice,
         );
+    }
+
+    public function testRunsAfterCoreSchemaAndMigrations(): void
+    {
+        $events = PluginSubscriber::getSubscribedEvents();
+
+        $this->assertLessThan(0, $events[PluginEvents::ON_PLUGIN_INSTALL][1]);
+        $this->assertLessThan(0, $events[PluginEvents::ON_PLUGIN_UPDATE][1]);
     }
 
     public function testUpdateFromOlderVersionDisablesIntegrationAndNotifies(): void

@@ -33,8 +33,10 @@ class PluginSubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
+            // Both run after core's PluginSubscriber (priority 0), which installs the schema and
+            // applies Migrations; field backfills read columns those migrations add.
             PluginEvents::ON_PLUGIN_INSTALL => ['onInstall', -100],
-            PluginEvents::ON_PLUGIN_UPDATE  => ['onUpdate', 100],
+            PluginEvents::ON_PLUGIN_UPDATE  => ['onUpdate', -100],
         ];
     }
 
