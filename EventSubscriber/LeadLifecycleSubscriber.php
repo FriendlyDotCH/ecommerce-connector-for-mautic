@@ -8,6 +8,7 @@ use Mautic\LeadBundle\Event\LeadEvent;
 use Mautic\LeadBundle\Event\LeadMergeEvent;
 use Mautic\LeadBundle\LeadEvents;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
+use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldUpdater;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -16,6 +17,7 @@ final class LeadLifecycleSubscriber implements EventSubscriberInterface
     public function __construct(
         private EcommerceOrderRepository $orderRepository,
         private LeadCommerceFieldUpdater $leadCommerceFieldUpdater,
+        private Config $config,
     ) {
     }
 
@@ -31,6 +33,12 @@ final class LeadLifecycleSubscriber implements EventSubscriberInterface
     {
         $leadId = (int) $event->getLead()->getId();
         if ($leadId <= 0) {
+            return;
+        }
+
+        if (Config::ON_CONTACT_DELETE_ANONYMIZE === $this->config->getOnContactDelete()) {
+            $this->orderRepository->anonymizeByLeadId($leadId);
+
             return;
         }
 

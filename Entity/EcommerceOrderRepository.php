@@ -203,6 +203,27 @@ class EcommerceOrderRepository extends CommonRepository
             ->executeStatement();
     }
 
+    /**
+     * Unlinks a contact's orders and line items, keeping them for revenue reporting.
+     */
+    public function anonymizeByLeadId(int $leadId): void
+    {
+        if ($leadId <= 0) {
+            return;
+        }
+
+        $connection = $this->getEntityManager()->getConnection();
+
+        foreach (['ecommerce_order_items', 'ecommerce_orders'] as $table) {
+            $connection->createQueryBuilder()
+                ->update(MAUTIC_TABLE_PREFIX.$table)
+                ->set('lead_id', 'NULL')
+                ->where('lead_id = :leadId')
+                ->setParameter('leadId', $leadId)
+                ->executeStatement();
+        }
+    }
+
     public function updateLead(int $fromLeadId, int $toLeadId): void
     {
         if ($fromLeadId <= 0 || $toLeadId <= 0 || $fromLeadId === $toLeadId) {

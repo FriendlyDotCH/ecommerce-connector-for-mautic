@@ -31,6 +31,7 @@
 {%- set hasGeneralFeatureErrors = form.featureSettings is defined and (
     (form.featureSettings.enable_page_hit_tracking is defined and formContainsErrors(form.featureSettings.enable_page_hit_tracking))
     or (form.featureSettings.attribute_last_email is defined and formContainsErrors(form.featureSettings.attribute_last_email))
+    or (form.featureSettings.on_contact_delete is defined and formContainsErrors(form.featureSettings.on_contact_delete))
 ) -%}
 {%- set hasWebhookErrors = form.apiKeys is defined and formContainsErrors(form.apiKeys) -%}
 {%- set hasFormattingErrors = form.featureSettings is defined and form.featureSettings.default_currency is defined and formContainsErrors(form.featureSettings.default_currency) -%}
@@ -55,7 +56,7 @@
         <li class="" id="features-tab">
             <a href="#features-container" role="tab" data-toggle="tab">
                 {{- 'mautic.plugin.ecommerce.tab.validation'|trans -}}
-                {%- if (hasSupportedFeatures and formContainsErrors(form.supportedFeatures)) or (hasFeatureSettings and formContainsErrors(form.featureSettings, ['leadFields', 'enable_page_hit_tracking', 'attribute_last_email', 'default_currency'])) -%}
+                {%- if (hasSupportedFeatures and formContainsErrors(form.supportedFeatures)) or (hasFeatureSettings and formContainsErrors(form.featureSettings, ['leadFields', 'enable_page_hit_tracking', 'attribute_last_email', 'on_contact_delete', 'default_currency'])) -%}
                     <i class="ri-fw ri-alert-fill text-danger"></i>
                 {%- endif -%}
             </a>
@@ -149,6 +150,9 @@
             {%- endif -%}
             {%- if form.featureSettings.attribute_last_email is defined -%}
                 {{- form_row(form.featureSettings.attribute_last_email) -}}
+            {%- endif -%}
+            {%- if form.featureSettings.on_contact_delete is defined -%}
+                {{- form_row(form.featureSettings.on_contact_delete) -}}
             {%- endif -%}
         {%- endif -%}
 

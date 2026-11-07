@@ -9,6 +9,7 @@ use Mautic\LeadBundle\Event\LeadEvent;
 use Mautic\LeadBundle\Event\LeadMergeEvent;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
 use MauticPlugin\EcommerceConnectorBundle\EventSubscriber\LeadLifecycleSubscriber;
+use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldUpdater;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -19,10 +20,13 @@ class LeadLifecycleSubscriberTest extends TestCase
 
     private LeadCommerceFieldUpdater&MockObject $fieldUpdater;
 
+    private Config&MockObject $config;
+
     protected function setUp(): void
     {
         $this->orderRepository = $this->createMock(EcommerceOrderRepository::class);
         $this->fieldUpdater   = $this->createMock(LeadCommerceFieldUpdater::class);
+        $this->config         = $this->createMock(Config::class);
     }
 
     public function testDeletesOrdersBeforeContactDelete(): void
@@ -34,7 +38,20 @@ class LeadLifecycleSubscriberTest extends TestCase
             ->method('deleteByLeadId')
             ->with(42);
 
-        $subscriber = new LeadLifecycleSubscriber($this->orderRepository, $this->fieldUpdater);
+        $subscriber = new LeadLifecycleSubscriber($this->orderRepository, $this->fieldUpdater, $this->config);
+        $subscriber->onLeadPreDelete(new LeadEvent($lead));
+    }
+
+    public function testAnonymizesOrdersWhenConfigured(): void
+    {
+        $lead = new Lead();
+        $lead->setId(42);
+
+        $this->config->method('getOnContactDelete')->willReturn(Config::ON_CONTACT_DELETE_ANONYMIZE);
+        $this->orderRepository->expects($this->once())->method('anonymizeByLeadId')->with(42);
+        $this->orderRepository->expects($this->never())->method('deleteByLeadId');
+
+        $subscriber = new LeadLifecycleSubscriber($this->orderRepository, $this->fieldUpdater, $this->config);
         $subscriber->onLeadPreDelete(new LeadEvent($lead));
     }
 
@@ -42,7 +59,7 @@ class LeadLifecycleSubscriberTest extends TestCase
     {
         $this->orderRepository->expects($this->never())->method('deleteByLeadId');
 
-        $subscriber = new LeadLifecycleSubscriber($this->orderRepository, $this->fieldUpdater);
+        $subscriber = new LeadLifecycleSubscriber($this->orderRepository, $this->fieldUpdater, $this->config);
         $subscriber->onLeadPreDelete(new LeadEvent(new Lead()));
     }
 
@@ -60,7 +77,7 @@ class LeadLifecycleSubscriberTest extends TestCase
             ->method('syncForLead')
             ->with($victor);
 
-        $subscriber = new LeadLifecycleSubscriber($this->orderRepository, $this->fieldUpdater);
+        $subscriber = new LeadLifecycleSubscriber($this->orderRepository, $this->fieldUpdater, $this->config);
         $subscriber->onLeadMerge(new LeadMergeEvent($victor, $loser));
     }
 }

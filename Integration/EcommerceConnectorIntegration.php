@@ -7,6 +7,7 @@ namespace MauticPlugin\EcommerceConnectorBundle\Integration;
 use Mautic\CoreBundle\Form\Type\YesNoButtonGroupType;
 use Mautic\PluginBundle\Integration\AbstractIntegration;
 use MauticPlugin\EcommerceConnectorBundle\Service\PrivacyUpgradeNotice;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Form;
@@ -120,6 +121,24 @@ class EcommerceConnectorIntegration extends AbstractIntegration
                 'data'     => $data['max_order_total'] ?? Config::DEFAULT_MAX_TOTAL,
                 'attr'     => [
                     'tooltip' => 'mautic.plugin.ecommerce.max_order_total.tooltip',
+                ],
+            ]
+        );
+
+        $builder->add(
+            'on_contact_delete',
+            ChoiceType::class,
+            [
+                'label'      => 'mautic.plugin.ecommerce.on_contact_delete',
+                'label_attr' => ['class' => 'control-label'],
+                'choices'    => [
+                    'mautic.plugin.ecommerce.on_contact_delete.delete'    => Config::ON_CONTACT_DELETE_DELETE,
+                    'mautic.plugin.ecommerce.on_contact_delete.anonymize' => Config::ON_CONTACT_DELETE_ANONYMIZE,
+                ],
+                'data'       => $data['on_contact_delete'] ?? Config::ON_CONTACT_DELETE_DELETE,
+                'attr'       => [
+                    'class'   => 'form-control',
+                    'tooltip' => 'mautic.plugin.ecommerce.on_contact_delete.tooltip',
                 ],
             ]
         );

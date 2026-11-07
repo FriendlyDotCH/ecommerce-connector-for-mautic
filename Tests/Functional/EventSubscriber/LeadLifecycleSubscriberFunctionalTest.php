@@ -16,12 +16,15 @@ use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderItem;
 use MauticPlugin\EcommerceConnectorBundle\Service\EcommerceOrderTracker;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldDefinition;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldInstaller;
+use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
+use MauticPlugin\EcommerceConnectorBundle\Tests\Functional\ConfiguresEcommerceIntegration;
 use MauticPlugin\EcommerceConnectorBundle\Tests\Functional\InstallsEcommerceSchema;
 use PHPUnit\Framework\Assert;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 class LeadLifecycleSubscriberFunctionalTest extends MauticMysqlTestCase
 {
+    use ConfiguresEcommerceIntegration;
     use InstallsEcommerceSchema;
 
     protected $useCleanupRollback = false;
@@ -67,6 +70,28 @@ class LeadLifecycleSubscriberFunctionalTest extends MauticMysqlTestCase
                 ['itemId' => 'sku-keep']
             )
         );
+    }
+
+    public function testDeletingContactKeepsAnonymizedOrdersWhenConfigured(): void
+    {
+        $this->configureIntegration(['on_contact_delete' => Config::ON_CONTACT_DELETE_ANONYMIZE]);
+
+        $lead = $this->createLead('anonymize-orders@example.com');
+        $this->recordOrder($lead, 'anon-order-1', '30.00', [
+            new OrderItemPayload('sku-anon', 'Anonymized item', 2, 'Anon'),
+        ]);
+
+        /** @var LeadModel $leadModel */
+        $leadModel = static::getContainer()->get(LeadModel::class);
+        $leadModel->deleteEntity($lead);
+
+        $prefix = MAUTIC_TABLE_PREFIX;
+        Assert::assertSame(
+            ['order_id' => 'anon-order-1', 'lead_id' => null],
+            $this->connection->fetchAssociative("SELECT order_id, lead_id FROM {$prefix}ecommerce_orders WHERE order_id = 'anon-order-1'")
+        );
+        Assert::assertNull($this->connection->fetchOne("SELECT lead_id FROM {$prefix}ecommerce_order_items WHERE item_id = 'sku-anon'"));
+        Assert::assertSame(1, (int) $this->connection->fetchOne("SELECT COUNT(*) FROM {$prefix}ecommerce_order_items WHERE item_id = 'sku-anon'"));
     }
 
     public function testMergingContactsMovesOrdersToWinner(): void

@@ -13,6 +13,9 @@ class Config
     public const DEFAULT_ORDER_SOURCE          = 'web';
     public const DEFAULT_ENABLE_PAGE_HIT_TRACKING = true;
 
+    public const ON_CONTACT_DELETE_DELETE    = 'delete';
+    public const ON_CONTACT_DELETE_ANONYMIZE = 'anonymize';
+
     public function __construct(
         private IntegrationHelper $integrationHelper,
     ) {
@@ -91,6 +94,20 @@ class Config
         $max = $integration->getIntegrationSettings()->getFeatureSettings()['max_order_total'] ?? self::DEFAULT_MAX_TOTAL;
 
         return is_numeric($max) ? (float) $max : self::DEFAULT_MAX_TOTAL;
+    }
+
+    /**
+     * What happens to a contact's orders when the contact is deleted: delete them (default)
+     * or keep them without the link to the contact.
+     */
+    public function getOnContactDelete(): string
+    {
+        $integration = $this->getIntegrationObject();
+        $value       = null !== $integration
+            ? ($integration->getIntegrationSettings()->getFeatureSettings()['on_contact_delete'] ?? null)
+            : null;
+
+        return self::ON_CONTACT_DELETE_ANONYMIZE === $value ? self::ON_CONTACT_DELETE_ANONYMIZE : self::ON_CONTACT_DELETE_DELETE;
     }
 
     private function getFeatureSetting(string $key, bool $default): bool
