@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Run from docroot/app: ../../vendor/bin/phpunit -c ../plugins/EcommerceConnectorBundle/phpunit.xml.dist
+  Needs Mautic's dev dependencies and DB_HOST, DB_PORT, DB_USER and DB_PASSWD for a
+  separate test database, for example in the project root's .env.test.local.
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    backupGlobals="false"
+    backupStaticProperties="false"
+    colors="true"
+    processIsolation="false"
+    stopOnFailure="false"
+    bootstrap="../../../vendor/autoload.php"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
+    failOnRisky="true"
+    failOnWarning="true"
+    cacheDirectory="../../../var/cache/phpunit-ecommerce"
+  >
+  <testsuites>
+    <testsuite name="Unit">
+      <directory>Tests/Unit</directory>
+    </testsuite>
+    <testsuite name="Functional">
+      <directory>Tests/Functional</directory>
+    </testsuite>
+  </testsuites>
+  <php>
+    <!-- Functional tests reset the database: never point them at the instance's own database. -->
+    <env name="DB_NAME" value="mautic_test" force="true"/>
+    <env name="SYMFONY_DEPRECATIONS_HELPER" value="weak"/>
+    <env name="MAXMIND_LICENSE_KEY" value=""/>
+    <env name="KERNEL_CLASS" value="AppTestKernel"/>
+    <const name="IS_PHPUNIT" value="true"/>
+    <const name="MAUTIC_ENV" value="test"/>
+    <server name="KERNEL_DIR" value="app"/>
+    <server name="APP_DEBUG" value="0"/>
+    <server name="APP_ENV" value="test" force="true"/>
+    <ini name="error_reporting" value="E_ALL"/>
+    <ini name="date.timezone" value="UTC"/>
+  </php>
+  <extensions>
+    <bootstrap class="\Mautic\CoreBundle\Test\Extensions\SeparateProcess\SeparateProcess" />
+    <bootstrap class="\Mautic\CoreBundle\Test\Extensions\DbPrefix\DbPrefix" />
+  </extensions>
+</phpunit>
