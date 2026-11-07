@@ -29,6 +29,7 @@ class EcommerceOrderTracker
         private LoggerInterface $logger,
         private LeadCommerceFieldUpdater $leadCommerceFieldUpdater,
         private EventDispatcherInterface $dispatcher,
+        private OrderManager $orderManager,
     ) {
     }
 
@@ -38,10 +39,7 @@ class EcommerceOrderTracker
         ?Email $email = null,
     ): ?EcommerceOrder {
         if ($this->orderRepository->orderExists($payload->orderId, $payload->orderSource)) {
-            $this->logger->warning('Ecommerce order ignored: an order with this order_id and order_source already exists.', [
-                'order_id'     => $payload->orderId,
-                'order_source' => $payload->orderSource,
-            ]);
+            $this->handleKnownOrder($payload);
 
             return null;
         }
@@ -57,6 +55,7 @@ class EcommerceOrderTracker
         $order = new EcommerceOrder();
         $order->setOrderId($payload->orderId);
         $order->setOrderTotal($payload->orderTotal);
+        $order->applyStatus($payload->status, $payload->refundedTotal);
         $order->setOrderCurrency($payload->orderCurrency);
         $order->setOrderSource($payload->orderSource);
         $order->setLocation($payload->location);
@@ -94,6 +93,23 @@ class EcommerceOrderTracker
         return $order;
     }
 
+    /**
+     * Stores send the same order again when it is refunded or cancelled. Apply that; ignore plain repeats.
+     */
+    private function handleKnownOrder(OrderPayload $payload): void
+    {
+        $context = ['order_id' => $payload->orderId, 'order_source' => $payload->orderSource];
+        $order   = $this->orderRepository->findOneBy(['orderId' => $payload->orderId, 'orderSource' => $payload->orderSource]);
+
+        if ($order instanceof EcommerceOrder && $this->orderManager->applyRefunds($order, $payload)) {
+            $this->logger->notice('Ecommerce order status or refunds updated.', $context + ['status' => $order->getStatus()]);
+
+            return;
+        }
+
+        $this->logger->warning('Ecommerce order ignored: an order with this order_id and order_source already exists.', $context);
+    }
+
     private function createOrderItem(OrderItemPayload $itemPayload, ?Lead $lead): EcommerceOrderItem
     {
         $item = new EcommerceOrderItem();
@@ -102,6 +118,7 @@ class EcommerceOrderTracker
         $item->setQty($itemPayload->qty);
         $item->setCategory($itemPayload->category);
         $item->setUnitPrice($itemPayload->unitPrice);
+        $item->setRefundedQty($itemPayload->refundedQty);
         $item->setLead($lead);
 
         return $item;

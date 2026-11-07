@@ -23,7 +23,8 @@ class OrderNormalizer
                 'item_name'  => $item->getItemName(),
                 'qty'        => $item->getQty(),
                 'category'   => $item->getCategory(),
-                'unit_price' => $item->getUnitPrice(),
+                'unit_price'   => $item->getUnitPrice(),
+                'refunded_qty' => $item->getRefundedQty(),
             ];
         }
 
@@ -31,6 +32,9 @@ class OrderNormalizer
             'id'             => $order->getId(),
             'order_id'       => $order->getOrderId(),
             'order_total'    => $order->getOrderTotal(),
+            'status'         => $order->getStatus(),
+            'refunded_total' => $order->getRefundedTotal(),
+            'net_total'      => $order->getNetTotal(),
             'order_currency' => $order->getOrderCurrency(),
             'order_source'   => $order->getOrderSource(),
             'location'       => $order->getLocation(),

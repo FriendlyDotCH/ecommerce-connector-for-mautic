@@ -195,4 +195,30 @@ class OrderPayloadParserTest extends TestCase
             'order_date' => (new \DateTimeImmutable('+3 days'))->format(\DATE_ATOM),
         ]));
     }
+
+    public function testParseMapsStoreStatusesAndRefunds(): void
+    {
+        $payload = $this->parser->parse([
+            'order_id'       => 'order-800',
+            'order_total'    => '100',
+            'status'         => 'Partially-Refunded',
+            'refunded_total' => '25.5',
+            'items'          => [['item_id' => 'a', 'item_name' => 'Candle', 'qty' => 2, 'refunded_qty' => 5]],
+        ]);
+
+        $this->assertNotNull($payload);
+        $this->assertSame('partially_refunded', $payload->status);
+        $this->assertSame('25.5000', $payload->refundedTotal);
+        $this->assertSame(2, $payload->items[0]->refundedQty);
+
+        $this->assertSame('paid', $this->parser->parse(['order_id' => 'o', 'status' => 'completed'])?->status);
+        $this->assertSame('cancelled', $this->parser->parse(['order_id' => 'o', 'status' => 'canceled'])?->status);
+        $this->assertNull($this->parser->parse(['order_id' => 'o'])?->status);
+    }
+
+    public function testParseRejectsUnknownStatusAndNegativeRefund(): void
+    {
+        $this->assertNull($this->parser->parse(['order_id' => 'o', 'status' => 'shipped']));
+        $this->assertNull($this->parser->parse(['order_id' => 'o', 'refunded_total' => '-5']));
+    }
 }

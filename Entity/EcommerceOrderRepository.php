@@ -35,7 +35,7 @@ class EcommerceOrderRepository extends CommonRepository
         $query = $this->getEntityManager()->getConnection()->createQueryBuilder();
 
         $query->select('COALESCE(eo.order_currency, :defaultCurrency) AS currency')
-            ->addSelect('SUM(eo.order_total) AS revenue_total')
+            ->addSelect('SUM(eo.net_total) AS revenue_total')
             ->from(MAUTIC_TABLE_PREFIX.'ecommerce_orders', 'eo')
             ->where('eo.email_id = :emailId')
             ->groupBy('currency')
@@ -66,6 +66,9 @@ class EcommerceOrderRepository extends CommonRepository
             'eo.id',
             'eo.order_id',
             'eo.order_total',
+            'eo.status',
+            'eo.refunded_total',
+            'eo.net_total',
             'eo.order_currency',
             'eo.order_source',
             'eo.location',
@@ -110,18 +113,23 @@ class EcommerceOrderRepository extends CommonRepository
     {
         $query = $this->getEntityManager()->getConnection()->createQueryBuilder();
 
+        // Net of refunds; cancelled and fully refunded orders do not count.
         $query->select('COUNT(eo.id) AS order_count')
-            ->addSelect('COALESCE(SUM(eo.order_total), 0) AS lifetime_value')
+            ->addSelect('COALESCE(SUM(eo.net_total), 0) AS lifetime_value')
             ->from(MAUTIC_TABLE_PREFIX.'ecommerce_orders', 'eo')
             ->where('eo.lead_id = :leadId')
-            ->setParameter('leadId', $leadId);
+            ->andWhere($query->expr()->in('eo.status', ':counted'))
+            ->setParameter('leadId', $leadId)
+            ->setParameter('counted', EcommerceOrder::COUNTED_STATUSES, ArrayParameterType::STRING);
 
         $row = $query->executeQuery()->fetchAssociative();
 
         $lastOrderQuery = $this->getEntityManager()->getConnection()->createQueryBuilder();
-        $lastOrderQuery->select('eo.order_total', 'eo.order_date')
+        $lastOrderQuery->select('eo.net_total AS order_total', 'eo.order_date')
             ->from(MAUTIC_TABLE_PREFIX.'ecommerce_orders', 'eo')
             ->where('eo.lead_id = :leadId')
+            ->andWhere($lastOrderQuery->expr()->in('eo.status', ':counted'))
+            ->setParameter('counted', EcommerceOrder::COUNTED_STATUSES, ArrayParameterType::STRING)
             ->orderBy('eo.order_date', 'DESC')
             ->addOrderBy('eo.id', 'DESC')
             ->setMaxResults(1)

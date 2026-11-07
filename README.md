@@ -203,7 +203,15 @@ The previous path `/mtc/ecommerce` is still accepted as a legacy alias to the sa
 | `ct` | No | Mautic clickthrough token for email attribution |
 | `location` | No | Store location label stored on the order |
 | `order_date` | No | When the order was placed: ISO 8601 (for example `2026-03-01T10:15:00+01:00`) or a Unix timestamp. Defaults to the time Mautic receives it. Rejected if more than a day in the future. Orders placed more than a day before they arrive never trigger campaigns, so historical imports send nothing. |
-| `items` | No | Line items as a JSON array (or JSON string) with `item_id`, `item_name`, `qty`, and optional `category` and `unit_price` (or `price`). Without a unit price, the item counts as 0 in category and product spend. |
+| `status` | No | `paid` (default), `partially_refunded`, `refunded` or `cancelled`. Common store names are accepted too: `completed`, `processing` and `fulfilled` mean paid, `partially-refunded` and `partly_refunded` mean partly refunded, `canceled` and `voided` mean cancelled. Unknown values reject the order. |
+| `refunded_total` | No | Amount refunded so far. Decides between partly and fully refunded; `refunded` without an amount refunds the full total. |
+| `items` | No | Line items as a JSON array (or JSON string) with `item_id`, `item_name`, `qty`, and optional `category`, `unit_price` (or `price`) and `refunded_qty`. Without a unit price, the item counts as 0 in category and product spend. |
+
+### Refunds and cancellations
+
+Send the same order again, with the same `order_id` and `order_source`, when it is refunded or cancelled. Mautic then updates the existing order's status, refunded total and per-item refunded quantities (matched by `item_id`); everything else stays as first recorded. A plain repeat without status or refund changes is ignored. Updates never trigger campaigns.
+
+All numbers are net of refunds: lifetime value, last order total, email revenue, behaviours and the purchase history condition. Cancelled and fully refunded orders do not count as orders and do not trigger **Places an order**. Reports show the original total next to the status, refunded total and net total.
 
 ### Signing requests
 
@@ -356,6 +364,16 @@ This software is provided **as is**, without warranty of any kind, express or im
 You are solely responsible for how you deploy and use this plugin, including compliance with applicable laws and data protection obligations.
 
 ## Changelog
+
+### 1.5.0
+```
+* Added: Order status (paid, partially_refunded, refunded, cancelled), refunded total and net total.
+* Added: Refunded quantity per line item.
+* Added: Re-sending an order with a status or refunds updates the existing order.
+* Updated: Lifetime value, order count, last order, email revenue, behaviours and purchase history use net totals and skip cancelled and fully refunded orders.
+* Updated: "Places an order" ignores orders that arrive cancelled or refunded, and compares the minimum against the net total.
+* Added: Status and refunds on the contact tab, order details, timeline, export, API and reports.
+```
 
 ### 1.4.0
 ```

@@ -135,8 +135,12 @@ final class ContactProfileTabSubscriber implements EventSubscriberInterface
                     'qty'      => $item['qty'],
                     'category' => $item['category'],
                     'unitPrice' => null !== $item['unit_price'] ? $this->currencyFormatter->format($currency, $item['unit_price']) : null,
+                    'refundedQty' => $item['refunded_qty'] ?? 0,
                 ];
             }
+
+            $status   = (string) ($order['status'] ?? 'paid');
+            $refunded = (float) ($order['refunded_total'] ?? 0);
 
             $formatted[] = [
                 'id'                  => $orderPk,
@@ -148,6 +152,9 @@ final class ContactProfileTabSubscriber implements EventSubscriberInterface
                 'orderTotal'          => $amount,
                 'orderTotalFormatted' => $this->currencyFormatter->format($currency, $amount),
                 'orderCurrency'       => $currency,
+                'status'              => $status,
+                'refundedFormatted'   => $refunded > 0 ? $this->currencyFormatter->format($currency, $refunded) : null,
+                'netTotalFormatted'   => $this->currencyFormatter->format($currency, (float) ($order['net_total'] ?? $order['order_total'])),
                 'dateAdded'           => $order['order_date'],
                 'emailId'             => !empty($order['email_id']) ? (int) $order['email_id'] : null,
                 'emailName'           => !empty($order['email_name']) ? (string) $order['email_name'] : null,

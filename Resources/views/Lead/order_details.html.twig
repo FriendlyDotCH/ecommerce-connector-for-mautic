@@ -22,6 +22,24 @@
         <p class="mb-0">{{ order.orderSource|purify }}</p>
     </div>
 </div>
+{% if order.status != 'paid' %}
+<div class="row mb-md">
+    <div class="col-sm-6 col-md-3">
+        <h5 class="fw-sb mb-xs">{{ 'mautic.plugin.ecommerce.status'|trans }}</h5>
+        <p class="mb-0">{{ include('@EcommerceConnector/Lead/_order_status.html.twig', {'order': order}) }}</p>
+    </div>
+    {% if order.refundedFormatted %}
+    <div class="col-sm-6 col-md-3">
+        <h5 class="fw-sb mb-xs">{{ 'mautic.plugin.ecommerce.refunded_total'|trans }}</h5>
+        <p class="mb-0">{{ order.refundedFormatted|purify }}</p>
+    </div>
+    {% endif %}
+    <div class="col-sm-6 col-md-3">
+        <h5 class="fw-sb mb-xs">{{ 'mautic.plugin.ecommerce.net_total'|trans }}</h5>
+        <p class="mb-0">{{ order.netTotalFormatted|purify }}</p>
+    </div>
+</div>
+{% endif %}
 <div class="row mb-md">
     <div class="col-sm-6 col-md-3">
         <h5 class="fw-sb mb-xs">{{ 'mautic.plugin.ecommerce.tab.date'|trans }}</h5>
@@ -42,6 +60,7 @@
                 <th>{{ 'mautic.plugin.ecommerce.tab.item_qty'|trans }}</th>
                 <th>{{ 'mautic.plugin.ecommerce.tab.item_category'|trans }}</th>
                 <th class="text-right">{{ 'mautic.plugin.ecommerce.tab.item_unit_price'|trans }}</th>
+                <th class="text-right">{{ 'mautic.plugin.ecommerce.tab.item_refunded_qty'|trans }}</th>
             </tr>
             </thead>
             <tbody>
@@ -58,6 +77,7 @@
                         {% endif %}
                     </td>
                     <td class="text-right">{{ item.unitPrice ?? 'mautic.core.no.info'|trans }}</td>
+                    <td class="text-right">{{ item.refundedQty ?: '' }}</td>
                 </tr>
             {% endfor %}
             </tbody>

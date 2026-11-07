@@ -20,6 +20,9 @@ final readonly class OrderPayload
         public ?string $location = null,
         public array $items = [],
         public ?\DateTimeImmutable $orderDate = null,
+        /** One of EcommerceOrder::STATUSES, or null when the sender did not say. */
+        public ?string $status = null,
+        public ?string $refundedTotal = null,
     ) {
     }
 }

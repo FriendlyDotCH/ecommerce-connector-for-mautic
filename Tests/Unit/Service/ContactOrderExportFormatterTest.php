@@ -66,6 +66,9 @@ class ContactOrderExportFormatterTest extends TestCase
                 [
                     'order_id'         => 'WC-100',
                     'order_total'      => '24.99',
+                    'status'           => 'paid',
+                    'refunded_total'   => '0.00',
+                    'net_total'        => '24.99',
                     'order_currency'   => 'USD',
                     'order_source'     => 'woocommerce',
                     'location'         => 'Hixson',

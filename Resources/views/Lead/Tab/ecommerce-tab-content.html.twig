@@ -123,7 +123,10 @@
                             <span class="fa ri-fw ri-shopping-cart-2-line"></span>
                         </td>
                         <td class="visible-md visible-lg">{{ order.orderId|purify }}</td>
-                        <td class="visible-md visible-lg">{{ order.orderTotalFormatted|purify }}</td>
+                        <td class="visible-md visible-lg">
+                            {{ order.orderTotalFormatted|purify }}
+                            {{ include('@EcommerceConnector/Lead/_order_status.html.twig', {'order': order}) }}
+                        </td>
                         <td class="visible-md visible-lg">
                             {% if order.location %}
                                 {{ order.location|purify }}

@@ -75,6 +75,12 @@ final class CampaignSubscriber implements EventSubscriberInterface
             return;
         }
 
+        if (!$order->isCounted()) {
+            $this->logger->debug('Ecommerce order arrived cancelled or refunded; campaigns not triggered.', ['order_id' => $order->getOrderId()]);
+
+            return;
+        }
+
         if ($order->getOrderDate() < new \DateTimeImmutable(self::MAX_TRIGGER_AGE)) {
             $this->logger->debug('Ecommerce order is too old to trigger campaigns.', ['order_id' => $order->getOrderId()]);
 
@@ -134,7 +140,7 @@ final class CampaignSubscriber implements EventSubscriberInterface
      */
     public static function orderMatches(EcommerceOrder $order, array $config): bool
     {
-        if (isset($config['min_total']) && '' !== $config['min_total'] && (float) $order->getOrderTotal() < (float) $config['min_total']) {
+        if (isset($config['min_total']) && '' !== $config['min_total'] && (float) $order->getNetTotal() < (float) $config['min_total']) {
             return false;
         }
 

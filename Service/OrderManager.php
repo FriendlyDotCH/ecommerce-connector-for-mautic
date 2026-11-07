@@ -34,6 +34,7 @@ class OrderManager
         $previousLead = $order->getLead();
 
         $order->setOrderTotal($payload->orderTotal);
+        $order->applyStatus($payload->status ?? $order->getStatus(), $payload->refundedTotal ?? $order->getRefundedTotal());
         $order->setOrderCurrency($payload->orderCurrency);
         $order->setLocation($payload->location);
         if (null !== $payload->orderDate) {
@@ -57,6 +58,7 @@ class OrderManager
             $item->setQty($itemPayload->qty);
             $item->setCategory($itemPayload->category);
             $item->setUnitPrice($itemPayload->unitPrice);
+            $item->setRefundedQty($itemPayload->refundedQty);
             $item->setLead($lead);
             $order->addItem($item);
         }
@@ -67,6 +69,46 @@ class OrderManager
         $this->resync([$previousLead, $lead]);
 
         return $order;
+    }
+
+    /**
+     * Applies status, refunded total and per-item refunded quantities (matched by item ID) from
+     * a re-sent order. Everything else on the order stays as first recorded.
+     *
+     * @return bool whether anything changed
+     */
+    public function applyRefunds(EcommerceOrder $order, OrderPayload $payload): bool
+    {
+        $before = [$order->getStatus(), $order->getRefundedTotal()];
+        $order->applyStatus($payload->status ?? $order->getStatus(), $payload->refundedTotal ?? $order->getRefundedTotal());
+        $changed = $before !== [$order->getStatus(), $order->getRefundedTotal()];
+
+        $refundedQty = [];
+        foreach ($payload->items as $itemPayload) {
+            $refundedQty[$itemPayload->itemId] = $itemPayload->refundedQty;
+        }
+
+        foreach ($order->getItems() as $item) {
+            // A fully refunded or cancelled order refunds every item.
+            $qty = in_array($order->getStatus(), EcommerceOrder::COUNTED_STATUSES, true)
+                ? ($refundedQty[$item->getItemId()] ?? $item->getRefundedQty())
+                : $item->getQty();
+
+            if ($qty !== $item->getRefundedQty()) {
+                $item->setRefundedQty($qty);
+                $changed = true;
+            }
+        }
+
+        if (!$changed) {
+            return false;
+        }
+
+        $this->entityManager->persist($order);
+        $this->entityManager->flush();
+        $this->resync([$order->getLead()]);
+
+        return true;
     }
 
     public function delete(EcommerceOrder $order): void

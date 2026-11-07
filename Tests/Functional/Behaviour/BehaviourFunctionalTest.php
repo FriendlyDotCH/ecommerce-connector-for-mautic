@@ -73,7 +73,7 @@ class BehaviourFunctionalTest extends MauticMysqlTestCase
         $prefix = MAUTIC_TABLE_PREFIX;
         foreach (['c-1', 'c-2', 'c-3'] as $orderId) {
             $this->connection->insert($prefix.'ecommerce_orders', [
-                'lead_id' => $buyer->getId(), 'order_id' => $orderId, 'order_total' => 5, 'order_source' => 'pos',
+                'lead_id' => $buyer->getId(), 'order_id' => $orderId, 'order_total' => 5, 'net_total' => 5, 'order_source' => 'pos',
                 'order_date' => '2026-01-01 00:00:00', 'date_added' => '2026-01-01 00:00:00',
             ]);
         }

@@ -70,6 +70,29 @@ class CampaignSubscriberTest extends TestCase
         $this->subscriber->onOrderRecorded(new EcommerceOrderEvent($order));
     }
 
+    public function testCancelledOrRefundedOrderDoesNotTriggerCampaigns(): void
+    {
+        $lead = new Lead();
+        $lead->setId(42);
+
+        $this->executioner->expects($this->never())->method('execute');
+
+        foreach (['cancelled', 'refunded'] as $status) {
+            $order = $this->createOrder('49.00', 'web', [], $lead);
+            $order->applyStatus($status, null);
+            $this->subscriber->onOrderRecorded(new EcommerceOrderEvent($order));
+        }
+    }
+
+    public function testMinimumTotalUsesNetTotal(): void
+    {
+        $order = $this->createOrder('60.00', 'web', []);
+        $order->applyStatus('partially_refunded', '20');
+
+        $this->assertFalse(CampaignSubscriber::orderMatches($order, ['min_total' => '50']));
+        $this->assertTrue(CampaignSubscriber::orderMatches($order, ['min_total' => '40']));
+    }
+
     public function testOrderWithoutContactDoesNotTriggerCampaigns(): void
     {
         $this->executioner->expects($this->never())->method('execute');

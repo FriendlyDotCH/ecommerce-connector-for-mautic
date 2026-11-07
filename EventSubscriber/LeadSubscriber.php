@@ -55,6 +55,10 @@ class LeadSubscriber implements EventSubscriberInterface
             $currency = strtoupper((string) ($order['order_currency'] ?? ''));
             $amount   = number_format((float) $order['order_total'], 2, '.', '');
             $label    = trim(sprintf('%s %s (%s)', $currency, $amount, $order['order_source']));
+            $status   = (string) ($order['status'] ?? 'paid');
+            if ('paid' !== $status) {
+                $label .= ' - '.$this->translator->trans('mautic.plugin.ecommerce.status.'.$status);
+            }
             $orderId  = (string) $order['order_id'];
 
             $event->addEvent([

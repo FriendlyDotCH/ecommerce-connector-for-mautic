@@ -46,6 +46,18 @@ final class ReportSubscriber implements EventSubscriberInterface
                 'label' => 'mautic.plugin.ecommerce.report.order_total',
                 'type'  => 'float',
             ],
+            self::PREFIX_ORDER.'.status' => [
+                'label' => 'mautic.plugin.ecommerce.status',
+                'type'  => 'string',
+            ],
+            self::PREFIX_ORDER.'.refunded_total' => [
+                'label' => 'mautic.plugin.ecommerce.refunded_total',
+                'type'  => 'float',
+            ],
+            self::PREFIX_ORDER.'.net_total' => [
+                'label' => 'mautic.plugin.ecommerce.net_total',
+                'type'  => 'float',
+            ],
             self::PREFIX_ORDER.'.order_currency' => [
                 'label' => 'mautic.plugin.ecommerce.report.order_currency',
                 'type'  => 'string',
@@ -103,6 +115,10 @@ final class ReportSubscriber implements EventSubscriberInterface
                     'label' => 'mautic.plugin.ecommerce.tab.item_qty',
                     'type'  => 'int',
                 ],
+                self::PREFIX_ITEM.'.refunded_qty' => [
+                    'label' => 'mautic.plugin.ecommerce.tab.item_refunded_qty',
+                    'type'  => 'int',
+                ],
                 self::PREFIX_ITEM.'.unit_price' => [
                     'label' => 'mautic.plugin.ecommerce.tab.item_unit_price',
                     'type'  => 'float',
@@ -110,7 +126,8 @@ final class ReportSubscriber implements EventSubscriberInterface
                 'line_total' => [
                     'label'   => 'mautic.plugin.ecommerce.report.line_total',
                     'type'    => 'float',
-                    'formula' => self::PREFIX_ITEM.'.qty * '.self::PREFIX_ITEM.'.unit_price',
+                    // Net of refunded quantities.
+                    'formula' => '('.self::PREFIX_ITEM.'.qty - '.self::PREFIX_ITEM.'.refunded_qty) * '.self::PREFIX_ITEM.'.unit_price',
                 ],
             ] + $columns;
 

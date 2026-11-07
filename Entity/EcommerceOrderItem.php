@@ -26,6 +26,8 @@ class EcommerceOrderItem
 
     private ?string $unitPrice = null;
 
+    private int $refundedQty = 0;
+
     public static function loadMetadata(ORM\ClassMetadata $metadata): void
     {
         $builder = new ClassMetadataBuilder($metadata);
@@ -58,6 +60,7 @@ class EcommerceOrderItem
             'scale'      => 4,
             'nullable'   => true,
         ]);
+        $builder->addNamedField('refundedQty', 'integer', 'refunded_qty');
     }
 
     public function getId(): int
@@ -133,5 +136,15 @@ class EcommerceOrderItem
     public function setUnitPrice(?string $unitPrice): void
     {
         $this->unitPrice = $unitPrice;
+    }
+
+    public function getRefundedQty(): int
+    {
+        return $this->refundedQty;
+    }
+
+    public function setRefundedQty(int $refundedQty): void
+    {
+        $this->refundedQty = min(max($refundedQty, 0), $this->qty ?? 0);
     }
 }

@@ -75,6 +75,20 @@ class PurchaseHistoryQueryFunctionalTest extends MauticMysqlTestCase
         Assert::assertSame(3.0, $this->query->aggregateForLead(new PurchaseCriteria('qty', 'source', ['pos']), $this->buyerId, $this->now));
     }
 
+    public function testRefundsAndCancellationsAreExcluded(): void
+    {
+        $prefix = MAUTIC_TABLE_PREFIX;
+        // w-1 partly refunded: 20 back, one candle returned. p-1 cancelled.
+        $this->connection->executeStatement("UPDATE {$prefix}ecommerce_orders SET status = 'partially_refunded', refunded_total = 20, net_total = 30 WHERE order_id = 'w-1'");
+        $this->connection->executeStatement("UPDATE {$prefix}ecommerce_order_items SET refunded_qty = 1 WHERE item_id = 'c-1' AND unit_price IS NOT NULL");
+        $this->connection->executeStatement("UPDATE {$prefix}ecommerce_orders SET status = 'cancelled', net_total = 0 WHERE order_id = 'p-1'");
+
+        Assert::assertSame(30.0, $this->query->aggregateForLead(new PurchaseCriteria('spend'), $this->buyerId, $this->now));
+        Assert::assertSame(1.0, $this->query->aggregateForLead(new PurchaseCriteria('orders'), $this->buyerId, $this->now));
+        Assert::assertSame(15.0, $this->query->aggregateForLead(new PurchaseCriteria('spend', 'category', ['Candles']), $this->buyerId, $this->now));
+        Assert::assertSame(1.0, $this->query->aggregateForLead(new PurchaseCriteria('qty', 'category', ['Candles']), $this->buyerId, $this->now));
+    }
+
     public function testContactsWithoutMatchesGetZero(): void
     {
         $values = $this->query->aggregateForLeads(new PurchaseCriteria('spend', 'category', ['Candles']), [$this->otherId, 0, -5], $this->now);
@@ -103,6 +117,7 @@ class PurchaseHistoryQueryFunctionalTest extends MauticMysqlTestCase
             'lead_id'      => $leadId,
             'order_id'     => $orderId,
             'order_total'  => $total,
+            'net_total'    => $total,
             'order_source' => $source,
             'order_date'   => $orderDate,
             'date_added'   => $orderDate,

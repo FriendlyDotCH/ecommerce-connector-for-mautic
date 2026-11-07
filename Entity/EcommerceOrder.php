@@ -13,6 +13,23 @@ use Mautic\LeadBundle\Entity\Lead;
 
 class EcommerceOrder
 {
+    public const STATUS_PAID               = 'paid';
+    public const STATUS_PARTIALLY_REFUNDED = 'partially_refunded';
+    public const STATUS_REFUNDED           = 'refunded';
+    public const STATUS_CANCELLED          = 'cancelled';
+
+    public const STATUSES = [
+        self::STATUS_PAID,
+        self::STATUS_PARTIALLY_REFUNDED,
+        self::STATUS_REFUNDED,
+        self::STATUS_CANCELLED,
+    ];
+
+    /**
+     * Orders that count toward order count, revenue and purchase history.
+     */
+    public const COUNTED_STATUSES = [self::STATUS_PAID, self::STATUS_PARTIALLY_REFUNDED];
+
     private int $id;
 
     private ?Lead $lead = null;
@@ -22,6 +39,15 @@ class EcommerceOrder
     private string $orderId;
 
     private string $orderTotal;
+
+    private string $status = self::STATUS_PAID;
+
+    private string $refundedTotal = '0.0000';
+
+    /**
+     * Order total minus refunds; 0 for cancelled and fully refunded orders.
+     */
+    private string $netTotal = '0.0000';
 
     private ?string $orderCurrency = null;
 
@@ -57,6 +83,7 @@ class EcommerceOrder
             ->addIndex(['order_id'], 'ecommerce_order_id')
             ->addIndex(['date_added'], 'ecommerce_date_added')
             ->addIndex(['lead_id', 'order_date'], 'ecommerce_lead_order_date')
+            ->addIndex(['status'], 'ecommerce_status')
             ->addUniqueConstraint(['order_id', 'order_source'], 'ecommerce_order_source_unique');
 
         $builder->addId();
@@ -72,6 +99,17 @@ class EcommerceOrder
         $builder->addNamedField('orderId', 'string', 'order_id');
         $builder->addField('orderTotal', 'decimal', [
             'columnName' => 'order_total',
+            'precision'  => 19,
+            'scale'      => 4,
+        ]);
+        $builder->addField('status', 'string', ['length' => 32]);
+        $builder->addField('refundedTotal', 'decimal', [
+            'columnName' => 'refunded_total',
+            'precision'  => 19,
+            'scale'      => 4,
+        ]);
+        $builder->addField('netTotal', 'decimal', [
+            'columnName' => 'net_total',
             'precision'  => 19,
             'scale'      => 4,
         ]);
@@ -133,6 +171,56 @@ class EcommerceOrder
     public function setOrderTotal(string $orderTotal): void
     {
         $this->orderTotal = $orderTotal;
+        $this->applyStatus($this->status, $this->refundedTotal);
+    }
+
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+
+    public function getRefundedTotal(): string
+    {
+        return $this->refundedTotal;
+    }
+
+    public function getNetTotal(): string
+    {
+        return $this->netTotal;
+    }
+
+    public function isCounted(): bool
+    {
+        return in_array($this->status, self::COUNTED_STATUSES, true);
+    }
+
+    /**
+     * Sets status and refunds together and derives the net total. A refund amount decides
+     * between partly and fully refunded; "refunded" without an amount refunds the full total.
+     */
+    public function applyStatus(?string $status, ?string $refundedTotal): void
+    {
+        $status   = in_array($status, self::STATUSES, true) ? $status : self::STATUS_PAID;
+        $total    = (float) ($this->orderTotal ?? 0);
+        $refunded = min(max((float) $refundedTotal, 0.0), $total);
+
+        if (self::STATUS_REFUNDED === $status && $refunded <= 0.0) {
+            $refunded = $total;
+        }
+
+        if (self::STATUS_CANCELLED !== $status && $refunded > 0.0) {
+            $status = $refunded >= $total ? self::STATUS_REFUNDED : self::STATUS_PARTIALLY_REFUNDED;
+        }
+
+        if (self::STATUS_PARTIALLY_REFUNDED === $status && $refunded <= 0.0) {
+            $status = self::STATUS_PAID;
+        }
+
+        $this->status        = $status;
+        $this->refundedTotal = number_format($refunded, 4, '.', '');
+        $this->netTotal      = self::STATUS_CANCELLED === $status
+            ? '0.0000'
+            : number_format(max($total - $refunded, 0.0), 4, '.', '');
     }
 
     public function getOrderCurrency(): ?string

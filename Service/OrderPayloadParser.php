@@ -7,6 +7,7 @@ namespace MauticPlugin\EcommerceConnectorBundle\Service;
 use Mautic\CoreBundle\Helper\ClickthroughHelper;
 use MauticPlugin\EcommerceConnectorBundle\DTO\OrderItemPayload;
 use MauticPlugin\EcommerceConnectorBundle\DTO\OrderPayload;
+use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrder;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use Psr\Log\LoggerInterface;
 
@@ -23,6 +24,24 @@ class OrderPayloadParser
      * How far an order date may lie in the future, to allow for clock skew between store and Mautic.
      */
     public const ORDER_DATE_MAX_FUTURE = '+1 day';
+
+    /**
+     * Status names stores commonly send (WooCommerce, Shopify, POS), mapped to ours.
+     */
+    private const STATUS_ALIASES = [
+        'paid'               => EcommerceOrder::STATUS_PAID,
+        'completed'          => EcommerceOrder::STATUS_PAID,
+        'complete'           => EcommerceOrder::STATUS_PAID,
+        'processing'         => EcommerceOrder::STATUS_PAID,
+        'fulfilled'          => EcommerceOrder::STATUS_PAID,
+        'partially_refunded' => EcommerceOrder::STATUS_PARTIALLY_REFUNDED,
+        'partly_refunded'    => EcommerceOrder::STATUS_PARTIALLY_REFUNDED,
+        'partial_refund'     => EcommerceOrder::STATUS_PARTIALLY_REFUNDED,
+        'refunded'           => EcommerceOrder::STATUS_REFUNDED,
+        'cancelled'          => EcommerceOrder::STATUS_CANCELLED,
+        'canceled'           => EcommerceOrder::STATUS_CANCELLED,
+        'voided'             => EcommerceOrder::STATUS_CANCELLED,
+    ];
 
     public function __construct(
         private Config $config,
@@ -115,6 +134,27 @@ class OrderPayloadParser
             }
         }
 
+        $status = null;
+        if (isset($input['status']) && is_scalar($input['status']) && '' !== trim((string) $input['status'])) {
+            $key    = str_replace(['-', ' '], '_', strtolower(trim((string) $input['status'])));
+            $status = self::STATUS_ALIASES[$key] ?? null;
+            if (null === $status) {
+                $this->logInvalidPayload($context, sprintf('status "%s" is not known; use paid, partially_refunded, refunded or cancelled.', (string) $input['status']));
+
+                return null;
+            }
+        }
+
+        $refundedTotal = null;
+        if (isset($input['refunded_total']) && '' !== $input['refunded_total']) {
+            $refundedTotal = is_numeric($input['refunded_total']) ? $this->normalizeAmount((string) $input['refunded_total']) : null;
+            if (null === $refundedTotal) {
+                $this->logInvalidPayload($context, 'refunded_total must be zero or greater and within configured limits.');
+
+                return null;
+            }
+        }
+
         $location = $this->optionalSanitizedString($input['location'] ?? null, self::LOCATION_MAX);
         $items    = $this->parseItems($input['items'] ?? null, $context);
 
@@ -128,6 +168,8 @@ class OrderPayloadParser
             $location,
             $items,
             $orderDate,
+            $status,
+            $refundedTotal,
         );
     }
 
@@ -195,7 +237,11 @@ class OrderPayloadParser
             $category  = $this->optionalSanitizedString($item['category'] ?? null, self::CATEGORY_MAX);
             $unitPrice = $this->parseUnitPrice($item['unit_price'] ?? $item['price'] ?? null);
 
-            $parsed[] = new OrderItemPayload($itemId, $itemName, $qty, $category, $unitPrice);
+            $refundedQty = isset($item['refunded_qty']) && is_numeric($item['refunded_qty'])
+                ? min(max((int) $item['refunded_qty'], 0), $qty)
+                : 0;
+
+            $parsed[] = new OrderItemPayload($itemId, $itemName, $qty, $category, $unitPrice, $refundedQty);
         }
 
         return $parsed;

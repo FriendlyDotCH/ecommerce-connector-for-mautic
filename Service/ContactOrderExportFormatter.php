@@ -82,6 +82,9 @@ class ContactOrderExportFormatter
             $export[] = [
                 'order_id'          => (string) $order['order_id'],
                 'order_total'       => number_format((float) $order['order_total'], 2, '.', ''),
+                'status'            => (string) ($order['status'] ?? 'paid'),
+                'refunded_total'    => number_format((float) ($order['refunded_total'] ?? 0), 2, '.', ''),
+                'net_total'         => number_format((float) ($order['net_total'] ?? $order['order_total']), 2, '.', ''),
                 'order_currency'    => strtoupper((string) ($order['order_currency'] ?? '')),
                 'order_source'     => (string) $order['order_source'],
                 'location'          => !empty($order['location']) ? (string) $order['location'] : null,

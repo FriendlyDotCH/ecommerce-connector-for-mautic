@@ -24,6 +24,9 @@ trait InstallsEcommerceSchema
                 email_id INT UNSIGNED DEFAULT NULL,
                 order_id VARCHAR(191) NOT NULL,
                 order_total DECIMAL(19,4) NOT NULL,
+                status VARCHAR(32) NOT NULL DEFAULT 'paid',
+                refunded_total DECIMAL(19,4) NOT NULL DEFAULT 0,
+                net_total DECIMAL(19,4) NOT NULL DEFAULT 0,
                 order_currency VARCHAR(191) DEFAULT NULL,
                 order_source VARCHAR(191) NOT NULL,
                 location VARCHAR(191) DEFAULT NULL,
@@ -35,6 +38,7 @@ trait InstallsEcommerceSchema
                 INDEX ecommerce_order_id (order_id),
                 INDEX ecommerce_date_added (date_added),
                 INDEX ecommerce_lead_order_date (lead_id, order_date),
+                INDEX ecommerce_status (status),
                 PRIMARY KEY(id)
             ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB"
         );
@@ -47,6 +51,7 @@ trait InstallsEcommerceSchema
                 item_id VARCHAR(191) NOT NULL,
                 item_name VARCHAR(191) NOT NULL,
                 qty INT NOT NULL,
+                refunded_qty INT NOT NULL DEFAULT 0,
                 category VARCHAR(191) DEFAULT NULL,
                 unit_price DECIMAL(19,4) DEFAULT NULL,
                 INDEX ecommerce_item_lead_id (lead_id),

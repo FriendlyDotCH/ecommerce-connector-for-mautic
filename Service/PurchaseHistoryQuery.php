@@ -7,13 +7,15 @@ namespace MauticPlugin\EcommerceConnectorBundle\Service;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use MauticPlugin\EcommerceConnectorBundle\DTO\PurchaseCriteria;
+use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrder;
 
 /**
  * Aggregates spend, quantity or order count per contact. Used by the purchase history
  * campaign condition and by behaviours.
  *
- * Spend narrowed to categories or products is qty x unit price of the matching items, so
- * items sent without a unit price count as zero. Totals across currencies are summed as-is.
+ * Everything is net of refunds, and cancelled or fully refunded orders do not count. Spend
+ * narrowed to categories or products is (qty - refunded qty) x unit price of the matching
+ * items, so items sent without a unit price count as zero. Currencies are summed as-is.
  */
 class PurchaseHistoryQuery
 {
@@ -43,7 +45,9 @@ class PurchaseHistoryQuery
         $query->select('eo.lead_id', $this->valueExpression($criteria).' AS value')
             ->from(MAUTIC_TABLE_PREFIX.'ecommerce_orders', 'eo')
             ->where($query->expr()->in('eo.lead_id', ':leadIds'))
+            ->andWhere($query->expr()->in('eo.status', ':counted'))
             ->setParameter('leadIds', $leadIds, ArrayParameterType::INTEGER)
+            ->setParameter('counted', EcommerceOrder::COUNTED_STATUSES, ArrayParameterType::STRING)
             ->groupBy('eo.lead_id');
 
         if ($criteria->needsItems()) {
@@ -88,9 +92,9 @@ class PurchaseHistoryQuery
 
         return match ($criteria->metric) {
             PurchaseCriteria::METRIC_SPEND => $itemScope
-                ? 'COALESCE(SUM(ei.qty * COALESCE(ei.unit_price, 0)), 0)'
-                : 'COALESCE(SUM(eo.order_total), 0)',
-            PurchaseCriteria::METRIC_QTY    => 'COALESCE(SUM(ei.qty), 0)',
+                ? 'COALESCE(SUM((ei.qty - ei.refunded_qty) * COALESCE(ei.unit_price, 0)), 0)'
+                : 'COALESCE(SUM(eo.net_total), 0)',
+            PurchaseCriteria::METRIC_QTY    => 'COALESCE(SUM(ei.qty - ei.refunded_qty), 0)',
             PurchaseCriteria::METRIC_ORDERS => 'COUNT(DISTINCT eo.id)',
         };
     }

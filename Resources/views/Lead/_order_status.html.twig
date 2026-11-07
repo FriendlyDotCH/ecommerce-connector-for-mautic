@@ -1,0 +1,7 @@
+{# Status badge for refunded or cancelled orders; paid orders show nothing. #}
+{% if order.status is defined and order.status != 'paid' %}
+    <span class="label {{ order.status == 'partially_refunded' ? 'label-warning' : 'label-danger' }}">{{ ('mautic.plugin.ecommerce.status.' ~ order.status)|trans }}</span>
+    {% if order.status == 'partially_refunded' and order.netTotalFormatted is defined %}
+        <small class="text-secondary">{{ 'mautic.plugin.ecommerce.net_total'|trans }}: {{ order.netTotalFormatted|purify }}</small>
+    {% endif %}
+{% endif %}

@@ -30,6 +30,7 @@ class EcommerceOrderItemRepository extends CommonRepository
             'ei.item_id',
             'ei.item_name',
             'ei.qty',
+            'ei.refunded_qty',
             'ei.category',
             'ei.unit_price'
         )
@@ -47,6 +48,7 @@ class EcommerceOrderItemRepository extends CommonRepository
                 'item_id'   => (string) $row['item_id'],
                 'item_name' => (string) $row['item_name'],
                 'qty'       => (int) $row['qty'],
+                'refunded_qty' => (int) $row['refunded_qty'],
                 'category'  => null !== $row['category'] && '' !== $row['category']
                     ? (string) $row['category']
                     : null,

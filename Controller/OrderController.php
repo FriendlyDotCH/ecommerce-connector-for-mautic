@@ -55,6 +55,7 @@ class OrderController extends FormController
                 'qty'      => $item['qty'],
                 'category' => $item['category'],
                 'unitPrice' => null !== $item['unit_price'] ? $currencyFormatter->format($currency, $item['unit_price']) : null,
+                'refundedQty' => $item['refunded_qty'],
             ];
         }
 
@@ -66,6 +67,9 @@ class OrderController extends FormController
                     'orderSource'         => $order->getOrderSource(),
                     'location'            => $locationFormatter->format($order->getLocation()),
                     'orderTotalFormatted' => $currencyFormatter->format($currency, $amount),
+                    'status'              => $order->getStatus(),
+                    'refundedFormatted'   => (float) $order->getRefundedTotal() > 0 ? $currencyFormatter->format($currency, $order->getRefundedTotal()) : null,
+                    'netTotalFormatted'   => $currencyFormatter->format($currency, $order->getNetTotal()),
                     'dateAdded'           => $order->getOrderDate(),
                     'items'               => $items,
                 ],
