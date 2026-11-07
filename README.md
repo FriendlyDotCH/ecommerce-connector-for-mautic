@@ -357,6 +357,25 @@ Under Mautic's API (`/api`, Basic Auth or OAuth, API enabled in the configuratio
 
 Edits and deletes update the commerce fields and behaviours of the contacts involved.
 
+## WooCommerce without a plugin
+
+Orders and refunds can come straight from WooCommerce's built-in webhooks:
+
+1. In WordPress, open **WooCommerce → Settings → Advanced → Webhooks → Add webhook**.
+2. **Status**: Active. **Topic**: Order updated. **Delivery URL**: `https://your-mautic-site.com/ecommerce/woocommerce`. **Secret**: the webhook secret from this plugin's settings. **API version**: WP REST API Integration v3.
+3. Save. WooCommerce sends a ping, which Mautic accepts.
+
+Optionally add a second webhook with the topic **Order created**; it changes nothing for paid orders, which always arrive through Order updated as well.
+
+How WooCommerce orders map:
+
+* Orders are recorded when they become **processing** or **completed**, with the paid date as order date; **pending**, **on-hold**, **failed** and drafts are skipped until paid.
+* **refunded** and **cancelled** update the order's status; the `refunds` list sets the refunded total, so partial refunds are netted.
+* Order number, total, currency, billing email (existing contacts only), shipping city as location, and line items (SKU, or the product or variation ID; name; quantity; unit price) are taken over. WooCommerce order webhooks carry no product categories, so category filters and behaviours need categories from the store connector or the catalog.
+* Order source is `woocommerce`. If **Allowed order sources** is set, include it.
+
+The signature (`X-WC-Webhook-Signature`) is checked against the same webhook secret. Storefront events (cart, checkout, product views) are not available as WooCommerce webhooks; send them with mtc.js or the store connector.
+
 ## Storefront events
 
 Viewed product, added to cart and started checkout, for **identified contacts only**. Switch on **Record storefront events** in the plugin settings first, and only when your store collects tracking consent. Events of unknown or anonymous visitors are ignored; contacts are never created. Events older than **Keep events for (days)** (default 90) are deleted by `mautic:maintenance:cleanup`, and all of a contact's events are deleted with the contact.
@@ -488,6 +507,7 @@ You are solely responsible for how you deploy and use this plugin, including com
 * Added: mautic:ecommerce:abandonment, the detector for abandonment decisions.
 * Added: Campaign condition No order within.
 * Added: Email tokens for cart contents, cart total, restore-cart link and last viewed product.
+* Added: POST /ecommerce/woocommerce for native WooCommerce order webhooks (orders, refunds, cancellations).
 ```
 
 ### 1.5.0

@@ -5,14 +5,19 @@ declare(strict_types=1);
 namespace MauticPlugin\EcommerceConnectorBundle\Controller;
 
 use Mautic\CoreBundle\Controller\CommonController;
+use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrder;
+use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use MauticPlugin\EcommerceConnectorBundle\Service\EcommerceOrderTracker;
 use MauticPlugin\EcommerceConnectorBundle\Service\ExistingContactLookup;
+use MauticPlugin\EcommerceConnectorBundle\Service\OrderManager;
 use MauticPlugin\EcommerceConnectorBundle\Service\OrderPayloadParser;
 use MauticPlugin\EcommerceConnectorBundle\Service\StorefrontEventParser;
 use MauticPlugin\EcommerceConnectorBundle\Service\StorefrontEventRecorder;
 use MauticPlugin\EcommerceConnectorBundle\Service\WebhookRequestBody;
 use MauticPlugin\EcommerceConnectorBundle\Service\WebhookSignatureValidator;
+use MauticPlugin\EcommerceConnectorBundle\Service\WooCommerceOrderMapper;
+use MauticPlugin\EcommerceConnectorBundle\Service\WooCommerceSignatureValidator;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -80,6 +85,67 @@ class PublicController extends CommonController
                 $eventRecorder->record($payload, $existingContactLookup->findByEmail($eventInput['email'] ?? $input['email'] ?? null));
             }
         }
+
+        return new Response('', Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * Native WooCommerce order webhooks (WooCommerce > Settings > Advanced > Webhooks, topics
+     * Order created / updated / restored), signed with the same webhook secret.
+     */
+    public function woocommerceAction(
+        Request $request,
+        ExistingContactLookup $existingContactLookup,
+        EcommerceOrderTracker $orderTracker,
+        EcommerceOrderRepository $orderRepository,
+        OrderManager $orderManager,
+        OrderPayloadParser $payloadParser,
+        WooCommerceSignatureValidator $signatureValidator,
+        Config $config,
+        LoggerInterface $logger,
+    ): Response {
+        if (!$config->isPublished() || null === ($secret = $config->getWebhookSecret())) {
+            $logger->warning('WooCommerce webhook rejected: the integration is not published or has no webhook secret.');
+
+            return new Response('', Response::HTTP_NO_CONTENT);
+        }
+
+        if (!$signatureValidator->isValid($request, $secret)) {
+            $logger->warning('WooCommerce webhook rejected: missing or invalid X-WC-Webhook-Signature. Use the plugin\'s webhook secret as the webhook secret in WooCommerce.', [
+                'topic' => (string) $request->headers->get('X-WC-Webhook-Topic', ''),
+            ]);
+
+            return new Response('', Response::HTTP_NO_CONTENT);
+        }
+
+        $body = json_decode($request->getContent(), true);
+
+        // WooCommerce pings a new webhook with "webhook_id=…"; answering 2xx activates it.
+        if (!is_array($body)) {
+            return new Response('', Response::HTTP_NO_CONTENT);
+        }
+
+        $input = WooCommerceOrderMapper::map($body);
+        if (null === $input) {
+            $logger->notice('WooCommerce order skipped: not paid yet or not an order.', ['order' => $body['id'] ?? null, 'status' => $body['status'] ?? null]);
+
+            return new Response('', Response::HTTP_NO_CONTENT);
+        }
+
+        $payload = $payloadParser->parse($input, 'woocommerce');
+        if (null === $payload) {
+            return new Response('', Response::HTTP_NO_CONTENT);
+        }
+
+        // order.updated arrives on every change; only status and refunds matter for known orders.
+        $existing = $orderRepository->findOneBy(['orderId' => $payload->orderId, 'orderSource' => $payload->orderSource]);
+        if ($existing instanceof EcommerceOrder) {
+            $orderManager->applyRefunds($existing, $payload);
+
+            return new Response('', Response::HTTP_NO_CONTENT);
+        }
+
+        $orderTracker->recordOrder($payload, $existingContactLookup->findByEmail($input['email']));
 
         return new Response('', Response::HTTP_NO_CONTENT);
     }

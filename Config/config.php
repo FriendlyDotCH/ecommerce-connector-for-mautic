@@ -79,6 +79,11 @@ return [
                 'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\PublicController::ecommerceAction',
                 'method'     => 'POST',
             ],
+            'mautic_ecommerce_woocommerce' => [
+                'path'       => '/ecommerce/woocommerce',
+                'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\PublicController::woocommerceAction',
+                'method'     => 'POST',
+            ],
             'mautic_ecommerce_event' => [
                 'path'       => '/ecommerce/event',
                 'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\PublicController::eventAction',
