@@ -30,6 +30,15 @@ class EcommerceOrder
      */
     public const COUNTED_STATUSES = [self::STATUS_PAID, self::STATUS_PARTIALLY_REFUNDED];
 
+    /**
+     * SQL for an order's net total in base currency, falling back to the net total for orders
+     * without a known exchange rate.
+     */
+    public static function baseNetSql(string $alias = 'eo'): string
+    {
+        return sprintf('COALESCE(%1$s.base_net_total, %1$s.net_total)', $alias);
+    }
+
     private int $id;
 
     private ?Lead $lead = null;
@@ -54,6 +63,16 @@ class EcommerceOrder
      * Order total minus refunds; 0 for cancelled and fully refunded orders.
      */
     private string $netTotal = '0.0000';
+
+    /**
+     * Base currency units per unit of the order currency, at the order date. Null when unknown.
+     */
+    private ?string $exchangeRate = null;
+
+    /**
+     * Net total in base currency; null when the rate is unknown, in which case net total is used.
+     */
+    private ?string $baseNetTotal = null;
 
     private ?string $orderCurrency = null;
 
@@ -120,6 +139,18 @@ class EcommerceOrder
             'columnName' => 'net_total',
             'precision'  => 19,
             'scale'      => 4,
+        ]);
+        $builder->addField('exchangeRate', 'decimal', [
+            'columnName' => 'exchange_rate',
+            'precision'  => 19,
+            'scale'      => 8,
+            'nullable'   => true,
+        ]);
+        $builder->addField('baseNetTotal', 'decimal', [
+            'columnName' => 'base_net_total',
+            'precision'  => 19,
+            'scale'      => 4,
+            'nullable'   => true,
         ]);
         $builder->addNamedField('orderCurrency', 'string', 'order_currency', true);
         $builder->addNamedField('orderSource', 'string', 'order_source');
@@ -207,6 +238,31 @@ class EcommerceOrder
         return $this->netTotal;
     }
 
+    public function getExchangeRate(): ?string
+    {
+        return $this->exchangeRate;
+    }
+
+    public function getBaseNetTotal(): ?string
+    {
+        return $this->baseNetTotal;
+    }
+
+    public function setExchangeRate(?string $exchangeRate): void
+    {
+        $this->exchangeRate = null !== $exchangeRate && (float) $exchangeRate > 0
+            ? number_format((float) $exchangeRate, 8, '.', '')
+            : null;
+        $this->updateBaseNetTotal();
+    }
+
+    private function updateBaseNetTotal(): void
+    {
+        $this->baseNetTotal = null !== $this->exchangeRate
+            ? number_format((float) $this->netTotal * (float) $this->exchangeRate, 4, '.', '')
+            : null;
+    }
+
     public function isCounted(): bool
     {
         return in_array($this->status, self::COUNTED_STATUSES, true);
@@ -239,6 +295,7 @@ class EcommerceOrder
         $this->netTotal      = self::STATUS_CANCELLED === $status
             ? '0.0000'
             : number_format(max($total - $refunded, 0.0), 4, '.', '');
+        $this->updateBaseNetTotal();
     }
 
     public function getOrderCurrency(): ?string

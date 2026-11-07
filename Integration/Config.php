@@ -96,6 +96,48 @@ class Config
         return 3 === strlen($currency) ? $currency : self::DEFAULT_CURRENCY;
     }
 
+    /**
+     * Currency for lifetime value, behaviours, lifecycle and dashboards. Defaults to the
+     * default currency.
+     */
+    public function getBaseCurrency(): string
+    {
+        $integration = $this->getIntegrationObject();
+        $currency    = null !== $integration
+            ? strtoupper(trim((string) ($integration->getIntegrationSettings()->getFeatureSettings()['base_currency'] ?? '')))
+            : '';
+
+        return 1 === preg_match('/^[A-Z]{3}$/', $currency) ? $currency : $this->getDefaultCurrency();
+    }
+
+    /**
+     * Manual rates such as "EUR=395.5, USD=360": base currency units per unit of each currency.
+     *
+     * @return array<string, float>
+     */
+    public function getManualExchangeRates(): array
+    {
+        $integration = $this->getIntegrationObject();
+        $raw         = null !== $integration ? (string) ($integration->getIntegrationSettings()->getFeatureSettings()['exchange_rates'] ?? '') : '';
+        $rates       = [];
+
+        foreach (preg_split('/[,;\n]+/', $raw) ?: [] as $pair) {
+            if (1 === preg_match('/^\s*([A-Za-z]{3})\s*[=:]\s*([0-9]+(?:[.,][0-9]+)?)\s*$/', $pair, $match)) {
+                $rate = (float) str_replace(',', '.', $match[2]);
+                if ($rate > 0) {
+                    $rates[strtoupper($match[1])] = $rate;
+                }
+            }
+        }
+
+        return $rates;
+    }
+
+    public function isEcbExchangeRatesEnabled(): bool
+    {
+        return $this->getFeatureSetting('exchange_rates_ecb', false);
+    }
+
     public function getMaxOrderTotal(): float
     {
         $integration = $this->getIntegrationObject();

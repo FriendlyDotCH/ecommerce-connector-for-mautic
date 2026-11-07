@@ -23,6 +23,7 @@ class OrderManager
         private LeadCommerceFieldUpdater $leadCommerceFieldUpdater,
         private CommerceRecalculator $commerceRecalculator,
         private LeadModel $leadModel,
+        private ExchangeRateProvider $exchangeRateProvider,
     ) {
     }
 
@@ -41,6 +42,7 @@ class OrderManager
             $order->setOrderDate(\DateTime::createFromImmutable($payload->orderDate));
         }
         $order->setLead($lead);
+        $order->setExchangeRate($this->exchangeRateProvider->getRate($order->getOrderCurrency(), $order->getOrderDate()));
 
         if (null !== $payload->emailId && $payload->emailId !== $order->getEmail()?->getId()) {
             $order->setEmail($this->entityManager->getRepository(Email::class)->find($payload->emailId));

@@ -64,7 +64,7 @@ class CommerceMetricsFunctionalTest extends MauticMysqlTestCase
         $output = $this->testSymfonyCommand('mautic:ecommerce:recalculate');
 
         Assert::assertSame(0, $output->getStatusCode());
-        Assert::assertStringContainsString('timing: 1 contacts', $output->getDisplay());
+        Assert::assertStringContainsString('commerce fields: 1 contacts', $output->getDisplay());
     }
 
     private function createContact(string $email): Lead

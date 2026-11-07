@@ -65,7 +65,8 @@ final class ContactProfileTabSubscriber implements EventSubscriberInterface
         if ($event->checkContext(self::VIEW, 'tabs.content')) {
             $stats           = $this->orderRepository->getCommerceStatsForLead($leadId);
             $orders          = $this->orderRepository->getOrdersForLeadTimeline($leadId);
-            $defaultCurrency = $this->config->getDefaultCurrency();
+            // Lifetime value, last order total and behaviours are in base currency.
+            $defaultCurrency = $this->config->getBaseCurrency();
 
             $event->addTemplate('@EcommerceConnector/Lead/Tab/ecommerce-tab-content.html.twig', [
                 'lead'                   => $lead,

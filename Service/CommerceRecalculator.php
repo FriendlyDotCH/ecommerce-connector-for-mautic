@@ -37,8 +37,8 @@ class CommerceRecalculator
     public function recalculateAll(?\DateTimeInterface $now = null): array
     {
         $result = [
-            'timing'    => $this->metricsCalculator->recalculateAll($now),
-            'lifecycle' => $this->lifecycleCalculator->recalculateAll($now),
+            'commerce fields' => $this->metricsCalculator->recalculateAll($now),
+            'lifecycle'       => $this->lifecycleCalculator->recalculateAll($now),
         ];
 
         foreach ($this->behaviourRepository->findPublished() as $behaviour) {

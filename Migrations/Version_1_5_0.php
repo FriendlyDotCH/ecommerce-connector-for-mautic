@@ -14,6 +14,8 @@ class Version_1_5_0 extends AbstractMigration
 
     private const ITEMS_TABLE = 'ecommerce_order_items';
 
+    private const RATES_TABLE = 'ecommerce_exchange_rates';
+
     protected function isApplicable(Schema $schema): bool
     {
         try {
@@ -25,6 +27,8 @@ class Version_1_5_0 extends AbstractMigration
 
         return !$ordersTable->hasColumn('status')
             || !$ordersTable->hasColumn('campaign_id')
+            || !$ordersTable->hasColumn('base_net_total')
+            || !$schema->hasTable($this->concatPrefix(self::RATES_TABLE))
             || !$itemsTable->hasColumn('refunded_qty');
     }
 
@@ -60,6 +64,27 @@ class Version_1_5_0 extends AbstractMigration
                 JOIN `{$prefix}campaign_events` ce ON ce.id = s.source_id
                 SET eo.campaign_id = ce.campaign_id
                 WHERE eo.email_id IS NOT NULL AND eo.lead_id IS NOT NULL AND s.source = 'campaign.event'");
+        }
+
+        if (!$ordersTable->hasColumn('base_net_total')) {
+            // Filled by mautic:ecommerce:exchange-rates --rebase once a base currency is set.
+            $this->addSql("ALTER TABLE `{$ordersTableName}`
+                ADD `exchange_rate` DECIMAL(19,8) DEFAULT NULL AFTER `net_total`,
+                ADD `base_net_total` DECIMAL(19,4) DEFAULT NULL AFTER `exchange_rate`");
+        }
+
+        $ratesTableName = $this->concatPrefix(self::RATES_TABLE);
+        if (!$schema->hasTable($ratesTableName)) {
+            $this->addSql(
+                "CREATE TABLE `{$ratesTableName}` (
+                    `id` INT UNSIGNED AUTO_INCREMENT NOT NULL,
+                    `rate_date` DATE NOT NULL,
+                    `currency` VARCHAR(3) NOT NULL,
+                    `per_eur` DECIMAL(19,8) NOT NULL,
+                    UNIQUE INDEX `ecommerce_rate_date_currency` (`currency`, `rate_date`),
+                    PRIMARY KEY(`id`)
+                ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB"
+            );
         }
 
         if (!$schema->getTable($itemsTableName)->hasColumn('refunded_qty')) {

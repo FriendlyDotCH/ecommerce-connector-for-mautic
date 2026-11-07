@@ -39,6 +39,7 @@ class ContactProfileTabSubscriberTest extends TestCase
         $this->orderRepository     = $this->createMock(EcommerceOrderRepository::class);
         $this->orderItemRepository = $this->createMock(EcommerceOrderItemRepository::class);
         $this->config              = $this->createMock(Config::class);
+        $this->config->method('getBaseCurrency')->willReturn('USD');
         $this->router              = $this->createMock(RouterInterface::class);
         $this->currencyFormatter   = new CurrencyFormatter();
         $this->behaviourRepository = $this->createMock(EcommerceBehaviourRepository::class);

@@ -226,7 +226,7 @@ class LifecycleCalculator
     private function loadCustomers(?array $leadIds, ?\DateTimeInterface $now): array
     {
         $query = $this->connection->createQueryBuilder();
-        $query->select('eo.lead_id', 'COUNT(eo.id) AS orders', 'MIN(eo.order_date) AS first_order', 'MAX(eo.order_date) AS last_order', 'SUM(eo.net_total) AS monetary')
+        $query->select('eo.lead_id', 'COUNT(eo.id) AS orders', 'MIN(eo.order_date) AS first_order', 'MAX(eo.order_date) AS last_order', 'SUM('.EcommerceOrder::baseNetSql().') AS monetary')
             ->from(MAUTIC_TABLE_PREFIX.'ecommerce_orders', 'eo')
             ->where('eo.lead_id IS NOT NULL')
             ->andWhere($query->expr()->in('eo.status', ':counted'))

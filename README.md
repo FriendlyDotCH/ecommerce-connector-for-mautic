@@ -260,6 +260,23 @@ curl -X POST "https://your-mautic-site.com/ecommerce/order" \
   -d "order_currency=USD"
 ```
 
+## Base currency
+
+Set **Base currency** on the plugin's Formatting tab (for example `HUF`; empty uses the default currency). Lifetime value, last order total, behaviours, the purchase history condition, lifecycle and RFM, and the dashboard widgets are then in base currency. Email revenue badges still show each currency separately.
+
+Each order is converted at the rate of its order date, which is stored with the order. Rates come from:
+
+1. **Manual exchange rates**, for example `EUR=395, USD=360` (base currency units per unit), which take precedence, or
+2. **ECB reference rates**, when **Use ECB reference rates** is on: the European Central Bank's daily euro rates, fetched from ecb.europa.eu.
+
+Orders without a known rate count at face value. Run daily, before the recalculation:
+
+```bash
+php bin/console mautic:ecommerce:exchange-rates
+```
+
+It fetches ECB rates (when enabled) and converts orders that have no rate yet. Use `--history` once to load ECB rates back to 1999 for older orders. After changing the base currency or the manual rates, run `--rebase` to convert every order again, then `mautic:ecommerce:recalculate`.
+
 ## Revenue reporting
 
 Orders attributed to an email are also attributed to the campaign that sent it, taken from the email's send record (the click token's tracking hash when present, otherwise the contact's latest send of that email). Revenue keeps its campaign and email IDs if those are later deleted.
@@ -319,7 +336,11 @@ Values update for the contact on every new order, when contacts are merged, and 
 php bin/console mautic:ecommerce:recalculate
 ```
 
-It updates the timing fields, lifecycle stages and RFM scores, and all published behaviours. `mautic:ecommerce:behaviours:update` (optionally with `--id=<behaviour ID>`) updates behaviours only. Deleting a behaviour deletes its contact field; this is refused while a segment uses the field.
+It updates lifetime value, order count, last order, the timing fields, lifecycle stages and RFM scores, and all published behaviours. A typical cron line:
+
+```
+15 3 * * * www-data php /path/to/mautic/bin/console mautic:ecommerce:exchange-rates && php /path/to/mautic/bin/console mautic:ecommerce:recalculate
+``` `mautic:ecommerce:behaviours:update` (optionally with `--id=<behaviour ID>`) updates behaviours only. Deleting a behaviour deletes its contact field; this is refused while a segment uses the field.
 
 ## REST API
 
@@ -420,6 +441,9 @@ You are solely responsible for how you deploy and use this plugin, including com
 * Added: Campaign attribution for orders, from the attributed email's send; existing orders are attributed on upgrade.
 * Added: Dashboard widgets: revenue over time, key figures, revenue by campaign, revenue by email.
 * Added: Campaign column in the order and line item reports.
+* Added: Base currency with manual or ECB exchange rates; orders store the rate of their order date.
+* Added: mautic:ecommerce:exchange-rates to fetch rates and convert orders (--history, --rebase).
+* Updated: The daily recalculation also refreshes lifetime value, order count and last order.
 ```
 
 ### 1.4.0

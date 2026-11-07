@@ -34,7 +34,11 @@
     or (form.featureSettings.on_contact_delete is defined and formContainsErrors(form.featureSettings.on_contact_delete))
 ) -%}
 {%- set hasWebhookErrors = form.apiKeys is defined and formContainsErrors(form.apiKeys) -%}
-{%- set hasFormattingErrors = form.featureSettings is defined and form.featureSettings.default_currency is defined and formContainsErrors(form.featureSettings.default_currency) -%}
+{%- set hasFormattingErrors = form.featureSettings is defined and (
+    (form.featureSettings.default_currency is defined and formContainsErrors(form.featureSettings.default_currency))
+    or (form.featureSettings.base_currency is defined and formContainsErrors(form.featureSettings.base_currency))
+    or (form.featureSettings.exchange_rates is defined and formContainsErrors(form.featureSettings.exchange_rates))
+) -%}
 
 {%- if description is not empty -%}
     <div class="alert alert-info">
@@ -56,7 +60,7 @@
         <li class="" id="features-tab">
             <a href="#features-container" role="tab" data-toggle="tab">
                 {{- 'mautic.plugin.ecommerce.tab.validation'|trans -}}
-                {%- if (hasSupportedFeatures and formContainsErrors(form.supportedFeatures)) or (hasFeatureSettings and formContainsErrors(form.featureSettings, ['leadFields', 'enable_page_hit_tracking', 'attribute_last_email', 'on_contact_delete', 'default_currency'])) -%}
+                {%- if (hasSupportedFeatures and formContainsErrors(form.supportedFeatures)) or (hasFeatureSettings and formContainsErrors(form.featureSettings, ['leadFields', 'enable_page_hit_tracking', 'attribute_last_email', 'on_contact_delete', 'default_currency', 'base_currency', 'exchange_rates', 'exchange_rates_ecb'])) -%}
                     <i class="ri-fw ri-alert-fill text-danger"></i>
                 {%- endif -%}
             </a>
@@ -189,8 +193,13 @@
     {%- endif -%}
 
     <div class="tab-pane fade {% if 'formatting-container' == activeTab %}in active{% endif %} bdr-w-0" id="formatting-container">
-        {%- if form.featureSettings is defined and form.featureSettings.default_currency is defined -%}
-            {{- form_row(form.featureSettings.default_currency) -}}
+        {%- if form.featureSettings is defined -%}
+            {%- for key in ['default_currency', 'base_currency', 'exchange_rates', 'exchange_rates_ecb'] -%}
+                {%- if attribute(form.featureSettings, key) is defined -%}
+                    {{- form_row(attribute(form.featureSettings, key)) -}}
+                {%- endif -%}
+            {%- endfor -%}
+            <p class="text-secondary">{{ 'mautic.plugin.ecommerce.exchange_rates.help'|trans }}</p>
         {%- endif -%}
     </div>
 

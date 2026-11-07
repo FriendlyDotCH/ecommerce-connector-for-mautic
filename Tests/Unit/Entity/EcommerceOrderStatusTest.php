@@ -77,4 +77,20 @@ class EcommerceOrderStatusTest extends TestCase
 
         return $order;
     }
+
+    public function testBaseNetTotalFollowsRateAndRefunds(): void
+    {
+        $order = $this->order('10');
+        $this->assertNull($order->getBaseNetTotal());
+
+        $order->setExchangeRate('400');
+        $this->assertSame('400.00000000', $order->getExchangeRate());
+        $this->assertSame('4000.0000', $order->getBaseNetTotal());
+
+        $order->applyStatus('partially_refunded', '2.5');
+        $this->assertSame('3000.0000', $order->getBaseNetTotal());
+
+        $order->setExchangeRate(null);
+        $this->assertNull($order->getBaseNetTotal());
+    }
 }

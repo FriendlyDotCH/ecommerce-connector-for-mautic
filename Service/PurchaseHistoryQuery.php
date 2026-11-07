@@ -15,7 +15,8 @@ use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrder;
  *
  * Everything is net of refunds, and cancelled or fully refunded orders do not count. Spend
  * narrowed to categories or products is (qty - refunded qty) x unit price of the matching
- * items, so items sent without a unit price count as zero. Currencies are summed as-is.
+ * items, so items sent without a unit price count as zero. Amounts are in base currency;
+ * orders without a known exchange rate count at face value.
  */
 class PurchaseHistoryQuery
 {
@@ -92,8 +93,8 @@ class PurchaseHistoryQuery
 
         return match ($criteria->metric) {
             PurchaseCriteria::METRIC_SPEND => $itemScope
-                ? 'COALESCE(SUM((ei.qty - ei.refunded_qty) * COALESCE(ei.unit_price, 0)), 0)'
-                : 'COALESCE(SUM(eo.net_total), 0)',
+                ? 'COALESCE(SUM((ei.qty - ei.refunded_qty) * COALESCE(ei.unit_price, 0) * COALESCE(eo.exchange_rate, 1)), 0)'
+                : 'COALESCE(SUM('.EcommerceOrder::baseNetSql().'), 0)',
             PurchaseCriteria::METRIC_QTY    => 'COALESCE(SUM(ei.qty - ei.refunded_qty), 0)',
             PurchaseCriteria::METRIC_ORDERS => 'COUNT(DISTINCT eo.id)',
         };

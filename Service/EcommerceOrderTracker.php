@@ -31,6 +31,7 @@ class EcommerceOrderTracker
         private EventDispatcherInterface $dispatcher,
         private OrderManager $orderManager,
         private CampaignAttributor $campaignAttributor,
+        private ExchangeRateProvider $exchangeRateProvider,
     ) {
     }
 
@@ -63,6 +64,7 @@ class EcommerceOrderTracker
         $now = new \DateTime();
         $order->setOrderDate(null !== $payload->orderDate ? \DateTime::createFromImmutable($payload->orderDate) : $now);
         $order->setDateAdded($now);
+        $order->setExchangeRate($this->exchangeRateProvider->getRate($order->getOrderCurrency(), $order->getOrderDate()));
         $order->setLead($lead);
         $order->setEmail($email);
         $order->setCampaignId($this->campaignAttributor->resolveCampaignId($email, $lead, $payload->clickthrough));

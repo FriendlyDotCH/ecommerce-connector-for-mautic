@@ -28,6 +28,8 @@ trait InstallsEcommerceSchema
                 status VARCHAR(32) NOT NULL DEFAULT 'paid',
                 refunded_total DECIMAL(19,4) NOT NULL DEFAULT 0,
                 net_total DECIMAL(19,4) NOT NULL DEFAULT 0,
+                exchange_rate DECIMAL(19,8) DEFAULT NULL,
+                base_net_total DECIMAL(19,4) DEFAULT NULL,
                 order_currency VARCHAR(191) DEFAULT NULL,
                 order_source VARCHAR(191) NOT NULL,
                 location VARCHAR(191) DEFAULT NULL,
@@ -77,6 +79,18 @@ trait InstallsEcommerceSchema
                 date_added DATETIME DEFAULT NULL,
                 last_calculated DATETIME DEFAULT NULL,
                 UNIQUE INDEX ecommerce_behaviour_field_alias (field_alias),
+                PRIMARY KEY(id)
+            ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB"
+        );
+
+        $connection->executeStatement("DROP TABLE IF EXISTS {$prefix}ecommerce_exchange_rates");
+        $connection->executeStatement(
+            "CREATE TABLE {$prefix}ecommerce_exchange_rates (
+                id INT UNSIGNED AUTO_INCREMENT NOT NULL,
+                rate_date DATE NOT NULL,
+                currency VARCHAR(3) NOT NULL,
+                per_eur DECIMAL(19,8) NOT NULL,
+                UNIQUE INDEX ecommerce_rate_date_currency (currency, rate_date),
                 PRIMARY KEY(id)
             ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB"
         );

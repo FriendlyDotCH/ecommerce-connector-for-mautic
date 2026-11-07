@@ -14,7 +14,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Revenue figures for dashboard widgets, by order date and net of refunds, counting only
- * paid and partly refunded orders. Currencies are summed as-is.
+ * paid and partly refunded orders, in base currency.
  */
 class EcommerceAnalytics
 {
@@ -36,7 +36,7 @@ class EcommerceAnalytics
 
         $chart->setDataset(
             $this->translator->trans('mautic.plugin.ecommerce.widget.revenue'),
-            $query->fetchSumTimeData('ecommerce_orders', 'order_date', $counted, 'net_total')
+            $query->fetchSumTimeData('ecommerce_orders', 'order_date', $counted, EcommerceOrder::baseNetSql('t'))
         );
         $chart->setDataset(
             $this->translator->trans('mautic.plugin.ecommerce.widget.orders'),
@@ -52,15 +52,15 @@ class EcommerceAnalytics
     public function getKeyFigures(\DateTimeInterface $dateFrom, \DateTimeInterface $dateTo): array
     {
         $period = $this->periodQuery($dateFrom, $dateTo)
-            ->select('COALESCE(SUM(eo.net_total), 0) AS revenue', 'COUNT(eo.id) AS orders', 'COUNT(DISTINCT eo.lead_id) AS customers')
-            ->addSelect('COALESCE(SUM(CASE WHEN eo.email_id IS NOT NULL THEN eo.net_total ELSE 0 END), 0) AS attributed')
+            ->select('COALESCE(SUM('.EcommerceOrder::baseNetSql().'), 0) AS revenue', 'COUNT(eo.id) AS orders', 'COUNT(DISTINCT eo.lead_id) AS customers')
+            ->addSelect('COALESCE(SUM(CASE WHEN eo.email_id IS NOT NULL THEN '.EcommerceOrder::baseNetSql().' ELSE 0 END), 0) AS attributed')
             ->executeQuery()
             ->fetchAssociative() ?: [];
 
         // Lifetime figures for the customers who ordered in the period, up to its end.
         $prefix    = MAUTIC_TABLE_PREFIX;
         $lifetimes = $this->connection->fetchAllAssociative(
-            "SELECT eo.lead_id, COUNT(eo.id) AS orders, SUM(eo.net_total) AS value
+            "SELECT eo.lead_id, COUNT(eo.id) AS orders, SUM(".EcommerceOrder::baseNetSql().") AS value
              FROM {$prefix}ecommerce_orders eo
              WHERE eo.status IN (?) AND eo.order_date <= ? AND eo.lead_id IN (
                  SELECT p.lead_id FROM {$prefix}ecommerce_orders p
@@ -97,7 +97,7 @@ class EcommerceAnalytics
     public function getRevenueByCampaign(\DateTimeInterface $dateFrom, \DateTimeInterface $dateTo, int $limit): array
     {
         $query = $this->periodQuery($dateFrom, $dateTo)
-            ->select('eo.campaign_id AS id', 'c.name', 'COUNT(eo.id) AS orders', 'SUM(eo.net_total) AS revenue')
+            ->select('eo.campaign_id AS id', 'c.name', 'COUNT(eo.id) AS orders', 'SUM('.EcommerceOrder::baseNetSql().') AS revenue')
             ->leftJoin('eo', MAUTIC_TABLE_PREFIX.'campaigns', 'c', 'c.id = eo.campaign_id')
             ->andWhere('eo.campaign_id IS NOT NULL')
             ->groupBy('eo.campaign_id', 'c.name');
@@ -111,7 +111,7 @@ class EcommerceAnalytics
     public function getRevenueByEmail(\DateTimeInterface $dateFrom, \DateTimeInterface $dateTo, int $limit): array
     {
         $query = $this->periodQuery($dateFrom, $dateTo)
-            ->select('eo.email_id AS id', 'e.name', 'COUNT(eo.id) AS orders', 'SUM(eo.net_total) AS revenue')
+            ->select('eo.email_id AS id', 'e.name', 'COUNT(eo.id) AS orders', 'SUM('.EcommerceOrder::baseNetSql().') AS revenue')
             ->leftJoin('eo', MAUTIC_TABLE_PREFIX.'emails', 'e', 'e.id = eo.email_id')
             ->andWhere('eo.email_id IS NOT NULL')
             ->groupBy('eo.email_id', 'e.name');

@@ -112,6 +112,46 @@ class EcommerceConnectorIntegration extends AbstractIntegration
         );
 
         $builder->add(
+            'base_currency',
+            TextType::class,
+            [
+                'label'    => 'mautic.plugin.ecommerce.base_currency',
+                'required' => false,
+                'data'     => $data['base_currency'] ?? '',
+                'attr'     => [
+                    'tooltip'     => 'mautic.plugin.ecommerce.base_currency.tooltip',
+                    'placeholder' => 'HUF',
+                ],
+            ]
+        );
+
+        $builder->add(
+            'exchange_rates',
+            TextType::class,
+            [
+                'label'    => 'mautic.plugin.ecommerce.exchange_rates',
+                'required' => false,
+                'data'     => $data['exchange_rates'] ?? '',
+                'attr'     => [
+                    'tooltip'     => 'mautic.plugin.ecommerce.exchange_rates.tooltip',
+                    'placeholder' => 'EUR=395, USD=360',
+                ],
+            ]
+        );
+
+        $builder->add(
+            'exchange_rates_ecb',
+            YesNoButtonGroupType::class,
+            [
+                'label' => 'mautic.plugin.ecommerce.exchange_rates_ecb',
+                'data'  => isset($data['exchange_rates_ecb']) && (bool) $data['exchange_rates_ecb'],
+                'attr'  => [
+                    'tooltip' => 'mautic.plugin.ecommerce.exchange_rates_ecb.tooltip',
+                ],
+            ]
+        );
+
+        $builder->add(
             'max_order_total',
             NumberType::class,
             [

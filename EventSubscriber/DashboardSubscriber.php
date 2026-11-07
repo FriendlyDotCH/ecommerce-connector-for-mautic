@@ -91,7 +91,7 @@ class DashboardSubscriber extends MainDashboardSubscriber
     private function keyFigures(array $params): array
     {
         $figures  = $this->analytics->getKeyFigures($params['dateFrom'], $params['dateTo']);
-        $currency = $this->config->getDefaultCurrency();
+        $currency = $this->config->getBaseCurrency();
         $money    = fn (float $amount): string => $this->currencyFormatter->format($currency, $amount);
 
         $rows = [
@@ -121,7 +121,7 @@ class DashboardSubscriber extends MainDashboardSubscriber
      */
     private function rankedTable(array $rows, string $route, string $nameLabel): array
     {
-        $currency = $this->config->getDefaultCurrency();
+        $currency = $this->config->getBaseCurrency();
 
         return [
             'headItems' => [$nameLabel, 'mautic.plugin.ecommerce.widget.orders', 'mautic.plugin.ecommerce.widget.revenue'],

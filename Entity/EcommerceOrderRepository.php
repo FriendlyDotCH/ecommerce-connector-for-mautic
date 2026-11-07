@@ -115,7 +115,7 @@ class EcommerceOrderRepository extends CommonRepository
 
         // Net of refunds; cancelled and fully refunded orders do not count.
         $query->select('COUNT(eo.id) AS order_count')
-            ->addSelect('COALESCE(SUM(eo.net_total), 0) AS lifetime_value')
+            ->addSelect('COALESCE(SUM('.EcommerceOrder::baseNetSql().'), 0) AS lifetime_value')
             ->from(MAUTIC_TABLE_PREFIX.'ecommerce_orders', 'eo')
             ->where('eo.lead_id = :leadId')
             ->andWhere($query->expr()->in('eo.status', ':counted'))
@@ -125,7 +125,7 @@ class EcommerceOrderRepository extends CommonRepository
         $row = $query->executeQuery()->fetchAssociative();
 
         $lastOrderQuery = $this->getEntityManager()->getConnection()->createQueryBuilder();
-        $lastOrderQuery->select('eo.net_total AS order_total', 'eo.order_date')
+        $lastOrderQuery->select(EcommerceOrder::baseNetSql().' AS order_total', 'eo.order_date')
             ->from(MAUTIC_TABLE_PREFIX.'ecommerce_orders', 'eo')
             ->where('eo.lead_id = :leadId')
             ->andWhere($lastOrderQuery->expr()->in('eo.status', ':counted'))
