@@ -9,6 +9,7 @@ use Mautic\CoreBundle\Event\MaintenanceEvent;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceEventRepository;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Deletes storefront events past the retention period during mautic:maintenance:cleanup.
@@ -19,6 +20,7 @@ final class MaintenanceSubscriber implements EventSubscriberInterface
     public function __construct(
         private EcommerceEventRepository $eventRepository,
         private Config $config,
+        private TranslatorInterface $translator,
     ) {
     }
 
@@ -33,6 +35,10 @@ final class MaintenanceSubscriber implements EventSubscriberInterface
     {
         $before = new \DateTimeImmutable(sprintf('-%d days', $this->config->getEventRetentionDays()));
 
-        $event->setStat('mautic.plugin.ecommerce.maintenance.events', $this->eventRepository->deleteOlderThan($before, $event->isDryRun()));
+        // The command prints labels as given; core subscribers translate them first too.
+        $event->setStat(
+            $this->translator->trans('mautic.plugin.ecommerce.maintenance.events'),
+            $this->eventRepository->deleteOlderThan($before, $event->isDryRun())
+        );
     }
 }
