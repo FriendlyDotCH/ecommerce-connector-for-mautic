@@ -91,6 +91,11 @@ return [
                 'method'     => 'POST',
                 'defaults'   => ['platform' => 'woocommerce'],
             ],
+            'mautic_ecommerce_product' => [
+                'path'       => '/ecommerce/product',
+                'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\PublicController::productAction',
+                'method'     => 'POST',
+            ],
             'mautic_ecommerce_event' => [
                 'path'       => '/ecommerce/event',
                 'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\PublicController::eventAction',

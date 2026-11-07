@@ -357,21 +357,49 @@ Under Mautic's API (`/api`, Basic Auth or OAuth, API enabled in the configuratio
 
 Edits and deletes update the commerce fields and behaviours of the contacts involved.
 
+## Product catalog
+
+Mautic keeps a catalog of the store's products: ID, SKU, name, link, image, prices, categories, variation IDs and stock. Order lines sent without a category take the category of their product, matched by product ID (`items[].product_id`), SKU (`item_id`) or variation ID. Lines recorded before their product arrived are filled in when it does, and the contacts concerned are recalculated, so category behaviours and filters stay correct.
+
+Store connectors push products signed like orders, to `POST /ecommerce/product`: one product, `{"store": "...", "products": [...]}` with up to 250, and deletions as `{"store": "...", "deleted": ["id", ...]}` or `"deleted": true` on a product.
+
+| Field | Description |
+|-------|-------------|
+| `store` | Required. The same value the store sends as `order_source`, for example `woocommerce`, so order lines find their products. Must be allowed if **Allowed order sources** is set. |
+| `id` | Required. The store's product ID (for variable products, the parent) |
+| `name` | Required |
+| `sku` | Optional |
+| `categories` | List of names (or objects with `name`), or a comma-separated string |
+| `category` | Optional main category; default the first of `categories` |
+| `variation_ids` | IDs of the product's variations, so variation order lines find the product |
+| `url`, `image_url` | http(s) links |
+| `price`, `regular_price`, `sale_price`, `currency` | Prices; currency defaults to the default currency |
+| `stock_status`, `stock_quantity` | `instock`, `outofstock` or `onbackorder`; quantity |
+| `status`, `updated_at` | The store's product status; last change (ISO 8601 or Unix timestamp) |
+
+```json
+{"store":"woocommerce","products":[{"id":160,"sku":"DIF-REED","name":"Reed Diffuser","categories":["Diffusers","Gifts"],"variation_ids":[164,165],"url":"https://shop.example/product/reed-diffuser/","image_url":"https://shop.example/img/diffuser.jpg","price":"12990","stock_status":"instock"}]}
+```
+
+Shops with native webhooks can feed the catalog without a connector; see below.
+
 ## WooCommerce without a plugin
 
 Orders and refunds can come straight from WooCommerce's built-in webhooks:
 
 1. In WordPress, open **WooCommerce → Settings → Advanced → Webhooks → Add webhook**.
-2. **Status**: Active. **Topic**: Order updated. **Delivery URL**: `https://your-mautic-site.com/ecommerce/woocommerce`. **Secret**: the webhook secret from this plugin's settings. **API version**: WP REST API Integration v3.
+2. **Status**: Active. **Topic**: Order updated. **Delivery URL**: `https://your-mautic-site.com/ecommerce/webhook/woocommerce` (`/ecommerce/woocommerce` works too). **Secret**: the webhook secret from this plugin's settings. **API version**: WP REST API Integration v3.
 3. Save. WooCommerce sends a ping, which Mautic accepts.
 
-Optionally add a second webhook with the topic **Order created**; it changes nothing for paid orders, which always arrive through Order updated as well.
+Add webhooks with the topics **Product created**, **Product updated** and **Product deleted** and the same URL and secret to keep the product catalog in sync; product categories then fill in order lines. Products enter the catalog when they are created or changed; a store connector can push the whole catalog at once.
+
+Optionally add a webhook with the topic **Order created**; it changes nothing for paid orders, which always arrive through Order updated as well.
 
 How WooCommerce orders map:
 
 * Orders are recorded when they become **processing** or **completed**, with the paid date as order date; **pending**, **on-hold**, **failed** and drafts are skipped until paid.
 * **refunded** and **cancelled** update the order's status; the `refunds` list sets the refunded total, so partial refunds are netted.
-* Order number, total, currency, billing email (existing contacts only), shipping city as location, and line items (SKU, or the product or variation ID; name; quantity; unit price) are taken over. WooCommerce order webhooks carry no product categories, so category filters and behaviours need categories from the store connector or the catalog.
+* Order number, total, currency, billing email (existing contacts only), shipping city as location, and line items (SKU, or the variation or product ID; product ID; name; quantity; unit price) are taken over. WooCommerce order webhooks carry no product categories; they come from the catalog.
 * Order source is `woocommerce`. If **Allowed order sources** is set, include it.
 
 The signature (`X-WC-Webhook-Signature`) is checked against the same webhook secret. Storefront events (cart, checkout, product views) are not available as WooCommerce webhooks; send them with mtc.js or the store connector.
@@ -498,6 +526,15 @@ This software is provided **as is**, without warranty of any kind, express or im
 You are solely responsible for how you deploy and use this plugin, including compliance with applicable laws and data protection obligations.
 
 ## Changelog
+
+### 1.7.0
+```
+* Added: Product catalog (ID, SKU, name, link, image, prices, categories, variations, stock).
+* Added: Signed POST /ecommerce/product for store connectors (single, batch, deletions).
+* Added: WooCommerce product webhooks keep the catalog in sync.
+* Added: Order lines store the product ID and take missing categories from the catalog, also for earlier orders.
+* Added: POST /ecommerce/webhook/{platform} for native shop webhooks; /ecommerce/woocommerce kept.
+```
 
 ### 1.6.0
 ```

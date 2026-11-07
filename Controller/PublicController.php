@@ -15,6 +15,7 @@ use MauticPlugin\EcommerceConnectorBundle\Service\EcommerceOrderTracker;
 use MauticPlugin\EcommerceConnectorBundle\Service\ExistingContactLookup;
 use MauticPlugin\EcommerceConnectorBundle\Service\OrderManager;
 use MauticPlugin\EcommerceConnectorBundle\Service\OrderPayloadParser;
+use MauticPlugin\EcommerceConnectorBundle\Service\ProductPayloadParser;
 use MauticPlugin\EcommerceConnectorBundle\Service\StorefrontEventParser;
 use MauticPlugin\EcommerceConnectorBundle\Service\StorefrontEventRecorder;
 use MauticPlugin\EcommerceConnectorBundle\Service\WebhookRequestBody;
@@ -26,6 +27,8 @@ use Symfony\Component\HttpFoundation\Response;
 class PublicController extends CommonController
 {
     public const MAX_EVENTS_PER_REQUEST = 100;
+
+    public const MAX_PRODUCTS_PER_REQUEST = 250;
 
     public function ecommerceAction(
         Request $request,
@@ -86,6 +89,63 @@ class PublicController extends CommonController
                 $eventRecorder->record($payload, $existingContactLookup->findByEmail($eventInput['email'] ?? $input['email'] ?? null));
             }
         }
+
+        return new Response('', Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * Catalog updates from store connectors, in the standard format: one product,
+     * {"products": [...]}, and/or {"store": "...", "deleted": ["id", ...]}. Signed like orders.
+     */
+    public function productAction(
+        Request $request,
+        ProductPayloadParser $productParser,
+        CatalogSync $catalogSync,
+        WebhookSignatureValidator $signatureValidator,
+        Config $config,
+        LoggerInterface $logger,
+    ): Response {
+        $rejected = $this->rejectUnlessSigned($request, $config, $signatureValidator, $logger);
+        if (null !== $rejected) {
+            return $rejected;
+        }
+
+        $input    = WebhookRequestBody::getInput($request);
+        $products = isset($input['products']) && is_array($input['products']) ? $input['products'] : (isset($input['id']) ? [$input] : []);
+        $leadIds  = [];
+
+        foreach (array_slice($products, 0, self::MAX_PRODUCTS_PER_REQUEST) as $productInput) {
+            if (!is_array($productInput)) {
+                continue;
+            }
+
+            // Batch items inherit the request's store.
+            $productInput += ['store' => $input['store'] ?? null];
+
+            if (!empty($productInput['deleted'])) {
+                $store = $productParser->store($productInput['store']);
+                $id    = $productInput['id'] ?? null;
+                if (null !== $store && is_scalar($id) && '' !== (string) $id) {
+                    $catalogSync->delete($store, (string) $id);
+                }
+                continue;
+            }
+
+            $parsed = $productParser->parse($productInput, 'webhook');
+            if (null !== $parsed) {
+                $leadIds = [...$leadIds, ...$catalogSync->upsert($parsed['store'], $parsed['product'], false)];
+            }
+        }
+
+        $deleteStore = $productParser->store($input['store'] ?? null);
+        foreach (is_array($input['deleted'] ?? null) ? $input['deleted'] : [] as $id) {
+            if (null !== $deleteStore && is_scalar($id) && '' !== (string) $id) {
+                $catalogSync->delete($deleteStore, (string) $id);
+            }
+        }
+
+        // Once per request, not per product.
+        $catalogSync->recalculate($leadIds);
 
         return new Response('', Response::HTTP_NO_CONTENT);
     }

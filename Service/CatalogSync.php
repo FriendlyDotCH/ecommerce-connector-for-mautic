@@ -39,6 +39,16 @@ class CatalogSync
         return $leadIds;
     }
 
+    /**
+     * @param list<int> $leadIds
+     */
+    public function recalculate(array $leadIds): void
+    {
+        foreach (array_unique($leadIds) as $leadId) {
+            $this->commerceRecalculator->recalculateForLead($leadId);
+        }
+    }
+
     public function delete(string $store, string $externalId): void
     {
         $this->productRepository->deleteByExternalId($store, $externalId);

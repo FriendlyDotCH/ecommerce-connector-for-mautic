@@ -17,9 +17,10 @@ The branches are stacked; each builds on the previous one. None is pushed yet.
 | `main` | 1.3.0 | Upstream, unchanged (`origin/main`) |
 | `feature/1.4.0` | 1.4.0 | Baseline from the gap analysis: order date, unit price, Places an order / Purchase history, behaviours, orders API, line items report, anonymize on delete, fixes |
 | `feature/1.5.0` | 1.5.0 | Phase 1: G1 to G5 |
-| `feature/1.6.0` | 1.6.0 | Phase 2 so far: G6, G7, native WooCommerce order webhooks |
+| `feature/1.6.0` | 1.6.0 | Phase 2: G6, G7, native WooCommerce order webhooks |
+| `feature/1.7.0` | 1.7.0 | Phase 3 so far: product catalog, platform adapters, signed product endpoint |
 
-Work continues on `feature/1.6.0`. Open decision: push the branches to `origin` as they are, or squash per version first.
+Work continues on `feature/1.7.0`. Open decision: push the branches to `origin` as they are, or squash per version first.
 
 ### Roadmap status
 
@@ -32,31 +33,27 @@ Work continues on `feature/1.6.0`. Open decision: push the branches to `origin` 
 | G5 Base currency | Done (1.5.0) | Manual or ECB rates, rate fixed at order date |
 | G6 Storefront events | Done (1.6.0) | Webhook, API, mtc.js; identified contacts only; off by default |
 | G7 Abandonment | Done (1.6.0) | Six decisions, No order within, cart tokens, detector command |
-| G8 WooCommerce connector | Partly | Orders, refunds and cancellations through native WooCommerce webhooks (`/ecommerce/woocommerce`), no store plugin. Missing: product categories, storefront events from the shop, coupons endpoint. See "Next steps". |
-| G9 Product catalog | Not started | Next: see "Next steps" |
+| G8 WooCommerce connector | Partly | Mautic side done: native WooCommerce webhooks for orders, refunds and products (no store plugin), and the standard endpoints a connector uses. The store plugin itself is next. |
+| G9 Product catalog | Partly (1.7.0) | Catalog table, WooCommerce product webhooks, signed `/ecommerce/product`, categories filled in on order lines. Not done: catalog page in Mautic, catalog API, Shopify/Magento adapters. |
 | G10 to G21 | Not started | Phases 3 to 5 |
 
 Deliberately out of scope (from the gap analysis): checkout and payments, courses and communities, apps, affiliates, reviews, WhatsApp, Instagram capture, AI assistants.
 
 ## Next steps
 
-1. **Product categories for WooCommerce orders (G8/G9).** Native WooCommerce order webhooks carry `product_id` and `sku` per line but no categories, so category behaviours, filters and the Places an order category filter stay empty for those orders. Proposed (awaiting confirmation):
-   * Store the WooCommerce `product_id` on order lines (a new column on `ecommerce_order_items`; today `item_id` is the SKU, or the variation ID without SKU).
-   * Accept native **Product created / Product updated** webhooks into a new `ecommerce_products` catalog (G9 data model: store, SKU, name, URL, image, price, sale price, currency, categories, stock, updated at).
-   * One-time import through the WooCommerce REST API with a read-only key, and an option to re-import.
-   * Fill missing categories on order lines from the catalog, also for orders already recorded.
-   * Needed from the shop: a read-only REST API key, the shop URL, consistent categories on products.
-   * Alternatives considered: a `woocommerce_webhook_payload` snippet adding categories to order webhooks, or the full store plugin.
-2. **Storefront events from the shop (G6 input).** Either `mtc.js` snippets (viewed product, cart, checkout) in the theme, or the store plugin. The Mautic side is ready.
-3. **Phase 3 (1.7)** after the catalog: back-in-stock / price-drop / low-inventory triggers (G10), product blocks and tokens in emails (G11).
+Agreed direction (7 November 2026): Mautic stays platform-neutral. Each shop platform gets a native-webhook adapter in Mautic (`Platform/`, WooCommerce done) for zero-install setups, plus a thin store connector that sends the standard formats to `/ecommerce/order`, `/ecommerce/event` and `/ecommerce/product`. Target platforms: WooCommerce, Shopify, Magento. The REST import from Mautic (option B) is dropped in favour of the connector pushing the catalog and order history.
 
-Open decisions carried over from the gap analysis: fork vs. contributing upstream, supported Mautic versions (developed and tested on 7.0 only; the 7.2 compatibility claim is untested here), product packaging, Unicenta version and ticket data, where the VIP data lives.
+1. **WooCommerce connector plugin (G8)**, in its own repository (name to be decided): settings for the Mautic URL and secret; orders on paid, refunds, cancellations; products on save and stock change, and a "sync everything" action for the catalog and past orders; storefront events from server-side hooks (`woocommerce_add_to_cart`, cart updates, checkout) for identified customers with consent; a restore-cart link; linking the shopper to the Mautic contact. Needs a WordPress + WooCommerce test install (Stenders staging, or a local one on the dev server).
+2. **Shopify adapter** (`X-Shopify-Hmac-Sha256`, orders/refunds/products webhooks; category from product type or taxonomy) and a Shopify app for customer events; **Magento** needs an extension (no native webhooks in Open Source).
+3. **Rest of Phase 3:** catalog page in Mautic, back-in-stock / price-drop / low-inventory triggers (G10), product blocks and tokens in emails (G11).
 
 ## How the code is organised
 
 | Area | Main classes |
 |------|--------------|
-| Intake | `Controller/PublicController` (signed `/ecommerce/order`, `/ecommerce/event`, `/ecommerce/woocommerce`), `EventSubscriber/TrackingSubscriber` (mtc.js), `Controller/Api/*` |
+| Intake | `Controller/PublicController` (signed `/ecommerce/order`, `/ecommerce/event`, `/ecommerce/product`; native `/ecommerce/webhook/{platform}`), `EventSubscriber/TrackingSubscriber` (mtc.js), `Controller/Api/*` |
+| Shop platforms | `Platform/StorePlatformInterface` (signature, webhook type, order and product mapping; tagged, collected by `PlatformRegistry`), `Platform/WooCommercePlatform`; `Platform/CatalogImporterInterface` for API pulls (no implementation yet) |
+| Catalog | `Entity/EcommerceProduct(Repository)`, `Service/CatalogSync` (upsert, category fill-in, recalculation), `Service/ProductPayloadParser` |
 | Parsing | `Service/OrderPayloadParser`, `Service/StorefrontEventParser`, `Service/WooCommerceOrderMapper` |
 | Writing orders | `Service/EcommerceOrderTracker` (new orders; known orders go to `OrderManager::applyRefunds`), `Service/OrderManager` (edit, delete, refunds) |
 | Computed contact fields | `Service/CommerceRecalculator` is the single entry point. It runs `CommerceMetricsCalculator` (lifetime value, order count, last order, timing), `LifecycleCalculator` (stage, RFM) and `BehaviourCalculator`. All write in bulk through `LeadColumnWriter`. |
@@ -89,7 +86,7 @@ rm -rf ../../var/cache/test   # the test container is not rebuilt automatically 
 ../../vendor/bin/phpunit -c ../plugins/EcommerceConnectorBundle/phpunit.xml.dist --testsuite Unit
 ```
 
-159 tests passed on `feature/1.6.0` (7 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
+Run the whole suite before every deploy. 169 tests passed on `feature/1.7.0` (7 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
 
 ## Deploying to an install
 
