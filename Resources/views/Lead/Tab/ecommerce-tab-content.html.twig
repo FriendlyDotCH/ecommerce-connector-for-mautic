@@ -46,6 +46,29 @@
         </div>
     </div>
 
+    {% if behaviours is defined and behaviours is not empty %}
+        <h5 class="fw-sb mb-sm">{{ 'mautic.plugin.ecommerce.behaviour.header.index'|trans }}</h5>
+        <div class="row mb-md">
+            {% for row in behaviours %}
+                <div class="col-sm-6 col-md-3">
+                    <div class="panel panel-default mb-sm">
+                        <div class="panel-body text-center">
+                            <h5 class="fw-sb mb-xs">
+                                {% if securityIsGranted('lead:fields:full') %}
+                                    <a href="{{ path('mautic_ecommerce_behaviour_action', {'objectAction': 'edit', 'objectId': row.behaviour.id}) }}" data-toggle="ajax">{{ row.behaviour.name }}</a>
+                                {% else %}
+                                    {{ row.behaviour.name }}
+                                {% endif %}
+                            </h5>
+                            <p class="text-secondary mb-xs">{{ row.value|purify }}</p>
+                            <small class="text-secondary">{{ include('@EcommerceConnector/Behaviour/_definition.html.twig', {'behaviour': row.behaviour}) }}</small>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     {% if orders is empty %}
         {{ include('@MauticCore/Helper/no_information.html.twig', {'tip': 'mautic.plugin.ecommerce.tab.no_orders'}) }}
     {% else %}

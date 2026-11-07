@@ -1,4 +1,9 @@
 {# One-line summary: "Spend · Categories: Candles · last 90 days" #}
-{{- ('mautic.plugin.ecommerce.purchase.metric.' ~ behaviour.metric)|trans -}}
-{%- if behaviour.scope != 'any' and behaviour.values %} · {{ ('mautic.plugin.ecommerce.purchase.scope.' ~ behaviour.scope)|trans }}: {{ behaviour.values }}{% endif -%}
- · {% if behaviour.days > 0 %}{{ 'mautic.plugin.ecommerce.behaviour.last_days'|trans({'%days%': behaviour.days}) }}{% else %}{{ 'mautic.plugin.ecommerce.behaviour.all_time'|trans }}{% endif %}
+{% set parts = [('mautic.plugin.ecommerce.purchase.metric.' ~ behaviour.metric)|trans] %}
+{% if behaviour.scope != 'any' and behaviour.values %}
+    {% set parts = parts|merge([('mautic.plugin.ecommerce.purchase.scope.' ~ behaviour.scope)|trans ~ ': ' ~ behaviour.values]) %}
+{% endif %}
+{% set parts = parts|merge([behaviour.days > 0
+    ? 'mautic.plugin.ecommerce.behaviour.last_days'|trans({'%days%': behaviour.days})
+    : 'mautic.plugin.ecommerce.behaviour.all_time'|trans]) %}
+{{- parts|join(' · ') -}}

@@ -7,6 +7,8 @@ namespace MauticPlugin\EcommerceConnectorBundle\EventSubscriber;
 use Mautic\CoreBundle\CoreEvents;
 use Mautic\CoreBundle\Event\CustomContentEvent;
 use Mautic\LeadBundle\Entity\Lead;
+use MauticPlugin\EcommerceConnectorBundle\DTO\PurchaseCriteria;
+use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceBehaviourRepository;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderItemRepository;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
@@ -26,6 +28,7 @@ final class ContactProfileTabSubscriber implements EventSubscriberInterface
         private CurrencyFormatter $currencyFormatter,
         private LocationFormatter $locationFormatter,
         private RouterInterface $router,
+        private EcommerceBehaviourRepository $behaviourRepository,
     ) {
     }
 
@@ -72,8 +75,32 @@ final class ContactProfileTabSubscriber implements EventSubscriberInterface
                 'lastOrderTotalFormatted'=> $stats['last_order_date']
                     ? $this->currencyFormatter->format($defaultCurrency, $stats['last_order_total'])
                     : null,
+                'behaviours'             => $this->formatBehaviours($lead, $defaultCurrency),
             ]);
         }
+    }
+
+    /**
+     * Behaviour fields sit in the ecommerce field group, which the profile hides, so show them here.
+     *
+     * @return list<array{behaviour: \MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceBehaviour, value: string}>
+     */
+    private function formatBehaviours(Lead $lead, string $currency): array
+    {
+        $formatted = [];
+
+        foreach ($this->behaviourRepository->findPublished() as $behaviour) {
+            $value = (float) $lead->getFieldValue((string) $behaviour->getFieldAlias());
+
+            $formatted[] = [
+                'behaviour' => $behaviour,
+                'value'     => PurchaseCriteria::METRIC_SPEND === $behaviour->getMetric()
+                    ? $this->currencyFormatter->format($currency, $value)
+                    : number_format($value, 0, '.', ' '),
+            ];
+        }
+
+        return $formatted;
     }
 
     /**

@@ -6,6 +6,8 @@ namespace MauticPlugin\EcommerceConnectorBundle\Tests\Unit\EventSubscriber;
 
 use Mautic\CoreBundle\Event\CustomContentEvent;
 use Mautic\LeadBundle\Entity\Lead;
+use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceBehaviour;
+use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceBehaviourRepository;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderItemRepository;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
 use MauticPlugin\EcommerceConnectorBundle\EventSubscriber\ContactProfileTabSubscriber;
@@ -28,6 +30,8 @@ class ContactProfileTabSubscriberTest extends TestCase
 
     private CurrencyFormatter $currencyFormatter;
 
+    private EcommerceBehaviourRepository&MockObject $behaviourRepository;
+
     private LocationFormatter $locationFormatter;
 
     protected function setUp(): void
@@ -37,6 +41,7 @@ class ContactProfileTabSubscriberTest extends TestCase
         $this->config              = $this->createMock(Config::class);
         $this->router              = $this->createMock(RouterInterface::class);
         $this->currencyFormatter   = new CurrencyFormatter();
+        $this->behaviourRepository = $this->createMock(EcommerceBehaviourRepository::class);
         $this->locationFormatter   = new LocationFormatter();
     }
 
@@ -48,7 +53,8 @@ class ContactProfileTabSubscriberTest extends TestCase
             $this->config,
             $this->currencyFormatter,
             $this->locationFormatter,
-            $this->router
+            $this->router,
+            $this->behaviourRepository
         );
     }
 
@@ -171,5 +177,48 @@ class ContactProfileTabSubscriberTest extends TestCase
         $subscriber->onInjectCustomContent($event);
 
         $this->assertSame([], $event->getTemplates());
+    }
+
+    public function testPublishedBehavioursAreShownWithTheirValues(): void
+    {
+        $lead = new Lead();
+        $lead->setId(9);
+        $lead->setFields([
+            'ecommerce' => [
+                'ecb_candle_spend' => ['alias' => 'ecb_candle_spend', 'type' => 'number', 'value' => '39.9'],
+                'ecb_orders'       => ['alias' => 'ecb_orders', 'type' => 'number', 'value' => '3'],
+            ],
+        ]);
+
+        $spend = new EcommerceBehaviour();
+        $spend->setName('Candle spend 90d');
+        $spend->setFieldAlias('ecb_candle_spend');
+        $spend->setMetric('spend');
+
+        $orders = new EcommerceBehaviour();
+        $orders->setName('Orders');
+        $orders->setFieldAlias('ecb_orders');
+        $orders->setMetric('orders');
+
+        $this->config->method('isPublished')->willReturn(true);
+        $this->config->method('getDefaultCurrency')->willReturn('USD');
+        $this->orderRepository->method('getCommerceStatsForLead')->willReturn([
+            'order_count'      => 0,
+            'lifetime_value'   => '0.00',
+            'last_order_date'  => null,
+            'last_order_total' => '0.00',
+        ]);
+        $this->orderRepository->method('getOrdersForLeadTimeline')->willReturn(['results' => [], 'total' => 0]);
+        $this->orderItemRepository->method('getItemsGroupedByOrderIds')->willReturn([]);
+        $this->behaviourRepository->method('findPublished')->willReturn([$spend, $orders]);
+
+        $event = new CustomContentEvent('@MauticLead/Lead/lead.html.twig', 'tabs.content', ['lead' => $lead]);
+        $this->createSubscriber()->onInjectCustomContent($event);
+
+        $behaviours = $event->getTemplates()[0]['vars']['behaviours'];
+        $this->assertCount(2, $behaviours);
+        $this->assertSame($spend, $behaviours[0]['behaviour']);
+        $this->assertSame($this->currencyFormatter->format('USD', 39.9), $behaviours[0]['value']);
+        $this->assertSame('3', $behaviours[1]['value']);
     }
 }

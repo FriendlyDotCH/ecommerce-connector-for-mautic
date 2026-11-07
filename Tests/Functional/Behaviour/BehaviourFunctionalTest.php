@@ -12,12 +12,14 @@ use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceBehaviour;
 use MauticPlugin\EcommerceConnectorBundle\Service\BehaviourCalculator;
 use MauticPlugin\EcommerceConnectorBundle\Service\BehaviourFieldManager;
 use MauticPlugin\EcommerceConnectorBundle\Service\EcommerceOrderTracker;
+use MauticPlugin\EcommerceConnectorBundle\Tests\Functional\ConfiguresEcommerceIntegration;
 use MauticPlugin\EcommerceConnectorBundle\Tests\Functional\InstallsEcommerceSchema;
 use PHPUnit\Framework\Assert;
 use Symfony\Component\HttpFoundation\Request;
 
 class BehaviourFunctionalTest extends MauticMysqlTestCase
 {
+    use ConfiguresEcommerceIntegration;
     use InstallsEcommerceSchema;
 
     protected $useCleanupRollback = false;
@@ -42,6 +44,14 @@ class BehaviourFunctionalTest extends MauticMysqlTestCase
         $tracker->recordOrder($this->payload('b-2', '-1 hour', [['Candles', 1, '10.00']]), $buyer);
 
         Assert::assertSame(35.0, $this->fieldValue($buyer, $behaviour));
+
+        // The ecommerce field group is hidden on the profile, so the eCommerce tab lists behaviours.
+        $this->configureIntegration();
+        $this->client->request(Request::METHOD_GET, '/s/contacts/view/'.$buyer->getId());
+        $page = (string) $this->client->getResponse()->getContent();
+        Assert::assertTrue($this->client->getResponse()->isOk());
+        Assert::assertStringContainsString('Candle spend 30d', $page);
+        Assert::assertMatchesRegularExpression('/35[.,]00/', $page, 'Formatting follows the user locale.');
 
         // Thirty-one days later, b-1 has left the window; only the daily run moves it.
         /** @var BehaviourCalculator $calculator */
