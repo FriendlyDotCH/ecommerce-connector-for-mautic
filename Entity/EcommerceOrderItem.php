@@ -24,6 +24,8 @@ class EcommerceOrderItem
 
     private ?string $category = null;
 
+    private ?string $unitPrice = null;
+
     public static function loadMetadata(ORM\ClassMetadata $metadata): void
     {
         $builder = new ClassMetadataBuilder($metadata);
@@ -50,6 +52,12 @@ class EcommerceOrderItem
         $builder->addNamedField('itemName', 'string', 'item_name');
         $builder->addField('qty', 'integer');
         $builder->addNamedField('category', 'string', 'category', true);
+        $builder->addField('unitPrice', 'decimal', [
+            'columnName' => 'unit_price',
+            'precision'  => 19,
+            'scale'      => 4,
+            'nullable'   => true,
+        ]);
     }
 
     public function getId(): int
@@ -115,5 +123,15 @@ class EcommerceOrderItem
     public function setCategory(?string $category): void
     {
         $this->category = $category;
+    }
+
+    public function getUnitPrice(): ?string
+    {
+        return $this->unitPrice;
+    }
+
+    public function setUnitPrice(?string $unitPrice): void
+    {
+        $this->unitPrice = $unitPrice;
     }
 }

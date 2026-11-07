@@ -58,6 +58,7 @@ class LeadSubscriberTest extends TestCase
                     'order_total'    => '24.9900',
                     'order_currency' => 'USD',
                     'order_source'   => 'WooCommerce',
+                    'order_date'     => '2026-08-12 22:06:00',
                     'date_added'     => '2026-08-12 22:06:00',
                     'email_id'       => null,
                     'email_name'     => null,

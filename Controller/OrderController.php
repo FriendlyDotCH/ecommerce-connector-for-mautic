@@ -54,6 +54,7 @@ class OrderController extends FormController
                 'itemName' => $item['item_name'],
                 'qty'      => $item['qty'],
                 'category' => $item['category'],
+                'unitPrice' => null !== $item['unit_price'] ? $currencyFormatter->format($currency, $item['unit_price']) : null,
             ];
         }
 
@@ -65,7 +66,7 @@ class OrderController extends FormController
                     'orderSource'         => $order->getOrderSource(),
                     'location'            => $locationFormatter->format($order->getLocation()),
                     'orderTotalFormatted' => $currencyFormatter->format($currency, $amount),
-                    'dateAdded'           => $order->getDateAdded(),
+                    'dateAdded'           => $order->getOrderDate(),
                     'items'               => $items,
                 ],
             ],

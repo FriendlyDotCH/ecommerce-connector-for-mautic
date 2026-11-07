@@ -30,7 +30,8 @@ class EcommerceOrderItemRepository extends CommonRepository
             'ei.item_id',
             'ei.item_name',
             'ei.qty',
-            'ei.category'
+            'ei.category',
+            'ei.unit_price'
         )
             ->from(MAUTIC_TABLE_PREFIX.'ecommerce_order_items', 'ei')
             ->where($query->expr()->in('ei.order_id', ':orderIds'))
@@ -49,6 +50,7 @@ class EcommerceOrderItemRepository extends CommonRepository
                 'category'  => null !== $row['category'] && '' !== $row['category']
                     ? (string) $row['category']
                     : null,
+                'unit_price' => null !== $row['unit_price'] ? number_format((float) $row['unit_price'], 2, '.', '') : null,
             ];
         }
 

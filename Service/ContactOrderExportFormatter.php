@@ -85,6 +85,7 @@ class ContactOrderExportFormatter
                 'order_currency'    => strtoupper((string) ($order['order_currency'] ?? '')),
                 'order_source'     => (string) $order['order_source'],
                 'location'          => !empty($order['location']) ? (string) $order['location'] : null,
+                'order_date'        => (string) $order['order_date'],
                 'date_added'        => (string) $order['date_added'],
                 'attributed_email'  => !empty($order['email_name']) ? (string) $order['email_name'] : null,
                 'items'             => $itemsByOrderId[$orderPk] ?? [],

@@ -41,6 +41,7 @@
                 <th>{{ 'mautic.plugin.ecommerce.tab.item_id'|trans }}</th>
                 <th>{{ 'mautic.plugin.ecommerce.tab.item_qty'|trans }}</th>
                 <th>{{ 'mautic.plugin.ecommerce.tab.item_category'|trans }}</th>
+                <th class="text-right">{{ 'mautic.plugin.ecommerce.tab.item_unit_price'|trans }}</th>
             </tr>
             </thead>
             <tbody>
@@ -56,6 +57,7 @@
                             {{ 'mautic.core.no.info'|trans }}
                         {% endif %}
                     </td>
+                    <td class="text-right">{{ item.unitPrice ?? 'mautic.core.no.info'|trans }}</td>
                 </tr>
             {% endfor %}
             </tbody>

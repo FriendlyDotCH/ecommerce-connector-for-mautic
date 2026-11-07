@@ -50,6 +50,10 @@ final class ReportSubscriber implements EventSubscriberInterface
                 'label' => 'mautic.plugin.ecommerce.report.order_source',
                 'type'  => 'string',
             ],
+            self::PREFIX_ORDER.'.order_date' => [
+                'label' => 'mautic.plugin.ecommerce.report.order_date',
+                'type'  => 'datetime',
+            ],
             self::PREFIX_ORDER.'.date_added' => [
                 'label' => 'mautic.plugin.ecommerce.report.date_added',
                 'type'  => 'datetime',

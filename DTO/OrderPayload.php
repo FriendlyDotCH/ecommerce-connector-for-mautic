@@ -19,6 +19,7 @@ final readonly class OrderPayload
         public ?array $clickthrough,
         public ?string $location = null,
         public array $items = [],
+        public ?\DateTimeImmutable $orderDate = null,
     ) {
     }
 }

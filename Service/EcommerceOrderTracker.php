@@ -51,7 +51,9 @@ class EcommerceOrderTracker
         $order->setOrderCurrency($payload->orderCurrency);
         $order->setOrderSource($payload->orderSource);
         $order->setLocation($payload->location);
-        $order->setDateAdded(new \DateTime());
+        $now = new \DateTime();
+        $order->setOrderDate(null !== $payload->orderDate ? \DateTime::createFromImmutable($payload->orderDate) : $now);
+        $order->setDateAdded($now);
         $order->setLead($lead);
         $order->setEmail($email);
 
@@ -88,6 +90,7 @@ class EcommerceOrderTracker
         $item->setItemName($itemPayload->itemName);
         $item->setQty($itemPayload->qty);
         $item->setCategory($itemPayload->category);
+        $item->setUnitPrice($itemPayload->unitPrice);
         $item->setLead($lead);
 
         return $item;

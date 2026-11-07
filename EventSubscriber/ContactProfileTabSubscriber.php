@@ -107,6 +107,7 @@ final class ContactProfileTabSubscriber implements EventSubscriberInterface
                     'itemName' => $item['item_name'],
                     'qty'      => $item['qty'],
                     'category' => $item['category'],
+                    'unitPrice' => null !== $item['unit_price'] ? $this->currencyFormatter->format($currency, $item['unit_price']) : null,
                 ];
             }
 
@@ -120,7 +121,7 @@ final class ContactProfileTabSubscriber implements EventSubscriberInterface
                 'orderTotal'          => $amount,
                 'orderTotalFormatted' => $this->currencyFormatter->format($currency, $amount),
                 'orderCurrency'       => $currency,
-                'dateAdded'           => $order['date_added'],
+                'dateAdded'           => $order['order_date'],
                 'emailId'             => !empty($order['email_id']) ? (int) $order['email_id'] : null,
                 'emailName'           => !empty($order['email_name']) ? (string) $order['email_name'] : null,
                 'emailLink'           => $emailLink,

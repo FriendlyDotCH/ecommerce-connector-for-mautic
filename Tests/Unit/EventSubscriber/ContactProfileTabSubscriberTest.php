@@ -74,6 +74,7 @@ class ContactProfileTabSubscriberTest extends TestCase
                     'order_currency' => 'USD',
                     'order_source'   => 'woocommerce',
                     'location'       => 'hixson',
+                    'order_date'     => '2026-06-28 12:00:00',
                     'date_added'     => '2026-06-28 12:00:00',
                     'email_id'       => null,
                     'email_name'     => null,
@@ -88,6 +89,7 @@ class ContactProfileTabSubscriberTest extends TestCase
                     'item_name' => 'Smart Water 1 Liter',
                     'qty'       => 1,
                     'category'  => 'Beverages',
+                    'unit_price' => '2.50',
                 ],
             ],
         ]);
@@ -114,6 +116,7 @@ class ContactProfileTabSubscriberTest extends TestCase
         $this->assertCount(1, $contentEvent->getTemplates()[0]['vars']['orders']);
         $this->assertSame('Hixson', $contentEvent->getTemplates()[0]['vars']['orders'][0]['location']);
         $this->assertCount(1, $contentEvent->getTemplates()[0]['vars']['orders'][0]['items']);
+        $this->assertSame($this->currencyFormatter->format('USD', '2.50'), $contentEvent->getTemplates()[0]['vars']['orders'][0]['items'][0]['unitPrice']);
     }
 
     public function testLocationSlugIsFormattedToSentenceCase(): void
@@ -138,6 +141,7 @@ class ContactProfileTabSubscriberTest extends TestCase
                     'order_currency' => 'USD',
                     'order_source'   => 'WooCommerce',
                     'location'       => 'the-dragon',
+                    'order_date'     => '2026-06-28 12:00:00',
                     'date_added'     => '2026-06-28 12:00:00',
                     'email_id'       => null,
                     'email_name'     => null,

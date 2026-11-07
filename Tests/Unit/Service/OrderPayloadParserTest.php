@@ -133,4 +133,66 @@ class OrderPayloadParserTest extends TestCase
         $this->assertSame('1722', $payload->items[0]->itemId);
         $this->assertSame('Beverages', $payload->items[0]->category);
     }
+
+    public function testParseReadsUnitPriceFromUnitPriceOrPrice(): void
+    {
+        $payload = $this->parser->parse([
+            'order_id' => 'order-790',
+            'items'    => [
+                ['item_id' => 'a', 'item_name' => 'Candle', 'qty' => 2, 'unit_price' => '12.5'],
+                ['item_id' => 'b', 'item_name' => 'Diffuser', 'qty' => 1, 'price' => 30],
+                ['item_id' => 'c', 'item_name' => 'Sample', 'qty' => 1],
+                ['item_id' => 'd', 'item_name' => 'Broken', 'qty' => 1, 'unit_price' => '-3'],
+            ],
+        ]);
+
+        $this->assertNotNull($payload);
+        $this->assertCount(4, $payload->items);
+        $this->assertSame('12.5000', $payload->items[0]->unitPrice);
+        $this->assertSame('30.0000', $payload->items[1]->unitPrice);
+        $this->assertNull($payload->items[2]->unitPrice);
+        $this->assertNull($payload->items[3]->unitPrice);
+    }
+
+    public function testParseOrderDateFromIsoStringAndTimestamp(): void
+    {
+        $iso = $this->parser->parse([
+            'order_id'   => 'order-791',
+            'order_date' => '2026-03-01T10:15:00+02:00',
+        ]);
+
+        $this->assertNotNull($iso);
+        $this->assertNotNull($iso->orderDate);
+        $this->assertSame('2026-03-01 08:15:00', $iso->orderDate->format('Y-m-d H:i:s'));
+        $this->assertSame('UTC', $iso->orderDate->getTimezone()->getName());
+
+        $timestamp = $this->parser->parse([
+            'order_id'   => 'order-792',
+            'order_date' => '1772360100',
+        ]);
+
+        $this->assertNotNull($timestamp);
+        $this->assertSame('2026-03-01 10:15:00', $timestamp->orderDate?->format('Y-m-d H:i:s'));
+    }
+
+    public function testParseWithoutOrderDateLeavesItUnset(): void
+    {
+        $payload = $this->parser->parse(['order_id' => 'order-793']);
+
+        $this->assertNotNull($payload);
+        $this->assertNull($payload->orderDate);
+    }
+
+    public function testParseRejectsInvalidOrFutureOrderDate(): void
+    {
+        $this->assertNull($this->parser->parse([
+            'order_id'   => 'order-794',
+            'order_date' => 'not a date',
+        ]));
+
+        $this->assertNull($this->parser->parse([
+            'order_id'   => 'order-795',
+            'order_date' => (new \DateTimeImmutable('+3 days'))->format(\DATE_ATOM),
+        ]));
+    }
 }

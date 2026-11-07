@@ -11,6 +11,7 @@ final readonly class OrderItemPayload
         public string $itemName,
         public int $qty,
         public ?string $category = null,
+        public ?string $unitPrice = null,
     ) {
     }
 }

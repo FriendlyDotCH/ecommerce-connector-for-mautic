@@ -69,6 +69,7 @@ class EcommerceOrderRepository extends CommonRepository
             'eo.order_currency',
             'eo.order_source',
             'eo.location',
+            'eo.order_date',
             'eo.date_added',
             'e.id AS email_id',
             'e.name AS email_name'
@@ -77,7 +78,8 @@ class EcommerceOrderRepository extends CommonRepository
             ->leftJoin('eo', MAUTIC_TABLE_PREFIX.'emails', 'e', 'e.id = eo.email_id')
             ->where('eo.lead_id = :leadId')
             ->setParameter('leadId', $leadId)
-            ->orderBy('eo.date_added', 'DESC');
+            ->orderBy('eo.order_date', 'DESC')
+            ->addOrderBy('eo.id', 'DESC');
 
         if (!empty($options['limit'])) {
             $query->setMaxResults((int) $options['limit']);
@@ -117,10 +119,10 @@ class EcommerceOrderRepository extends CommonRepository
         $row = $query->executeQuery()->fetchAssociative();
 
         $lastOrderQuery = $this->getEntityManager()->getConnection()->createQueryBuilder();
-        $lastOrderQuery->select('eo.order_total', 'eo.date_added')
+        $lastOrderQuery->select('eo.order_total', 'eo.order_date')
             ->from(MAUTIC_TABLE_PREFIX.'ecommerce_orders', 'eo')
             ->where('eo.lead_id = :leadId')
-            ->orderBy('eo.date_added', 'DESC')
+            ->orderBy('eo.order_date', 'DESC')
             ->addOrderBy('eo.id', 'DESC')
             ->setMaxResults(1)
             ->setParameter('leadId', $leadId);
@@ -130,8 +132,8 @@ class EcommerceOrderRepository extends CommonRepository
         return [
             'order_count'       => (int) ($row['order_count'] ?? 0),
             'lifetime_value'    => number_format((float) ($row['lifetime_value'] ?? 0), 2, '.', ''),
-            'last_order_date'   => is_array($lastOrder) && isset($lastOrder['date_added'])
-                ? (string) $lastOrder['date_added']
+            'last_order_date'   => is_array($lastOrder) && isset($lastOrder['order_date'])
+                ? (string) $lastOrder['order_date']
                 : null,
             'last_order_total'  => is_array($lastOrder) && isset($lastOrder['order_total'])
                 ? number_format((float) $lastOrder['order_total'], 2, '.', '')

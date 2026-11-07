@@ -29,6 +29,11 @@ class EcommerceOrder
 
     private ?string $location = null;
 
+    /**
+     * When the order was placed in the store. dateAdded is when Mautic recorded it.
+     */
+    private \DateTimeInterface $orderDate;
+
     private \DateTimeInterface $dateAdded;
 
     /**
@@ -51,6 +56,7 @@ class EcommerceOrder
             ->addIndex(['lead_id'], 'ecommerce_lead_id')
             ->addIndex(['order_id'], 'ecommerce_order_id')
             ->addIndex(['date_added'], 'ecommerce_date_added')
+            ->addIndex(['lead_id', 'order_date'], 'ecommerce_lead_order_date')
             ->addUniqueConstraint(['order_id', 'order_source'], 'ecommerce_order_source_unique');
 
         $builder->addId();
@@ -72,6 +78,7 @@ class EcommerceOrder
         $builder->addNamedField('orderCurrency', 'string', 'order_currency', true);
         $builder->addNamedField('orderSource', 'string', 'order_source');
         $builder->addNamedField('location', 'string', 'location', true);
+        $builder->addNamedField('orderDate', 'datetime', 'order_date');
         $builder->addNamedField('dateAdded', 'datetime', 'date_added');
 
         $builder->createOneToMany('items', EcommerceOrderItem::class)
@@ -156,6 +163,16 @@ class EcommerceOrder
     public function setLocation(?string $location): void
     {
         $this->location = $location;
+    }
+
+    public function getOrderDate(): \DateTimeInterface
+    {
+        return $this->orderDate;
+    }
+
+    public function setOrderDate(\DateTimeInterface $orderDate): void
+    {
+        $this->orderDate = $orderDate;
     }
 
     public function getDateAdded(): \DateTimeInterface

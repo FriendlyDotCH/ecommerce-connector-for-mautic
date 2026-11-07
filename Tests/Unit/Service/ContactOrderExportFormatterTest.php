@@ -34,6 +34,7 @@ class ContactOrderExportFormatterTest extends TestCase
                     'order_currency' => 'usd',
                     'order_source'   => 'woocommerce',
                     'location'       => 'Hixson',
+                    'order_date'     => '2026-09-04 12:00:00',
                     'date_added'     => '2026-09-04 12:00:00',
                     'email_id'       => 3,
                     'email_name'     => 'Welcome',
@@ -68,6 +69,7 @@ class ContactOrderExportFormatterTest extends TestCase
                     'order_currency'   => 'USD',
                     'order_source'     => 'woocommerce',
                     'location'         => 'Hixson',
+                    'order_date'       => '2026-09-04 12:00:00',
                     'date_added'       => '2026-09-04 12:00:00',
                     'attributed_email' => 'Welcome',
                     'items'            => [

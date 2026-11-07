@@ -19,6 +19,11 @@ class OrderPayloadParser
     public const ITEM_NAME_MAX    = 191;
     public const CATEGORY_MAX     = 191;
 
+    /**
+     * How far an order date may lie in the future, to allow for clock skew between store and Mautic.
+     */
+    public const ORDER_DATE_MAX_FUTURE = '+1 day';
+
     public function __construct(
         private Config $config,
         private LoggerInterface $logger,
@@ -100,6 +105,16 @@ class OrderPayloadParser
             }
         }
 
+        $orderDate = null;
+        if (isset($input['order_date']) && '' !== $input['order_date']) {
+            $orderDate = $this->parseOrderDate($input['order_date']);
+            if (null === $orderDate) {
+                $this->logInvalidPayload($context, 'order_date must be an ISO 8601 date or a Unix timestamp, and not in the future.');
+
+                return null;
+            }
+        }
+
         $location = $this->optionalSanitizedString($input['location'] ?? null, self::LOCATION_MAX);
         $items    = $this->parseItems($input['items'] ?? null, $context);
 
@@ -112,7 +127,31 @@ class OrderPayloadParser
             is_array($clickthrough) ? $clickthrough : null,
             $location,
             $items,
+            $orderDate,
         );
+    }
+
+    private function parseOrderDate(mixed $value): ?\DateTimeImmutable
+    {
+        if (!is_scalar($value)) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        try {
+            $date = ctype_digit($value)
+                ? new \DateTimeImmutable('@'.$value)
+                : new \DateTimeImmutable($value, new \DateTimeZone('UTC'));
+        } catch (\Exception) {
+            return null;
+        }
+
+        if ($date > new \DateTimeImmutable(self::ORDER_DATE_MAX_FUTURE)) {
+            return null;
+        }
+
+        return $date->setTimezone(new \DateTimeZone('UTC'));
     }
 
     /**
@@ -153,12 +192,25 @@ class OrderPayloadParser
                 continue;
             }
 
-            $category = $this->optionalSanitizedString($item['category'] ?? null, self::CATEGORY_MAX);
+            $category  = $this->optionalSanitizedString($item['category'] ?? null, self::CATEGORY_MAX);
+            $unitPrice = $this->parseUnitPrice($item['unit_price'] ?? $item['price'] ?? null);
 
-            $parsed[] = new OrderItemPayload($itemId, $itemName, $qty, $category);
+            $parsed[] = new OrderItemPayload($itemId, $itemName, $qty, $category, $unitPrice);
         }
 
         return $parsed;
+    }
+
+    /**
+     * An unusable unit price is dropped rather than rejecting the whole order.
+     */
+    private function parseUnitPrice(mixed $value): ?string
+    {
+        if (!is_scalar($value) || '' === $value || !is_numeric($value)) {
+            return null;
+        }
+
+        return $this->normalizeAmount((string) $value);
     }
 
     private function normalizeAmount(string $amount): ?string

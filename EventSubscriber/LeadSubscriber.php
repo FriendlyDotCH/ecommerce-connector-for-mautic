@@ -62,7 +62,7 @@ class LeadSubscriber implements EventSubscriberInterface
                 'eventId'         => EcommerceEvents::ORDER_RECORDED.'.'.$orderPk,
                 'eventLabel'      => $label,
                 'eventType'       => $eventTypeName,
-                'timestamp'       => $order['date_added'],
+                'timestamp'       => $order['order_date'],
                 'icon'            => 'ri-shopping-cart-2-line',
                 'contactId'       => $leadId,
                 'contentTemplate' => '@EcommerceConnector/SubscribedEvents/Timeline/order.html.twig',
