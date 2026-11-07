@@ -49,16 +49,18 @@ You are also responsible for:
 When orders are tracked, Mautic may store and display:
 
 * Order identifiers, totals, currency, source, location, and order date
-* Line items (product/item ID, name, quantity, category), when provided
+* Line items (product/item ID, name, quantity, category, unit price), when provided
 * Optional contact email from page hits or the webhook, used only to link an existing Mautic contact (contacts are never created from these requests)
 * Links between orders and contacts, and optional attribution to Mautic emails
 * Contact commerce fields (lifetime value, order count, last order date, last order total)
+* Behaviour fields you define, such as spend on a category in the last 90 days
 * Contact timeline entries and report data derived from those orders
 
 ### Access and erasure
 
 * **Contact export** includes order history (order ID, totals, currency, source, location, date, attributed email, and line items) so you can fulfill access requests.
-* **Deleting a contact** also deletes that contact's ecommerce orders and line items. Commerce fields on the contact are removed with the contact. Email revenue totals for those orders will drop after deletion.
+* **Deleting a contact** also deletes that contact's ecommerce orders and line items by default. Commerce fields on the contact are removed with the contact. Email revenue totals for those orders will drop after deletion.
+* Alternatively, set **When a contact is deleted** on the General tab to **Keep their orders, anonymized**. Orders and line items then stay for revenue reporting without the link to the contact. The store's order ID is kept, so the store could still link an order back to a customer.
 * Merging contacts moves ecommerce orders to the remaining contact.
 
 You are solely responsible for any data protection measures required for your use of this integration.
@@ -95,6 +97,7 @@ This tab controls whether the plugin is active and how orders are attributed.
    * Before enabling, update your privacy policy and confirm you have a lawful basis for processing. See [GDPR and privacy](#gdpr-and-privacy).
 2. Optionally enable **Track orders from page hits** to record orders from `mtc.js` pageviews (POST fields or thank-you page query parameters). Recommended for simple setups.
 3. Leave **Attribute revenue to last email sent** off unless you accept possible misattribution. When no email is provided, this links the order to the most recently sent email.
+4. Choose what happens **When a contact is deleted**: delete their orders (default) or keep them anonymized. See [Access and erasure](#access-and-erasure).
 
 #### Validation
 
@@ -171,6 +174,8 @@ Composer installs the plugin as `plugins/EcommerceConnectorBundle/`. After Compo
 
 Mautic compares the version in the plugin files with the installed version and runs database migrations automatically when needed. Your webhook secret and other integration settings are kept.
 
+When upgrading to 1.4.0, existing orders get an order date equal to the time they were recorded. Add the behaviours cron job described in [Behaviours](#behaviours) if you create behaviours.
+
 When upgrading from a version before 1.3.0, the integration is turned off automatically so you can update your privacy policy. Admins see a dashboard notice and a Mautic notification. Dismissing the notice does not turn tracking back on. After you update your privacy policy, open the plugin tile, set **Active** to **Yes**, and save.
 
 After the upgrade, confirm **Ecommerce Connector** still appears in the plugin grid, then open the plugin tile if you need to review settings. If you use Sync Mautic, open the Validation tab and set **Allowed order sources** to `WooCommerce`.
@@ -197,7 +202,8 @@ The previous path `/mtc/ecommerce` is still accepted as a legacy alias to the sa
 | `email_id` | No | Mautic email ID to attribute revenue to |
 | `ct` | No | Mautic clickthrough token for email attribution |
 | `location` | No | Store location label stored on the order |
-| `items` | No | Line items as a JSON array (or JSON string) with `item_id`, `item_name`, `qty`, and optional `category` |
+| `order_date` | No | When the order was placed: ISO 8601 (for example `2026-03-01T10:15:00+01:00`) or a Unix timestamp. Defaults to the time Mautic receives it. Rejected if more than a day in the future. Orders placed more than a day before they arrive never trigger campaigns, so historical imports send nothing. |
+| `items` | No | Line items as a JSON array (or JSON string) with `item_id`, `item_name`, `qty`, and optional `category` and `unit_price` (or `price`). Without a unit price, the item counts as 0 in category and product spend. |
 
 ### Signing requests
 
@@ -246,6 +252,42 @@ curl -X POST "https://your-mautic-site.com/ecommerce/order" \
   -d "order_currency=USD"
 ```
 
+## Campaigns
+
+* **Decision: Places an order.** Runs when the contact places an order. Optional filters: minimum order total, categories, products (ID or name) and order sources, each comma-separated and case-insensitive. An order matches a category or product filter when at least one line item matches. It runs for the order's contact even for webhook and API orders without a browser visit. Orders placed more than a day before they reach Mautic do not trigger it.
+* **Condition: Purchase history.** Compares the contact's spend, quantity bought or number of orders, all time or in the last N days by order date, optionally limited to categories, products or order sources.
+
+Totals are compared as sent; amounts in different currencies are summed as-is. Refunds are not netted yet.
+
+## Behaviours
+
+**Settings → Ecommerce behaviours** (requires the permission to manage custom fields) defines rolling purchase measures. Each behaviour keeps its own number contact field, for example `ecb_candle_spend_90d`, which you can use in segments, campaign conditions and email tokens like any contact field.
+
+A behaviour measures spend, quantity bought or number of orders; optionally only for some categories, products or order sources; over all time or the last N days.
+
+Values update for the contact on every new order, when contacts are merged, and for everyone when you save or recalculate a behaviour. For rolling windows to move on without new orders, run the update command daily from cron:
+
+```bash
+php bin/console mautic:ecommerce:behaviours:update
+```
+
+Use `--id=<behaviour ID>` to update a single behaviour. Deleting a behaviour deletes its contact field; this is refused while a segment uses the field.
+
+## REST API
+
+Under Mautic's API (`/api`, Basic Auth or OAuth, API enabled in the configuration). Reading needs the contacts "view others" permission, writing needs "edit others". Errors use Mautic's usual `{"errors": [...]}` format.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/ecommerce/orders` | List orders, newest order date first. Query: `contact_id`, `source`, `since` (date), `start`, `limit` (max 200). Returns `total` and `orders`. |
+| `GET` | `/api/ecommerce/orders/{id}` | One order with line items |
+| `POST` | `/api/ecommerce/orders/new` | Create an order. Same fields as the webhook, plus `contact_id`. `email` links an existing contact only; contacts are never created. Returns `201`, or `409` if `order_id` + `order_source` already exists. Triggers campaigns like the webhook. |
+| `PATCH` / `PUT` | `/api/ecommerce/orders/{id}/edit` | Change total, currency, location, order date, attributed email, contact (`contact_id` or `email`) and items. `PATCH` keeps fields you do not send; `PUT` replaces them. Order ID and source cannot change. Does not trigger campaigns. |
+| `DELETE` | `/api/ecommerce/orders/{id}/delete` | Delete an order |
+| `GET` | `/api/contacts/{id}/ecommerce/orders` | Orders of one contact (same query parameters for paging) |
+
+Edits and deletes update the commerce fields and behaviours of the contacts involved.
+
 ## Page hit tracking
 
 When **Track orders from page hits** is enabled, orders can be recorded from Mautic tracking requests on a thank-you page:
@@ -280,13 +322,16 @@ mt('send', 'pageview', {
 
 * Revenue badges on the email list and email detail views (currency symbols such as `$0.00`, grouped by currency when multiple currencies exist)
 * Contact timeline entries for recorded orders
-* Report builder data source: **Ecommerce orders**
+* Report builder data sources: **Ecommerce orders** and **Ecommerce order line items** (with line totals)
+* Campaign decision **Places an order** and condition **Purchase history**
+* Behaviours: rolling spend, quantity or order count per category, product or source as contact fields
+* REST API for orders
 * Duplicate order protection via unique constraint on `order_id` + `order_source`
 * Contact profile commerce fields (lifetime value, order count, last order date, last order total)
 * Segment filters for ecommerce activity and commerce field values
 * Automatic database migrations on plugin update
 * Contact export includes ecommerce order history
-* Deleting a contact also deletes related ecommerce orders and line items
+* Deleting a contact deletes related ecommerce orders and line items, or keeps them anonymized
 
 ## Development
 
@@ -296,6 +341,14 @@ Run plugin tests:
 ddev exec php bin/phpunit -c app/phpunit.xml.dist plugins/EcommerceConnectorBundle/Tests
 ```
 
+Or, from `docroot/app` of a Composer-based install with Mautic's dev dependencies, using the bundle's own configuration:
+
+```bash
+../../vendor/bin/phpunit -c ../plugins/EcommerceConnectorBundle/phpunit.xml.dist
+```
+
+That configuration forces `DB_NAME=mautic_test`. Functional tests reset the database, so never point them at a database you need. Put `DB_HOST`, `DB_PORT`, `DB_USER` and `DB_PASSWD` for the test database in the project root's `.env.test.local`. Clear `var/cache/test` after changing services or configuration.
+
 ## Disclaimer
 
 This software is provided **as is**, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages, or other liability arising from use of this software.
@@ -303,6 +356,23 @@ This software is provided **as is**, without warranty of any kind, express or im
 You are solely responsible for how you deploy and use this plugin, including compliance with applicable laws and data protection obligations.
 
 ## Changelog
+
+### 1.4.0
+```
+* Added: order_date on orders (ISO 8601 or Unix timestamp); existing orders use the time they were recorded.
+* Added: unit_price on line items (unit_price or price).
+* Added: Campaign decision "Places an order" with minimum total, category, product and source filters.
+* Added: Campaign condition "Purchase history" (spend, quantity or orders, all time or last N days).
+* Added: Orders placed more than a day before they reach Mautic never trigger campaigns.
+* Added: Behaviours: rolling purchase measures kept in contact fields, with an admin page and the mautic:ecommerce:behaviours:update command.
+* Added: REST API to list, get, create, edit and delete orders, and to list a contact's orders.
+* Added: Report data source for order line items, with line totals.
+* Added: Option to keep orders anonymized when a contact is deleted.
+* Updated: Last order date, the contact tab, timeline and export use the order date.
+* Fixed: Upgrades failed because the plugin's update hook ran before Mautic applied the plugin's migrations.
+* Fixed: Commerce fields could not drop to zero or be cleared after orders were moved or deleted.
+* Fixed: Contact field installer depended on the MAUTIC_TABLE_PREFIX environment variable.
+```
 
 ### 1.3.0
 ```
