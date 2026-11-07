@@ -25,17 +25,16 @@ class LeadCommerceFieldUpdater
 
         $stats = $this->orderRepository->getCommerceStatsForLead($leadId);
 
+        // Last order date is cleared when the contact's last order is deleted.
         $values = [
             LeadCommerceFieldDefinition::LIFETIME_VALUE    => $stats['lifetime_value'],
             LeadCommerceFieldDefinition::ORDER_COUNT       => $stats['order_count'],
-            LeadCommerceFieldDefinition::LAST_ORDER_TOTAL => $stats['last_order_total'],
+            LeadCommerceFieldDefinition::LAST_ORDER_TOTAL  => $stats['last_order_total'],
+            LeadCommerceFieldDefinition::LAST_ORDER_DATE   => $stats['last_order_date'],
         ];
 
-        if (null !== $stats['last_order_date']) {
-            $values[LeadCommerceFieldDefinition::LAST_ORDER_DATE] = $stats['last_order_date'];
-        }
-
-        $this->leadModel->setFieldValues($lead, $values, false);
+        // Overwrite with blanks too: computed values must be able to drop to 0 or be cleared.
+        $this->leadModel->setFieldValues($lead, $values, true);
         $this->leadModel->saveEntity($lead, false);
     }
 

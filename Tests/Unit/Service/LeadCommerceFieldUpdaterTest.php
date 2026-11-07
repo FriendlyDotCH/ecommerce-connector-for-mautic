@@ -64,7 +64,7 @@ class LeadCommerceFieldUpdaterTest extends TestCase
                     LeadCommerceFieldDefinition::LAST_ORDER_TOTAL => '99.99',
                     LeadCommerceFieldDefinition::LAST_ORDER_DATE  => '2026-06-01 12:00:00',
                 ],
-                false
+                true
             );
 
         $this->leadModel->expects($this->once())

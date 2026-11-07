@@ -7,7 +7,6 @@ namespace MauticPlugin\EcommerceConnectorBundle\Service;
 use Doctrine\ORM\EntityManagerInterface;
 use Mautic\LeadBundle\Entity\LeadField;
 use Mautic\LeadBundle\Model\FieldModel;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 class LeadCommerceFieldInstaller
@@ -16,8 +15,7 @@ class LeadCommerceFieldInstaller
         private FieldModel $fieldModel,
         private EntityManagerInterface $entityManager,
         private TranslatorInterface $translator,
-        #[Autowire(env: 'MAUTIC_TABLE_PREFIX')]
-        private ?string $tablePrefix = '',
+        private ?string $tablePrefix = null,
     ) {
     }
 
@@ -65,7 +63,8 @@ class LeadCommerceFieldInstaller
     private function leadColumnExists(string $alias): bool
     {
         $schema = $this->entityManager->getConnection()->createSchemaManager()->introspectSchema();
-        $table  = ($this->tablePrefix ?? '').'leads';
+        // Same prefix source as the repositories; the env var is not set in every environment.
+        $table  = ($this->tablePrefix ?? MAUTIC_TABLE_PREFIX).'leads';
 
         if (!$schema->hasTable($table)) {
             return false;
