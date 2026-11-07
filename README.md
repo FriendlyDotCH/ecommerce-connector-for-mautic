@@ -262,6 +262,8 @@ curl -X POST "https://your-mautic-site.com/ecommerce/order" \
 
 ## Base currency
 
+Set **Money format locale** on the Formatting tab (for example `hu_HU` for "4 990 Ft", `de_DE` for "19,90 €") so amounts look right in emails, which are sent from cron without a language; empty uses Mautic's language. Forint, yen and similar currencies are shown without decimals.
+
 Set **Base currency** on the plugin's Formatting tab (for example `HUF`; empty uses the default currency). Lifetime value, last order total, behaviours, the purchase history condition, lifecycle and RFM, and the dashboard widgets are then in base currency. Email revenue badges still show each currency separately.
 
 Each order is converted at the rate of its order date, which is stored with the order. Rates come from:
@@ -534,6 +536,7 @@ You are solely responsible for how you deploy and use this plugin, including com
 * Added: WooCommerce product webhooks keep the catalog in sync.
 * Added: Order lines store the product ID and take missing categories from the catalog, also for earlier orders.
 * Added: POST /ecommerce/webhook/{platform} for native shop webhooks; /ecommerce/woocommerce kept.
+* Added: Money format locale setting; whole-number currencies (HUF, JPY, …) without decimals.
 ```
 
 ### 1.6.0

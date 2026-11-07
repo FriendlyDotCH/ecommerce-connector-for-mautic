@@ -141,6 +141,17 @@ class Config
         return $rates;
     }
 
+    /**
+     * Locale for amounts in emails, the contact tab and dashboards, e.g. hu_HU; '' when unset.
+     */
+    public function getMoneyLocale(): string
+    {
+        $integration = $this->getIntegrationObject();
+        $locale      = null !== $integration ? trim((string) ($integration->getIntegrationSettings()->getFeatureSettings()['money_locale'] ?? '')) : '';
+
+        return 1 === preg_match('/^[a-z]{2,3}([_-][A-Za-z]{2,4})?$/', $locale) ? str_replace('-', '_', $locale) : '';
+    }
+
     public function isEcbExchangeRatesEnabled(): bool
     {
         return $this->getFeatureSetting('exchange_rates_ecb', false);

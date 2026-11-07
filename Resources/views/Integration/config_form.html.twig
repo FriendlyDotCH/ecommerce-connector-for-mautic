@@ -60,7 +60,7 @@
         <li class="" id="features-tab">
             <a href="#features-container" role="tab" data-toggle="tab">
                 {{- 'mautic.plugin.ecommerce.tab.validation'|trans -}}
-                {%- if (hasSupportedFeatures and formContainsErrors(form.supportedFeatures)) or (hasFeatureSettings and formContainsErrors(form.featureSettings, ['leadFields', 'enable_page_hit_tracking', 'attribute_last_email', 'on_contact_delete', 'default_currency', 'base_currency', 'exchange_rates', 'exchange_rates_ecb'])) -%}
+                {%- if (hasSupportedFeatures and formContainsErrors(form.supportedFeatures)) or (hasFeatureSettings and formContainsErrors(form.featureSettings, ['leadFields', 'enable_page_hit_tracking', 'attribute_last_email', 'on_contact_delete', 'default_currency', 'money_locale', 'base_currency', 'exchange_rates', 'exchange_rates_ecb'])) -%}
                     <i class="ri-fw ri-alert-fill text-danger"></i>
                 {%- endif -%}
             </a>
@@ -201,7 +201,7 @@
 
     <div class="tab-pane fade {% if 'formatting-container' == activeTab %}in active{% endif %} bdr-w-0" id="formatting-container">
         {%- if form.featureSettings is defined -%}
-            {%- for key in ['default_currency', 'base_currency', 'exchange_rates', 'exchange_rates_ecb'] -%}
+            {%- for key in ['default_currency', 'money_locale', 'base_currency', 'exchange_rates', 'exchange_rates_ecb'] -%}
                 {%- if attribute(form.featureSettings, key) is defined -%}
                     {{- form_row(attribute(form.featureSettings, key)) -}}
                 {%- endif -%}

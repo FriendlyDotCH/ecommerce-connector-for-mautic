@@ -112,6 +112,20 @@ class EcommerceConnectorIntegration extends AbstractIntegration
         );
 
         $builder->add(
+            'money_locale',
+            TextType::class,
+            [
+                'label'    => 'mautic.plugin.ecommerce.money_locale',
+                'required' => false,
+                'data'     => $data['money_locale'] ?? '',
+                'attr'     => [
+                    'tooltip'     => 'mautic.plugin.ecommerce.money_locale.tooltip',
+                    'placeholder' => 'hu_HU',
+                ],
+            ]
+        );
+
+        $builder->add(
             'base_currency',
             TextType::class,
             [
