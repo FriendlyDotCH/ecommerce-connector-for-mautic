@@ -94,7 +94,11 @@ class BehaviourFunctionalTest extends MauticMysqlTestCase
     {
         $this->client->request(Request::METHOD_GET, '/s/ecommerce/behaviours');
         Assert::assertTrue($this->client->getResponse()->isOk());
-        Assert::assertStringContainsString('Ecommerce behaviours', (string) $this->client->getResponse()->getContent());
+        // In the admin's language.
+        Assert::assertStringContainsString(
+            static::getContainer()->get('translator')->trans('mautic.plugin.ecommerce.behaviour.header.index'),
+            (string) $this->client->getResponse()->getContent()
+        );
 
         $crawler = $this->client->request(Request::METHOD_GET, '/s/ecommerce/behaviours/new');
         Assert::assertTrue($this->client->getResponse()->isOk());
