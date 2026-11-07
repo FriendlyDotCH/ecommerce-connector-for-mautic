@@ -287,4 +287,21 @@ class EcommerceOrderRepository extends CommonRepository
 
         return ['total' => $total, 'orders' => $orders];
     }
+
+    public function hasCountedOrderSince(int $leadId, \DateTimeInterface $since): bool
+    {
+        $query = $this->getEntityManager()->getConnection()->createQueryBuilder();
+
+        return (bool) $query->select('1')
+            ->from(MAUTIC_TABLE_PREFIX.'ecommerce_orders', 'eo')
+            ->where('eo.lead_id = :leadId')
+            ->andWhere($query->expr()->in('eo.status', ':counted'))
+            ->andWhere('eo.order_date >= :since')
+            ->setParameter('leadId', $leadId)
+            ->setParameter('counted', EcommerceOrder::COUNTED_STATUSES, ArrayParameterType::STRING)
+            ->setParameter('since', \DateTimeImmutable::createFromInterface($since)->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s'))
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchOne();
+    }
 }

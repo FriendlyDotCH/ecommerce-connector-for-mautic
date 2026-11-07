@@ -388,6 +388,27 @@ mt('send', 'pageview', {
 
 `GET /api/contacts/{id}/ecommerce/events` lists a contact's events.
 
+### Abandonment campaigns
+
+Campaign decisions for storefront events, each with optional filters for a minimum value (cart total, or product price for views), categories and products:
+
+* **Views a product**, **Adds to cart**, **Starts checkout**: fire as the event arrives (not for events more than a day old).
+* **Abandons cart**: the contact's last cart event is older than **Cart and checkout abandoned after** (default 60 minutes), with no checkout, cart change or order since.
+* **Abandons checkout**: a started checkout older than that delay, with no cart change or order since.
+* **Abandons browsing**: a product view older than **Browsing abandoned after** (default 120 minutes), with no other storefront activity or order since.
+
+Abandonments fire once per event and need the detector in cron, every 5 to 15 minutes:
+
+```
+*/5 * * * * www-data php /path/to/mautic/bin/console mautic:ecommerce:abandonment
+```
+
+Events older than the delay plus 48 hours are skipped, so a first run sends nothing about old carts.
+
+The condition **No order within** (N hours) stops a follow-up once the contact has bought, for example: Abandons cart → wait 1 day → No order within 24 hours → send the reminder.
+
+Email tokens, from the contact's latest storefront events: `{ecommerce_cart}` (items with image, link, quantity and price, plus total), `{ecommerce_cart_total}`, `{ecommerce_cart_url}` (the store's restore-cart link), `{ecommerce_viewed_product}`, `{ecommerce_viewed_product_url}` and `{ecommerce_viewed_product_image}`.
+
 ## Page hit tracking
 
 When **Track orders from page hits** is enabled, orders can be recorded from Mautic tracking requests on a thank-you page:
@@ -463,6 +484,10 @@ You are solely responsible for how you deploy and use this plugin, including com
 * Added: Signed POST /ecommerce/event webhook, POST /api/ecommerce/events/new and mtc.js pageview events.
 * Added: GET /api/contacts/{id}/ecommerce/events.
 * Added: Event retention (default 90 days) through mautic:maintenance:cleanup; events are deleted with the contact and moved on merge.
+* Added: Campaign decisions Views a product, Adds to cart, Starts checkout, Abandons cart, Abandons checkout and Abandons browsing.
+* Added: mautic:ecommerce:abandonment, the detector for abandonment decisions.
+* Added: Campaign condition No order within.
+* Added: Email tokens for cart contents, cart total, restore-cart link and last viewed product.
 ```
 
 ### 1.5.0

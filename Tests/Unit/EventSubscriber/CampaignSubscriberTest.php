@@ -9,6 +9,7 @@ use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Tracker\ContactTracker;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrder;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderItem;
+use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
 use MauticPlugin\EcommerceConnectorBundle\Event\EcommerceOrderEvent;
 use MauticPlugin\EcommerceConnectorBundle\EventSubscriber\CampaignSubscriber;
 use MauticPlugin\EcommerceConnectorBundle\Service\PurchaseHistoryQuery;
@@ -34,6 +35,7 @@ class CampaignSubscriberTest extends TestCase
             $this->contactTracker,
             $this->createMock(PurchaseHistoryQuery::class),
             $this->createMock(LoggerInterface::class),
+            $this->createMock(EcommerceOrderRepository::class),
         );
     }
 

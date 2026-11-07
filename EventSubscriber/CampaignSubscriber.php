@@ -12,11 +12,17 @@ use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Tracker\ContactTracker;
 use MauticPlugin\EcommerceConnectorBundle\DTO\PurchaseCriteria;
 use MauticPlugin\EcommerceConnectorBundle\EcommerceEvents;
+use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceEvent;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrder;
+use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
 use MauticPlugin\EcommerceConnectorBundle\Event\EcommerceOrderEvent;
+use MauticPlugin\EcommerceConnectorBundle\Event\StorefrontEventRecordedEvent;
+use MauticPlugin\EcommerceConnectorBundle\Form\Type\NoOrderWithinConditionType;
 use MauticPlugin\EcommerceConnectorBundle\Form\Type\OrderPlacedDecisionType;
 use MauticPlugin\EcommerceConnectorBundle\Form\Type\PurchaseHistoryConditionType;
+use MauticPlugin\EcommerceConnectorBundle\Form\Type\StorefrontDecisionType;
 use MauticPlugin\EcommerceConnectorBundle\Service\PurchaseHistoryQuery;
+use MauticPlugin\EcommerceConnectorBundle\Service\StorefrontEventMatcher;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -25,6 +31,33 @@ final class CampaignSubscriber implements EventSubscriberInterface
     public const DECISION_ORDER_PLACED = 'ecommerce.order_placed';
 
     public const CONDITION_PURCHASE_HISTORY = 'ecommerce.purchase_history';
+
+    public const DECISION_VIEWED_PRODUCT    = 'ecommerce.viewed_product';
+    public const DECISION_ADDED_TO_CART     = 'ecommerce.added_to_cart';
+    public const DECISION_STARTED_CHECKOUT  = 'ecommerce.started_checkout';
+    public const DECISION_ABANDONED_CART     = 'ecommerce.abandoned_cart';
+    public const DECISION_ABANDONED_CHECKOUT = 'ecommerce.abandoned_checkout';
+    public const DECISION_ABANDONED_BROWSE   = 'ecommerce.abandoned_browse';
+
+    public const CONDITION_NO_ORDER_WITHIN = 'ecommerce.no_order_within';
+
+    /**
+     * Live decision per storefront event type.
+     */
+    public const LIVE_DECISIONS = [
+        EcommerceEvent::TYPE_VIEWED_PRODUCT   => self::DECISION_VIEWED_PRODUCT,
+        EcommerceEvent::TYPE_ADDED_TO_CART    => self::DECISION_ADDED_TO_CART,
+        EcommerceEvent::TYPE_STARTED_CHECKOUT => self::DECISION_STARTED_CHECKOUT,
+    ];
+
+    /**
+     * Abandonment decision per storefront event type.
+     */
+    public const ABANDONMENT_DECISIONS = [
+        EcommerceEvent::TYPE_VIEWED_PRODUCT   => self::DECISION_ABANDONED_BROWSE,
+        EcommerceEvent::TYPE_ADDED_TO_CART    => self::DECISION_ABANDONED_CART,
+        EcommerceEvent::TYPE_STARTED_CHECKOUT => self::DECISION_ABANDONED_CHECKOUT,
+    ];
 
     /**
      * Orders placed longer ago than this never trigger campaigns, so historical imports send nothing.
@@ -36,6 +69,7 @@ final class CampaignSubscriber implements EventSubscriberInterface
         private ContactTracker $contactTracker,
         private PurchaseHistoryQuery $purchaseHistoryQuery,
         private LoggerInterface $logger,
+        private EcommerceOrderRepository $orderRepository,
     ) {
     }
 
@@ -44,8 +78,15 @@ final class CampaignSubscriber implements EventSubscriberInterface
         return [
             CampaignEvents::CAMPAIGN_ON_BUILD               => ['onCampaignBuild', 0],
             EcommerceEvents::ORDER_RECORDED                 => ['onOrderRecorded', 0],
-            EcommerceEvents::ON_CAMPAIGN_TRIGGER_DECISION   => ['onOrderPlacedDecision', 0],
-            EcommerceEvents::ON_CAMPAIGN_TRIGGER_CONDITION  => ['onPurchaseHistoryCondition', 0],
+            EcommerceEvents::STOREFRONT_EVENT_RECORDED      => ['onStorefrontEventRecorded', 0],
+            EcommerceEvents::ON_CAMPAIGN_TRIGGER_DECISION   => [
+                ['onOrderPlacedDecision', 0],
+                ['onStorefrontDecision', 0],
+            ],
+            EcommerceEvents::ON_CAMPAIGN_TRIGGER_CONDITION  => [
+                ['onPurchaseHistoryCondition', 0],
+                ['onNoOrderWithinCondition', 0],
+            ],
         ];
     }
 
@@ -56,6 +97,22 @@ final class CampaignSubscriber implements EventSubscriberInterface
             'description' => 'mautic.plugin.ecommerce.campaign.order_placed.descr',
             'formType'    => OrderPlacedDecisionType::class,
             'eventName'   => EcommerceEvents::ON_CAMPAIGN_TRIGGER_DECISION,
+        ]);
+
+        foreach ([...self::LIVE_DECISIONS, ...self::ABANDONMENT_DECISIONS] as $decision) {
+            $event->addDecision($decision, [
+                'label'       => 'mautic.plugin.'.$decision,
+                'description' => 'mautic.plugin.'.$decision.'.descr',
+                'formType'    => StorefrontDecisionType::class,
+                'eventName'   => EcommerceEvents::ON_CAMPAIGN_TRIGGER_DECISION,
+            ]);
+        }
+
+        $event->addCondition(self::CONDITION_NO_ORDER_WITHIN, [
+            'label'       => 'mautic.plugin.ecommerce.campaign.no_order_within',
+            'description' => 'mautic.plugin.ecommerce.campaign.no_order_within.descr',
+            'formType'    => NoOrderWithinConditionType::class,
+            'eventName'   => EcommerceEvents::ON_CAMPAIGN_TRIGGER_CONDITION,
         ]);
 
         $event->addCondition(self::CONDITION_PURCHASE_HISTORY, [
@@ -87,11 +144,67 @@ final class CampaignSubscriber implements EventSubscriberInterface
             return;
         }
 
-        // Webhook and API orders have no tracked visitor; run the decision for the order's contact.
+        $this->runDecision(self::DECISION_ORDER_PLACED, $lead, $order, $order->getId());
+    }
+
+    public function onStorefrontEventRecorded(StorefrontEventRecordedEvent $recorded): void
+    {
+        $event = $recorded->getStorefrontEvent();
+
+        // Like orders: late or replayed events never trigger campaigns.
+        if ($event->getOccurredAt() < new \DateTimeImmutable(self::MAX_TRIGGER_AGE)) {
+            return;
+        }
+
+        $this->runDecision(self::LIVE_DECISIONS[$event->getEventType()], $event->getLead(), $event, $event->getId());
+    }
+
+    /**
+     * Called by the abandonment detector for an event that has been abandoned.
+     */
+    public function triggerAbandonment(EcommerceEvent $event): void
+    {
+        $this->runDecision(self::ABANDONMENT_DECISIONS[$event->getEventType()], $event->getLead(), $event, $event->getId());
+    }
+
+    public function onStorefrontDecision(CampaignExecutionEvent $event): ?CampaignExecutionEvent
+    {
+        foreach ([...self::LIVE_DECISIONS, ...self::ABANDONMENT_DECISIONS] as $decision) {
+            if ($event->checkContext($decision)) {
+                $storefrontEvent = $event->getEventDetails();
+
+                return $event->setResult($storefrontEvent instanceof EcommerceEvent && StorefrontEventMatcher::matches($storefrontEvent, (array) $event->getConfig()));
+            }
+        }
+
+        return null;
+    }
+
+    public function onNoOrderWithinCondition(CampaignExecutionEvent $event): ?CampaignExecutionEvent
+    {
+        if (!$event->checkContext(self::CONDITION_NO_ORDER_WITHIN)) {
+            return null;
+        }
+
+        $hours = max(1, (int) (((array) $event->getConfig())['hours'] ?? 24));
+        $since = new \DateTimeImmutable(sprintf('-%d hours', $hours));
+
+        return $event->setResult(!$this->orderRepository->hasCountedOrderSince((int) $event->getLead()->getId(), $since));
+    }
+
+    /**
+     * Webhook, API and cron triggers have no tracked visitor; run the decision for the contact.
+     */
+    private function runDecision(string $decision, Lead $lead, object $passthrough, ?int $channelId): void
+    {
+        if (!$lead->getId()) {
+            return;
+        }
+
         $this->contactTracker->setSystemContact($lead);
 
         try {
-            $this->realTimeExecutioner->execute(self::DECISION_ORDER_PLACED, $order, 'ecommerce', $order->getId());
+            $this->realTimeExecutioner->execute($decision, $passthrough, 'ecommerce', $channelId);
         } finally {
             $this->contactTracker->setSystemContact(null);
         }
