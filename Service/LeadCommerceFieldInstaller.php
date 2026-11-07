@@ -27,7 +27,7 @@ class LeadCommerceFieldInstaller
     }
 
     /**
-     * @param array{label: string, type: string, alias: string} $definition
+     * @param array{label: string, type: string, alias: string, list?: array<string, string>} $definition
      */
     private function ensureFieldExists(array $definition): void
     {
@@ -56,6 +56,14 @@ class LeadCommerceFieldInstaller
         $field->setIsVisible(true);
         $field->setIsPubliclyUpdatable(false);
         $field->setIsPublished(true);
+
+        if (isset($definition['list'])) {
+            $options = [];
+            foreach ($definition['list'] as $value => $label) {
+                $options[] = ['label' => $this->translator->trans($label), 'value' => $value];
+            }
+            $field->setProperties(['list' => $options]);
+        }
 
         $this->fieldModel->saveEntity($field);
     }

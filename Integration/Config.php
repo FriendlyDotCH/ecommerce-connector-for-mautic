@@ -13,6 +13,18 @@ class Config
     public const DEFAULT_ORDER_SOURCE          = 'web';
     public const DEFAULT_ENABLE_PAGE_HIT_TRACKING = true;
 
+    /**
+     * Lifecycle stage thresholds; see LifecycleCalculator.
+     */
+    public const LIFECYCLE_DEFAULTS = [
+        'lifecycle_lapsed_days'        => 365,
+        'lifecycle_at_risk_factor'     => 1.5,
+        'lifecycle_at_risk_min_days'   => 30,
+        'lifecycle_single_order_days'  => 90,
+        'lifecycle_vip_top_percent'    => 10,
+        'lifecycle_vip_min_orders'     => 5,
+    ];
+
     public const ON_CONTACT_DELETE_DELETE    = 'delete';
     public const ON_CONTACT_DELETE_ANONYMIZE = 'anonymize';
 
@@ -108,6 +120,23 @@ class Config
             : null;
 
         return self::ON_CONTACT_DELETE_ANONYMIZE === $value ? self::ON_CONTACT_DELETE_ANONYMIZE : self::ON_CONTACT_DELETE_DELETE;
+    }
+
+    /**
+     * @return array<string, float> every lifecycle setting, defaults filled in
+     */
+    public function getLifecycleSettings(): array
+    {
+        $integration = $this->getIntegrationObject();
+        $settings    = null !== $integration ? $integration->getIntegrationSettings()->getFeatureSettings() : [];
+        $values      = [];
+
+        foreach (self::LIFECYCLE_DEFAULTS as $key => $default) {
+            $value        = $settings[$key] ?? null;
+            $values[$key] = is_numeric($value) && (float) $value >= 0 ? (float) $value : (float) $default;
+        }
+
+        return $values;
     }
 
     private function getFeatureSetting(string $key, bool $default): bool

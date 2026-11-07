@@ -277,6 +277,24 @@ Three contact fields describe each customer's buying rhythm, from orders that co
 
 Use them for replenishment and "due to reorder" campaigns, for example a segment on **Expected next order** in the last 7 days and **Days since last order** greater than **Average days between orders**. They update on every order change and in the daily recalculation below. The eCommerce tab on the contact shows them.
 
+## Lifecycle stage and RFM
+
+**Lifecycle stage** is a select field with one of these values, checked in this order:
+
+| Stage | Rule (defaults) |
+|-------|-----------------|
+| Lapsed | No order for more than 365 days |
+| At risk | Overdue: days since the last order exceed 1.5 times the contact's average days between orders (and at least 30 days); with a single order, that order is older than 90 days |
+| VIP | Net lifetime value in the top 10% of customers (from 10 customers), or at least 5 orders |
+| New | One order |
+| Active | Everyone else with orders |
+
+Change the thresholds under **Lifecycle stages** on the plugin's Validation tab.
+
+**RFM score** combines recency, frequency and monetary value, each scored 1 (lowest) to 5 (highest) by quintile across all customers, for example `545`. The single scores are also stored as **RFM recency**, **RFM frequency** and **RFM monetary**. The quintile cutoffs and the VIP spend cutoff are refreshed by the daily recalculation and reused when a single contact is rescored after an order.
+
+Cancelled and fully refunded orders do not count; amounts are net of refunds. Contacts without counting orders have no stage or score.
+
 ## Behaviours
 
 **Settings → Ecommerce behaviours** (requires the permission to manage custom fields) defines rolling purchase measures. Each behaviour keeps its own number contact field, for example `ecb_candle_spend_90d`, which you can use in segments, campaign conditions and email tokens like any contact field.
@@ -289,7 +307,7 @@ Values update for the contact on every new order, when contacts are merged, and 
 php bin/console mautic:ecommerce:recalculate
 ```
 
-It updates the timing fields and all published behaviours. `mautic:ecommerce:behaviours:update` (optionally with `--id=<behaviour ID>`) updates behaviours only. Deleting a behaviour deletes its contact field; this is refused while a segment uses the field.
+It updates the timing fields, lifecycle stages and RFM scores, and all published behaviours. `mautic:ecommerce:behaviours:update` (optionally with `--id=<behaviour ID>`) updates behaviours only. Deleting a behaviour deletes its contact field; this is refused while a segment uses the field.
 
 ## REST API
 
@@ -384,7 +402,9 @@ You are solely responsible for how you deploy and use this plugin, including com
 * Updated: "Places an order" ignores orders that arrive cancelled or refunded, and compares the minimum against the net total.
 * Added: Status and refunds on the contact tab, order details, timeline, export, API and reports.
 * Added: Timing fields: days since last order, average days between orders, expected next order.
-* Added: mautic:ecommerce:recalculate, the daily job for timing fields and behaviours.
+* Added: Lifecycle stage (new, active, VIP, at risk, lapsed) with configurable thresholds.
+* Added: RFM score and its recency, frequency and monetary parts, by quintile.
+* Added: mautic:ecommerce:recalculate, the daily job for timing, lifecycle, RFM and behaviours.
 ```
 
 ### 1.4.0

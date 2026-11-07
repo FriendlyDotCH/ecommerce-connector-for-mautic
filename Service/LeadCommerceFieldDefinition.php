@@ -22,8 +22,28 @@ final class LeadCommerceFieldDefinition
 
     public const NEXT_ORDER_DATE = 'ecommerce_next_order_date';
 
+    public const LIFECYCLE_STAGE = 'ecommerce_lifecycle_stage';
+
+    public const RFM_SCORE = 'ecommerce_rfm_score';
+
+    public const RFM_RECENCY = 'ecommerce_rfm_recency';
+
+    public const RFM_FREQUENCY = 'ecommerce_rfm_frequency';
+
+    public const RFM_MONETARY = 'ecommerce_rfm_monetary';
+
+    public const STAGE_NEW     = 'new';
+    public const STAGE_ACTIVE  = 'active';
+    public const STAGE_VIP     = 'vip';
+    public const STAGE_AT_RISK = 'at_risk';
+    public const STAGE_LAPSED  = 'lapsed';
+
+    public const STAGES = [self::STAGE_NEW, self::STAGE_ACTIVE, self::STAGE_VIP, self::STAGE_AT_RISK, self::STAGE_LAPSED];
+
     /**
-     * @return array<string, array{label: string, type: string, alias: string}>
+     * Select fields carry a "list" of option values; their labels are translation keys.
+     *
+     * @return array<string, array{label: string, type: string, alias: string, list?: array<string, string>}>
      */
     public static function getFields(): array
     {
@@ -62,6 +82,35 @@ final class LeadCommerceFieldDefinition
                 'label' => 'mautic.plugin.ecommerce.field.next_order_date',
                 'type'  => 'date',
                 'alias' => self::NEXT_ORDER_DATE,
+            ],
+            self::LIFECYCLE_STAGE => [
+                'label' => 'mautic.plugin.ecommerce.field.lifecycle_stage',
+                'type'  => 'select',
+                'alias' => self::LIFECYCLE_STAGE,
+                'list'  => array_combine(
+                    self::STAGES,
+                    array_map(static fn (string $stage): string => 'mautic.plugin.ecommerce.stage.'.$stage, self::STAGES)
+                ),
+            ],
+            self::RFM_SCORE => [
+                'label' => 'mautic.plugin.ecommerce.field.rfm_score',
+                'type'  => 'text',
+                'alias' => self::RFM_SCORE,
+            ],
+            self::RFM_RECENCY => [
+                'label' => 'mautic.plugin.ecommerce.field.rfm_recency',
+                'type'  => 'number',
+                'alias' => self::RFM_RECENCY,
+            ],
+            self::RFM_FREQUENCY => [
+                'label' => 'mautic.plugin.ecommerce.field.rfm_frequency',
+                'type'  => 'number',
+                'alias' => self::RFM_FREQUENCY,
+            ],
+            self::RFM_MONETARY => [
+                'label' => 'mautic.plugin.ecommerce.field.rfm_monetary',
+                'type'  => 'number',
+                'alias' => self::RFM_MONETARY,
             ],
         ];
     }

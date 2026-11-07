@@ -81,6 +81,8 @@ final class ContactProfileTabSubscriber implements EventSubscriberInterface
                     'daysSinceLastOrder'   => $lead->getFieldValue(LeadCommerceFieldDefinition::DAYS_SINCE_LAST_ORDER),
                     'avgDaysBetweenOrders' => $lead->getFieldValue(LeadCommerceFieldDefinition::AVG_DAYS_BETWEEN_ORDERS),
                     'nextOrderDate'        => $lead->getFieldValue(LeadCommerceFieldDefinition::NEXT_ORDER_DATE),
+                    'lifecycleStage'       => $lead->getFieldValue(LeadCommerceFieldDefinition::LIFECYCLE_STAGE),
+                    'rfmScore'             => $lead->getFieldValue(LeadCommerceFieldDefinition::RFM_SCORE),
                 ],
             ]);
         }

@@ -72,6 +72,21 @@
                     </div>
                 </div>
             </div>
+            <div class="col-sm-6 col-md-3">
+                <div class="panel panel-default mb-0">
+                    <div class="panel-body text-center">
+                        <h5 class="fw-sb mb-xs">{{ 'mautic.plugin.ecommerce.field.lifecycle_stage'|trans }}</h5>
+                        <p class="text-secondary mb-0">
+                            {% if timing.lifecycleStage %}
+                                <span class="label {{ timing.lifecycleStage in ['at_risk', 'lapsed'] ? 'label-warning' : (timing.lifecycleStage == 'vip' ? 'label-success' : 'label-default') }}">{{ ('mautic.plugin.ecommerce.stage.' ~ timing.lifecycleStage)|trans }}</span>
+                                {% if timing.rfmScore %}<small class="ml-xs" title="{{ 'mautic.plugin.ecommerce.field.rfm_score'|trans }}">RFM {{ timing.rfmScore }}</small>{% endif %}
+                            {% else %}
+                                {{ 'mautic.core.no.info'|trans }}
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
     {% endif %}
 

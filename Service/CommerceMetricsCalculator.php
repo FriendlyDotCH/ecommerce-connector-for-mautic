@@ -6,7 +6,6 @@ namespace MauticPlugin\EcommerceConnectorBundle\Service;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\ParameterType;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrder;
 use Psr\Log\LoggerInterface;
 
@@ -26,6 +25,7 @@ class CommerceMetricsCalculator
 
     public function __construct(
         private Connection $connection,
+        private LeadColumnWriter $columnWriter,
         private LoggerInterface $logger,
     ) {
     }
@@ -89,40 +89,9 @@ class CommerceMetricsCalculator
      */
     public function write(array $leadIds, ?\DateTimeInterface $now = null): void
     {
-        if (!$this->columnsExist()) {
-            return;
+        if ($this->columnsExist()) {
+            $this->columnWriter->write(self::COLUMNS, $this->compute($leadIds, $now));
         }
-
-        $values = $this->compute($leadIds, $now);
-        if ([] === $values) {
-            return;
-        }
-
-        $sets   = [];
-        $params = [];
-        $types  = [];
-
-        foreach (self::COLUMNS as $column) {
-            $cases = [];
-            foreach ($values as $leadId => $leadValues) {
-                $cases[]  = 'WHEN ? THEN ?';
-                $params[] = $leadId;
-                $params[] = $leadValues[$column];
-                $types[]  = ParameterType::INTEGER;
-                $types[]  = null === $leadValues[$column] ? ParameterType::NULL : ParameterType::STRING;
-            }
-
-            $sets[] = sprintf('%s = CASE id %s END', $this->connection->quoteIdentifier($column), implode(' ', $cases));
-        }
-
-        $params[] = array_keys($values);
-        $types[]  = ArrayParameterType::INTEGER;
-
-        $this->connection->executeStatement(
-            sprintf('UPDATE %sleads SET %s WHERE id IN (?)', MAUTIC_TABLE_PREFIX, implode(', ', $sets)),
-            $params,
-            $types
-        );
     }
 
     /**
@@ -154,16 +123,11 @@ class CommerceMetricsCalculator
 
     private function columnsExist(): bool
     {
-        $columns = $this->connection->createSchemaManager()->listTableColumns(MAUTIC_TABLE_PREFIX.'leads');
-
-        foreach (self::COLUMNS as $column) {
-            if (!isset($columns[$column])) {
-                $this->logger->warning('Ecommerce timing fields are missing; run Install/Upgrade Plugins.', ['column' => $column]);
-
-                return false;
-            }
+        $missing = $this->columnWriter->missingColumns(self::COLUMNS);
+        if ([] !== $missing) {
+            $this->logger->warning('Ecommerce timing fields are missing; run Install/Upgrade Plugins.', ['columns' => $missing]);
         }
 
-        return true;
+        return [] === $missing;
     }
 }

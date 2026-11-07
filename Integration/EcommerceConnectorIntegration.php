@@ -142,6 +142,23 @@ class EcommerceConnectorIntegration extends AbstractIntegration
                 ],
             ]
         );
+
+        // Lifecycle stage thresholds.
+        foreach (Config::LIFECYCLE_DEFAULTS as $key => $default) {
+            $builder->add(
+                $key,
+                NumberType::class,
+                [
+                    'label'    => 'mautic.plugin.ecommerce.'.$key,
+                    'required' => false,
+                    'scale'    => is_float($default) ? 1 : 0,
+                    'data'     => isset($data[$key]) && is_numeric($data[$key]) ? (float) $data[$key] : $default,
+                    'attr'     => [
+                        'tooltip' => 'mautic.plugin.ecommerce.'.$key.'.tooltip',
+                    ],
+                ]
+            );
+        }
     }
 
     /**
