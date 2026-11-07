@@ -41,10 +41,15 @@ class PublicController extends CommonController
         }
 
         if (!$signatureValidator->isValid($request, $secret)) {
+            // Length and hash of the received body let senders check they signed the same bytes.
             $logger->warning(sprintf(
                 'Ecommerce webhook rejected: %s X-Mautic-Ecommerce-Signature header. For a JSON body, sign the exact raw body with HMAC-SHA256 and the webhook secret.',
                 '' === (string) $request->headers->get('X-Mautic-Ecommerce-Signature', '') ? 'missing' : 'invalid'
-            ));
+            ), [
+                'content_type' => (string) $request->headers->get('Content-Type', ''),
+                'body_length'  => strlen($request->getContent()),
+                'body_sha256'  => hash('sha256', $request->getContent()),
+            ]);
 
             return new Response('', Response::HTTP_NO_CONTENT);
         }
