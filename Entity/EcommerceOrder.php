@@ -36,6 +36,12 @@ class EcommerceOrder
 
     private ?Email $email = null;
 
+    /**
+     * Campaign that sent the attributed email, if any. A plain ID so deleting a campaign
+     * leaves revenue history intact.
+     */
+    private ?int $campaignId = null;
+
     private string $orderId;
 
     private string $orderTotal;
@@ -84,6 +90,7 @@ class EcommerceOrder
             ->addIndex(['date_added'], 'ecommerce_date_added')
             ->addIndex(['lead_id', 'order_date'], 'ecommerce_lead_order_date')
             ->addIndex(['status'], 'ecommerce_status')
+            ->addIndex(['campaign_id'], 'ecommerce_campaign_id')
             ->addUniqueConstraint(['order_id', 'order_source'], 'ecommerce_order_source_unique');
 
         $builder->addId();
@@ -96,6 +103,7 @@ class EcommerceOrder
             ->addJoinColumn('email_id', 'id', true, false, 'SET NULL')
             ->build();
 
+        $builder->addNamedField('campaignId', 'integer', 'campaign_id', true);
         $builder->addNamedField('orderId', 'string', 'order_id');
         $builder->addField('orderTotal', 'decimal', [
             'columnName' => 'order_total',
@@ -151,6 +159,16 @@ class EcommerceOrder
     public function setEmail(?Email $email): void
     {
         $this->email = $email;
+    }
+
+    public function getCampaignId(): ?int
+    {
+        return $this->campaignId;
+    }
+
+    public function setCampaignId(?int $campaignId): void
+    {
+        $this->campaignId = $campaignId;
     }
 
     public function getOrderId(): string

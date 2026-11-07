@@ -23,7 +23,9 @@ class Version_1_5_0 extends AbstractMigration
             return false;
         }
 
-        return !$ordersTable->hasColumn('status') || !$itemsTable->hasColumn('refunded_qty');
+        return !$ordersTable->hasColumn('status')
+            || !$ordersTable->hasColumn('campaign_id')
+            || !$itemsTable->hasColumn('refunded_qty');
     }
 
     protected function up(): void
@@ -42,6 +44,22 @@ class Version_1_5_0 extends AbstractMigration
                 ADD `net_total` DECIMAL(19,4) NOT NULL DEFAULT 0 AFTER `refunded_total`");
             $this->addSql("UPDATE `{$ordersTableName}` SET `net_total` = `order_total`");
             $this->addSql("CREATE INDEX `ecommerce_status` ON `{$ordersTableName}` (`status`)");
+        }
+
+        if (!$ordersTable->hasColumn('campaign_id')) {
+            $this->addSql("ALTER TABLE `{$ordersTableName}` ADD `campaign_id` INT UNSIGNED DEFAULT NULL AFTER `email_id`");
+            $this->addSql("CREATE INDEX `ecommerce_campaign_id` ON `{$ordersTableName}` (`campaign_id`)");
+            // Attribute past orders through the email stats, as new orders are.
+            $prefix = $this->concatPrefix('');
+            $this->addSql("UPDATE `{$ordersTableName}` eo
+                JOIN `{$prefix}email_stats` s ON s.id = (
+                    SELECT s2.id FROM `{$prefix}email_stats` s2
+                    WHERE s2.email_id = eo.email_id AND s2.lead_id = eo.lead_id
+                    ORDER BY s2.date_sent DESC, s2.id DESC LIMIT 1
+                )
+                JOIN `{$prefix}campaign_events` ce ON ce.id = s.source_id
+                SET eo.campaign_id = ce.campaign_id
+                WHERE eo.email_id IS NOT NULL AND eo.lead_id IS NOT NULL AND s.source = 'campaign.event'");
         }
 
         if (!$schema->getTable($itemsTableName)->hasColumn('refunded_qty')) {

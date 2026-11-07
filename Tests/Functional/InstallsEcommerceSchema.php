@@ -22,6 +22,7 @@ trait InstallsEcommerceSchema
                 id INT UNSIGNED AUTO_INCREMENT NOT NULL,
                 lead_id BIGINT UNSIGNED DEFAULT NULL,
                 email_id INT UNSIGNED DEFAULT NULL,
+                campaign_id INT UNSIGNED DEFAULT NULL,
                 order_id VARCHAR(191) NOT NULL,
                 order_total DECIMAL(19,4) NOT NULL,
                 status VARCHAR(32) NOT NULL DEFAULT 'paid',

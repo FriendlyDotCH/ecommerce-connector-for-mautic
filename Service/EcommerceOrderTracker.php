@@ -30,6 +30,7 @@ class EcommerceOrderTracker
         private LeadCommerceFieldUpdater $leadCommerceFieldUpdater,
         private EventDispatcherInterface $dispatcher,
         private OrderManager $orderManager,
+        private CampaignAttributor $campaignAttributor,
     ) {
     }
 
@@ -64,6 +65,7 @@ class EcommerceOrderTracker
         $order->setDateAdded($now);
         $order->setLead($lead);
         $order->setEmail($email);
+        $order->setCampaignId($this->campaignAttributor->resolveCampaignId($email, $lead, $payload->clickthrough));
 
         foreach ($payload->items as $itemPayload) {
             $order->addItem($this->createOrderItem($itemPayload, $lead));

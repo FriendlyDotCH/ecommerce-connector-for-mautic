@@ -42,6 +42,7 @@ class OrderNormalizer
             'date_added'     => self::formatDate($order->getDateAdded()),
             'contact_id'     => $order->getLead()?->getId(),
             'email_id'       => $order->getEmail()?->getId(),
+            'campaign_id'    => $order->getCampaignId(),
             'items'          => $items,
         ];
     }

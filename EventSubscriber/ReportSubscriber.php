@@ -23,6 +23,8 @@ final class ReportSubscriber implements EventSubscriberInterface
 
     public const PREFIX_LEAD  = 'l';
 
+    public const PREFIX_CAMPAIGN = 'ecc';
+
     public static function getSubscribedEvents(): array
     {
         return [
@@ -73,6 +75,10 @@ final class ReportSubscriber implements EventSubscriberInterface
             self::PREFIX_ORDER.'.date_added' => [
                 'label' => 'mautic.plugin.ecommerce.report.date_added',
                 'type'  => 'datetime',
+            ],
+            self::PREFIX_CAMPAIGN.'.name' => [
+                'label' => 'mautic.campaign.campaign',
+                'type'  => 'string',
             ],
             self::PREFIX_EMAIL.'.subject' => [
                 'label' => 'mautic.email.subject',
@@ -155,6 +161,7 @@ final class ReportSubscriber implements EventSubscriberInterface
             $queryBuilder->from(MAUTIC_TABLE_PREFIX.'ecommerce_order_items', self::PREFIX_ITEM)
                 ->innerJoin(self::PREFIX_ITEM, MAUTIC_TABLE_PREFIX.'ecommerce_orders', self::PREFIX_ORDER, self::PREFIX_ORDER.'.id = '.self::PREFIX_ITEM.'.order_id')
                 ->leftJoin(self::PREFIX_ORDER, MAUTIC_TABLE_PREFIX.'emails', self::PREFIX_EMAIL, self::PREFIX_EMAIL.'.id = '.self::PREFIX_ORDER.'.email_id')
+                ->leftJoin(self::PREFIX_ORDER, MAUTIC_TABLE_PREFIX.'campaigns', self::PREFIX_CAMPAIGN, self::PREFIX_CAMPAIGN.'.id = '.self::PREFIX_ORDER.'.campaign_id')
                 ->leftJoin(self::PREFIX_ORDER, MAUTIC_TABLE_PREFIX.'leads', self::PREFIX_LEAD, self::PREFIX_LEAD.'.id = '.self::PREFIX_ORDER.'.lead_id');
 
             return;
@@ -162,6 +169,7 @@ final class ReportSubscriber implements EventSubscriberInterface
 
         $queryBuilder->from(MAUTIC_TABLE_PREFIX.'ecommerce_orders', self::PREFIX_ORDER)
             ->leftJoin(self::PREFIX_ORDER, MAUTIC_TABLE_PREFIX.'emails', self::PREFIX_EMAIL, self::PREFIX_EMAIL.'.id = '.self::PREFIX_ORDER.'.email_id')
+                ->leftJoin(self::PREFIX_ORDER, MAUTIC_TABLE_PREFIX.'campaigns', self::PREFIX_CAMPAIGN, self::PREFIX_CAMPAIGN.'.id = '.self::PREFIX_ORDER.'.campaign_id')
             ->leftJoin(self::PREFIX_ORDER, MAUTIC_TABLE_PREFIX.'leads', self::PREFIX_LEAD, self::PREFIX_LEAD.'.id = '.self::PREFIX_ORDER.'.lead_id');
     }
 }

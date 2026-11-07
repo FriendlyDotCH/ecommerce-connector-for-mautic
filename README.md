@@ -260,6 +260,18 @@ curl -X POST "https://your-mautic-site.com/ecommerce/order" \
   -d "order_currency=USD"
 ```
 
+## Revenue reporting
+
+Orders attributed to an email are also attributed to the campaign that sent it, taken from the email's send record (the click token's tracking hash when present, otherwise the contact's latest send of that email). Revenue keeps its campaign and email IDs if those are later deleted.
+
+Dashboard widgets (**Dashboard → Add widget → Ecommerce**), for the dashboard's date range, by order date and net of refunds:
+
+* **Ecommerce revenue over time**: revenue and number of orders
+* **Ecommerce key figures**: revenue, orders, customers, average order value, repeat purchase rate (customers in the period with more than one order to date), average lifetime value of those customers, and revenue attributed to emails
+* **Ecommerce revenue by campaign** and **Ecommerce revenue by email**: top campaigns and emails by revenue
+
+The **Ecommerce orders** and **Ecommerce order line items** report sources include the campaign name.
+
 ## Campaigns
 
 * **Decision: Places an order.** Runs when the contact places an order. Optional filters: minimum order total, categories, products (ID or name) and order sources, each comma-separated and case-insensitive. An order matches a category or product filter when at least one line item matches. It runs for the order's contact even for webhook and API orders without a browser visit. Orders placed more than a day before they reach Mautic do not trigger it.
@@ -405,6 +417,9 @@ You are solely responsible for how you deploy and use this plugin, including com
 * Added: Lifecycle stage (new, active, VIP, at risk, lapsed) with configurable thresholds.
 * Added: RFM score and its recency, frequency and monetary parts, by quintile.
 * Added: mautic:ecommerce:recalculate, the daily job for timing, lifecycle, RFM and behaviours.
+* Added: Campaign attribution for orders, from the attributed email's send; existing orders are attributed on upgrade.
+* Added: Dashboard widgets: revenue over time, key figures, revenue by campaign, revenue by email.
+* Added: Campaign column in the order and line item reports.
 ```
 
 ### 1.4.0
