@@ -20,6 +20,11 @@ class EcommerceOrderItem
 
     private string $itemName;
 
+    /**
+     * The store's product ID (the parent for variations), for matching the catalog.
+     */
+    private ?string $productId = null;
+
     private int $qty;
 
     private ?string $category = null;
@@ -52,6 +57,7 @@ class EcommerceOrderItem
 
         $builder->addNamedField('itemId', 'string', 'item_id');
         $builder->addNamedField('itemName', 'string', 'item_name');
+        $builder->addNullableField('productId', 'string', 'product_id');
         $builder->addField('qty', 'integer');
         $builder->addNamedField('category', 'string', 'category', true);
         $builder->addField('unitPrice', 'decimal', [
@@ -146,5 +152,15 @@ class EcommerceOrderItem
     public function setRefundedQty(int $refundedQty): void
     {
         $this->refundedQty = min(max($refundedQty, 0), $this->qty ?? 0);
+    }
+
+    public function getProductId(): ?string
+    {
+        return $this->productId;
+    }
+
+    public function setProductId(?string $productId): void
+    {
+        $this->productId = $productId;
     }
 }

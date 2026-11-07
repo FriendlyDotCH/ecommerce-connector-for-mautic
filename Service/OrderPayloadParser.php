@@ -241,7 +241,9 @@ class OrderPayloadParser
                 ? min(max((int) $item['refunded_qty'], 0), $qty)
                 : 0;
 
-            $parsed[] = new OrderItemPayload($itemId, $itemName, $qty, $category, $unitPrice, $refundedQty);
+            $productId = $this->optionalSanitizedString($item['product_id'] ?? null, self::ITEM_ID_MAX);
+
+            $parsed[] = new OrderItemPayload($itemId, $itemName, $qty, $category, $unitPrice, $refundedQty, $productId);
         }
 
         return $parsed;

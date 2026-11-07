@@ -52,6 +52,7 @@ trait InstallsEcommerceSchema
                 order_id INT UNSIGNED NOT NULL,
                 lead_id BIGINT UNSIGNED DEFAULT NULL,
                 item_id VARCHAR(191) NOT NULL,
+                product_id VARCHAR(191) DEFAULT NULL,
                 item_name VARCHAR(191) NOT NULL,
                 qty INT NOT NULL,
                 refunded_qty INT NOT NULL DEFAULT 0,
@@ -119,6 +120,36 @@ trait InstallsEcommerceSchema
                 INDEX ecommerce_event_lead_type_date (lead_id, event_type, occurred_at),
                 INDEX ecommerce_event_type_date (event_type, occurred_at),
                 INDEX ecommerce_event_occurred_at (occurred_at),
+                PRIMARY KEY(id)
+            ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB"
+        );
+
+        $connection->executeStatement("DROP TABLE IF EXISTS {$prefix}ecommerce_products");
+        $connection->executeStatement(
+            "CREATE TABLE {$prefix}ecommerce_products (
+                id INT UNSIGNED AUTO_INCREMENT NOT NULL,
+                store VARCHAR(64) NOT NULL,
+                external_id VARCHAR(191) NOT NULL,
+                sku VARCHAR(191) DEFAULT NULL,
+                name VARCHAR(191) NOT NULL,
+                url LONGTEXT DEFAULT NULL,
+                image_url LONGTEXT DEFAULT NULL,
+                price DECIMAL(19,4) DEFAULT NULL,
+                regular_price DECIMAL(19,4) DEFAULT NULL,
+                sale_price DECIMAL(19,4) DEFAULT NULL,
+                currency VARCHAR(3) DEFAULT NULL,
+                category VARCHAR(191) DEFAULT NULL,
+                categories JSON DEFAULT NULL,
+                variation_ids JSON DEFAULT NULL,
+                stock_status VARCHAR(32) DEFAULT NULL,
+                stock_quantity INT DEFAULT NULL,
+                status VARCHAR(32) DEFAULT NULL,
+                date_modified DATETIME DEFAULT NULL,
+                date_added DATETIME NOT NULL,
+                date_updated DATETIME NOT NULL,
+                UNIQUE INDEX ecommerce_product_store_external (store, external_id),
+                INDEX ecommerce_product_sku (sku),
+                INDEX ecommerce_product_category (category),
                 PRIMARY KEY(id)
             ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB"
         );

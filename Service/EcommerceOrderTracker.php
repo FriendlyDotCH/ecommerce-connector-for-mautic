@@ -14,6 +14,7 @@ use MauticPlugin\EcommerceConnectorBundle\DTO\OrderPayload;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrder;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderItem;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
+use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceProductRepository;
 use MauticPlugin\EcommerceConnectorBundle\EcommerceEvents;
 use MauticPlugin\EcommerceConnectorBundle\Event\EcommerceOrderEvent;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
@@ -32,6 +33,7 @@ class EcommerceOrderTracker
         private OrderManager $orderManager,
         private CampaignAttributor $campaignAttributor,
         private ExchangeRateProvider $exchangeRateProvider,
+        private EcommerceProductRepository $productRepository,
     ) {
     }
 
@@ -70,7 +72,7 @@ class EcommerceOrderTracker
         $order->setCampaignId($this->campaignAttributor->resolveCampaignId($email, $lead, $payload->clickthrough));
 
         foreach ($payload->items as $itemPayload) {
-            $order->addItem($this->createOrderItem($itemPayload, $lead));
+            $order->addItem($this->createOrderItem($itemPayload, $lead, $payload->orderSource));
         }
 
         try {
@@ -114,15 +116,17 @@ class EcommerceOrderTracker
         $this->logger->warning('Ecommerce order ignored: an order with this order_id and order_source already exists.', $context);
     }
 
-    private function createOrderItem(OrderItemPayload $itemPayload, ?Lead $lead): EcommerceOrderItem
+    private function createOrderItem(OrderItemPayload $itemPayload, ?Lead $lead, string $orderSource): EcommerceOrderItem
     {
         $item = new EcommerceOrderItem();
         $item->setItemId($itemPayload->itemId);
         $item->setItemName($itemPayload->itemName);
         $item->setQty($itemPayload->qty);
-        $item->setCategory($itemPayload->category);
+        // Lines sent without a category take their product's category from the catalog.
+        $item->setCategory($itemPayload->category ?? $this->productRepository->findCategoryForLine(strtolower($orderSource), $itemPayload->productId, $itemPayload->itemId));
         $item->setUnitPrice($itemPayload->unitPrice);
         $item->setRefundedQty($itemPayload->refundedQty);
+        $item->setProductId($itemPayload->productId);
         $item->setLead($lead);
 
         return $item;

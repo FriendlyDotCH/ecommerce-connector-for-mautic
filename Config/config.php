@@ -3,7 +3,7 @@
 return [
     'name'        => 'Ecommerce Connector',
     'description' => 'Track eCommerce orders from your store and attribute revenue to Mautic emails. Configure the webhook secret and endpoint under Plugins > Ecommerce Connector.',
-    'version'     => '1.6.0',
+    'version'     => '1.7.0',
     'author'      => 'Dog Byte Marketing',
     'routes'      => [
         'main' => [
@@ -79,10 +79,17 @@ return [
                 'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\PublicController::ecommerceAction',
                 'method'     => 'POST',
             ],
+            'mautic_ecommerce_platform_webhook' => [
+                'path'         => '/ecommerce/webhook/{platform}',
+                'controller'   => 'MauticPlugin\EcommerceConnectorBundle\Controller\PublicController::platformWebhookAction',
+                'method'       => 'POST',
+                'requirements' => ['platform' => '[a-z0-9_-]+'],
+            ],
             'mautic_ecommerce_woocommerce' => [
                 'path'       => '/ecommerce/woocommerce',
-                'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\PublicController::woocommerceAction',
+                'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\PublicController::platformWebhookAction',
                 'method'     => 'POST',
+                'defaults'   => ['platform' => 'woocommerce'],
             ],
             'mautic_ecommerce_event' => [
                 'path'       => '/ecommerce/event',

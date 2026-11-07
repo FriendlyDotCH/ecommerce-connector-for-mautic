@@ -11,6 +11,7 @@ use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldDefinition;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldInstaller;
 use MauticPlugin\EcommerceConnectorBundle\Tests\Functional\ConfiguresEcommerceIntegration;
 use MauticPlugin\EcommerceConnectorBundle\Tests\Functional\InstallsEcommerceSchema;
+use MauticPlugin\EcommerceConnectorBundle\Tests\Unit\Platform\WooCommercePlatformTest;
 use MauticPlugin\EcommerceConnectorBundle\Tests\Unit\Service\WooCommerceOrderMapperTest;
 use PHPUnit\Framework\Assert;
 use Symfony\Component\HttpFoundation\Request;
@@ -83,6 +84,38 @@ class WooCommerceWebhookFunctionalTest extends MauticMysqlTestCase
         Assert::assertSame(0.0, $this->lifetimeValue());
     }
 
+    public function testProductsFillCategoriesOnOrderLines(): void
+    {
+        // The order arrives before the catalog knows its products: no categories.
+        $order = WooCommerceOrderMapperTest::order();
+        $this->deliverOrder($order, 'order.updated');
+        Assert::assertSame([null, null], $this->lineCategories());
+
+        // The variable diffuser arrives; its variation 164 is on the order.
+        $product = WooCommercePlatformTest::fixture('woocommerce-product-variable.json');
+        $this->deliver(json_encode($product, JSON_THROW_ON_ERROR), 'product.updated', 'application/json');
+        // The candle, matched by product ID.
+        $candle = ['id' => 155, 'name' => 'Lavender Candle 200g', 'type' => 'simple', 'permalink' => 'https://shop.example/product/lavender/', 'sku' => 'CND-LAV-200', 'categories' => [['id' => 30, 'name' => 'Candles', 'slug' => 'candles']]];
+        $this->deliver(json_encode($candle, JSON_THROW_ON_ERROR), 'product.created', 'application/json');
+
+        Assert::assertSame(['Candles', 'Diffusers'], $this->lineCategories());
+
+        // New orders take categories straight from the catalog; via the generic URL too.
+        $order['number'] = '4722';
+        $this->deliverOrder($order, 'order.updated', '/ecommerce/webhook/woocommerce');
+        Assert::assertSame(2, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM '.MAUTIC_TABLE_PREFIX."ecommerce_order_items WHERE category = 'Candles'"));
+
+        // Deleting a product removes it from the catalog.
+        $this->deliver('{"id":155}', 'product.deleted', 'application/json');
+        Assert::assertSame(['160'], $this->connection->fetchFirstColumn('SELECT external_id FROM '.MAUTIC_TABLE_PREFIX.'ecommerce_products'));
+    }
+
+    public function testUnknownPlatformIsNotFound(): void
+    {
+        $this->client->request(Request::METHOD_POST, '/ecommerce/webhook/prestashop', [], [], ['CONTENT_TYPE' => 'application/json'], '{}');
+        Assert::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+    }
+
     public function testWrongSignatureIsIgnored(): void
     {
         $order = WooCommerceOrderMapperTest::order();
@@ -101,17 +134,17 @@ class WooCommerceWebhookFunctionalTest extends MauticMysqlTestCase
     /**
      * @param array<string, mixed> $order
      */
-    private function deliverOrder(array $order, string $topic): void
+    private function deliverOrder(array $order, string $topic, string $uri = '/ecommerce/woocommerce'): void
     {
-        $this->deliver(json_encode($order, JSON_THROW_ON_ERROR), $topic, 'application/json');
+        $this->deliver(json_encode($order, JSON_THROW_ON_ERROR), $topic, 'application/json', $uri);
     }
 
     /**
      * Signed and labelled as WooCommerce does.
      */
-    private function deliver(string $body, string $topic, string $contentType): void
+    private function deliver(string $body, string $topic, string $contentType, string $uri = '/ecommerce/woocommerce'): void
     {
-        $this->client->request(Request::METHOD_POST, '/ecommerce/woocommerce', [], [], [
+        $this->client->request(Request::METHOD_POST, $uri, [], [], [
             'CONTENT_TYPE'                => $contentType,
             'HTTP_USER_AGENT'             => 'WooCommerce/9.4.2 Hookshot (WordPress/6.7)',
             'HTTP_X_WC_WEBHOOK_SOURCE'    => 'https://shop.example/',
@@ -119,6 +152,16 @@ class WooCommerceWebhookFunctionalTest extends MauticMysqlTestCase
             'HTTP_X_WC_WEBHOOK_ID'        => '17',
             'HTTP_X_WC_WEBHOOK_SIGNATURE' => base64_encode(hash_hmac('sha256', $body, self::WEBHOOK_SECRET, true)),
         ], $body);
+    }
+
+    /**
+     * @return list<?string> categories of order 4721's lines, by item name
+     */
+    private function lineCategories(): array
+    {
+        return $this->connection->fetchFirstColumn(
+            'SELECT ei.category FROM '.MAUTIC_TABLE_PREFIX.'ecommerce_order_items ei JOIN '.MAUTIC_TABLE_PREFIX."ecommerce_orders eo ON eo.id = ei.order_id WHERE eo.order_id = '4721' ORDER BY ei.item_name"
+        );
     }
 
     private function find(): ?EcommerceOrder

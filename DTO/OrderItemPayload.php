@@ -13,6 +13,7 @@ final readonly class OrderItemPayload
         public ?string $category = null,
         public ?string $unitPrice = null,
         public int $refundedQty = 0,
+        public ?string $productId = null,
     ) {
     }
 }

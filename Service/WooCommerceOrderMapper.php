@@ -56,6 +56,7 @@ final class WooCommerceOrderMapper
                 // SKU is stable across shops and imports; fall back to the product (or variation) ID.
                 'item_id'    => '' !== $sku ? $sku : (string) (($line['variation_id'] ?? 0) ?: ($line['product_id'] ?? $line['id'] ?? '')),
                 'item_name'  => (string) $line['name'],
+                'product_id' => isset($line['product_id']) && (int) $line['product_id'] > 0 ? (string) $line['product_id'] : null,
                 'qty'        => $qty,
                 // Unit price before discounts and tax, as WooCommerce reports it.
                 'unit_price' => isset($line['price']) && is_numeric($line['price'])

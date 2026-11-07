@@ -1,0 +1,51 @@
+<?php
+
+declare(strict_types=1);
+
+namespace MauticPlugin\EcommerceConnectorBundle\Service;
+
+use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceProductRepository;
+
+/**
+ * Keeps the catalog in sync and gives order lines without a category the category of their
+ * product, also for orders recorded before the product arrived.
+ */
+class CatalogSync
+{
+    public function __construct(
+        private EcommerceProductRepository $productRepository,
+        private CommerceRecalculator $commerceRecalculator,
+    ) {
+    }
+
+    /**
+     * @param array<string, mixed> $product mapped product
+     * @param bool                 $recalculate false during bulk imports, which recalculate once at the end
+     *
+     * @return list<int> contacts whose order lines gained a category
+     */
+    public function upsert(string $store, array $product, bool $recalculate = true): array
+    {
+        $this->productRepository->upsertProduct($store, $product);
+        $leadIds = $this->productRepository->fillMissingCategories($store, (string) $product['external_id']);
+
+        // Behaviours and purchase history by category change for these contacts.
+        if ($recalculate) {
+            foreach ($leadIds as $leadId) {
+                $this->commerceRecalculator->recalculateForLead($leadId);
+            }
+        }
+
+        return $leadIds;
+    }
+
+    public function delete(string $store, string $externalId): void
+    {
+        $this->productRepository->deleteByExternalId($store, $externalId);
+    }
+
+    public function categoryForLine(string $store, ?string $productId, string $itemId): ?string
+    {
+        return $this->productRepository->findCategoryForLine($store, $productId, $itemId);
+    }
+}

@@ -1,0 +1,26 @@
+{
+  "id": 160,
+  "name": "Reed Diffuser",
+  "slug": "reed-diffuser",
+  "permalink": "https://shop.example/product/reed-diffuser/",
+  "date_modified_gmt": "2026-11-02T09:14:51",
+  "type": "variable",
+  "status": "publish",
+  "sku": "DIF-REED",
+  "price": "12990",
+  "regular_price": "",
+  "sale_price": "",
+  "on_sale": false,
+  "manage_stock": false,
+  "stock_quantity": null,
+  "stock_status": "instock",
+  "categories": [
+    {"id": 1, "name": "Uncategorized", "slug": "uncategorized"},
+    {"id": 31, "name": "Diffusers", "slug": "diffusers"},
+    {"id": 35, "name": "Gifts", "slug": "gifts"}
+  ],
+  "tags": [],
+  "images": [{"id": 302, "src": "https://shop.example/wp-content/uploads/diffuser.jpg", "name": "diffuser", "alt": ""}],
+  "variations": [164, 165, 166],
+  "_links": {"self": [{"href": "https://shop.example/wp-json/wc/v3/products/160"}]}
+}

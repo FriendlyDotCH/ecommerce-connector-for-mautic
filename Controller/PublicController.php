@@ -8,6 +8,9 @@ use Mautic\CoreBundle\Controller\CommonController;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrder;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
+use MauticPlugin\EcommerceConnectorBundle\Platform\PlatformRegistry;
+use MauticPlugin\EcommerceConnectorBundle\Platform\StorePlatformInterface;
+use MauticPlugin\EcommerceConnectorBundle\Service\CatalogSync;
 use MauticPlugin\EcommerceConnectorBundle\Service\EcommerceOrderTracker;
 use MauticPlugin\EcommerceConnectorBundle\Service\ExistingContactLookup;
 use MauticPlugin\EcommerceConnectorBundle\Service\OrderManager;
@@ -16,8 +19,6 @@ use MauticPlugin\EcommerceConnectorBundle\Service\StorefrontEventParser;
 use MauticPlugin\EcommerceConnectorBundle\Service\StorefrontEventRecorder;
 use MauticPlugin\EcommerceConnectorBundle\Service\WebhookRequestBody;
 use MauticPlugin\EcommerceConnectorBundle\Service\WebhookSignatureValidator;
-use MauticPlugin\EcommerceConnectorBundle\Service\WooCommerceOrderMapper;
-use MauticPlugin\EcommerceConnectorBundle\Service\WooCommerceSignatureValidator;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -90,54 +91,79 @@ class PublicController extends CommonController
     }
 
     /**
-     * Native WooCommerce order webhooks (WooCommerce > Settings > Advanced > Webhooks, topics
-     * Order created / updated / restored), signed with the same webhook secret.
+     * Native shop platform webhooks: /ecommerce/webhook/{platform} (and /ecommerce/woocommerce),
+     * signed with the plugin's webhook secret. Orders, refunds, cancellations and products.
      */
-    public function woocommerceAction(
+    public function platformWebhookAction(
         Request $request,
+        string $platform,
+        PlatformRegistry $platformRegistry,
         ExistingContactLookup $existingContactLookup,
         EcommerceOrderTracker $orderTracker,
         EcommerceOrderRepository $orderRepository,
         OrderManager $orderManager,
         OrderPayloadParser $payloadParser,
-        WooCommerceSignatureValidator $signatureValidator,
+        CatalogSync $catalogSync,
         Config $config,
         LoggerInterface $logger,
     ): Response {
+        $adapter = $platformRegistry->getPlatform($platform);
+        if (null === $adapter) {
+            return new Response('', Response::HTTP_NOT_FOUND);
+        }
+
+        $name = $adapter->getName();
         if (!$config->isPublished() || null === ($secret = $config->getWebhookSecret())) {
-            $logger->warning('WooCommerce webhook rejected: the integration is not published or has no webhook secret.');
+            $logger->warning(sprintf('%s webhook rejected: the integration is not published or has no webhook secret.', $name));
 
             return new Response('', Response::HTTP_NO_CONTENT);
         }
 
-        if (!$signatureValidator->isValid($request, $secret)) {
-            $logger->warning('WooCommerce webhook rejected: missing or invalid X-WC-Webhook-Signature. Use the plugin\'s webhook secret as the webhook secret in WooCommerce.', [
-                'topic' => (string) $request->headers->get('X-WC-Webhook-Topic', ''),
-            ]);
+        if (!$adapter->isSignatureValid($request, $secret)) {
+            $logger->warning(sprintf('%s webhook rejected: missing or invalid signature. Use the plugin\'s webhook secret as the webhook secret in the shop.', $name));
 
             return new Response('', Response::HTTP_NO_CONTENT);
         }
 
-        $body = json_decode($request->getContent(), true);
+        $body     = json_decode($request->getContent(), true);
+        $body     = is_array($body) ? $body : null;
+        $resource = $adapter->getResource($request, $body);
 
-        // WooCommerce pings a new webhook with "webhook_id=…"; answering 2xx activates it.
-        if (!is_array($body)) {
+        if (null === $body || null === $resource || StorePlatformInterface::RESOURCE_PING === $resource) {
             return new Response('', Response::HTTP_NO_CONTENT);
         }
 
-        $input = WooCommerceOrderMapper::map($body);
+        if (StorePlatformInterface::RESOURCE_PRODUCT === $resource) {
+            $product = $adapter->mapProduct($body);
+            if (null !== $product) {
+                $catalogSync->upsert($name, $product);
+            }
+
+            return new Response('', Response::HTTP_NO_CONTENT);
+        }
+
+        if (StorePlatformInterface::RESOURCE_PRODUCT_DELETE === $resource) {
+            $productId = $adapter->getDeletedProductId($body);
+            if (null !== $productId) {
+                $catalogSync->delete($name, $productId);
+            }
+
+            return new Response('', Response::HTTP_NO_CONTENT);
+        }
+
+        $input = $adapter->mapOrder($body);
         if (null === $input) {
-            $logger->notice('WooCommerce order skipped: not paid yet or not an order.', ['order' => $body['id'] ?? null, 'status' => $body['status'] ?? null]);
+            $logger->notice(sprintf('%s order skipped: not paid yet or not an order.', $name), ['order' => $body['id'] ?? null, 'status' => $body['status'] ?? null]);
 
             return new Response('', Response::HTTP_NO_CONTENT);
         }
 
-        $payload = $payloadParser->parse($input, 'woocommerce');
+        $payload = $payloadParser->parse($input, $name);
         if (null === $payload) {
             return new Response('', Response::HTTP_NO_CONTENT);
         }
 
-        // order.updated arrives on every change; only status and refunds matter for known orders.
+        // Updates arrive on every change; only status and refunds matter for known orders.
         $existing = $orderRepository->findOneBy(['orderId' => $payload->orderId, 'orderSource' => $payload->orderSource]);
         if ($existing instanceof EcommerceOrder) {
             $orderManager->applyRefunds($existing, $payload);
@@ -145,7 +171,7 @@ class PublicController extends CommonController
             return new Response('', Response::HTTP_NO_CONTENT);
         }
 
-        $orderTracker->recordOrder($payload, $existingContactLookup->findByEmail($input['email']));
+        $orderTracker->recordOrder($payload, $existingContactLookup->findByEmail($input['email'] ?? null));
 
         return new Response('', Response::HTTP_NO_CONTENT);
     }

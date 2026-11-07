@@ -61,6 +61,7 @@ class OrderManager
             $item->setCategory($itemPayload->category);
             $item->setUnitPrice($itemPayload->unitPrice);
             $item->setRefundedQty($itemPayload->refundedQty);
+            $item->setProductId($itemPayload->productId);
             $item->setLead($lead);
             $order->addItem($item);
         }
