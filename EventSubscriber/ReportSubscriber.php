@@ -13,6 +13,10 @@ final class ReportSubscriber implements EventSubscriberInterface
 {
     public const CONTEXT_ECOMMERCE_ORDERS = 'ecommerce_orders';
 
+    public const CONTEXT_ECOMMERCE_ORDER_ITEMS = 'ecommerce_order_items';
+
+    public const PREFIX_ITEM = 'ei';
+
     public const PREFIX_ORDER = 'eo';
 
     public const PREFIX_EMAIL = 'e';
@@ -29,7 +33,7 @@ final class ReportSubscriber implements EventSubscriberInterface
 
     public function onReportBuilder(ReportBuilderEvent $event): void
     {
-        if (!$event->checkContext([self::CONTEXT_ECOMMERCE_ORDERS])) {
+        if (!$event->checkContext([self::CONTEXT_ECOMMERCE_ORDERS, self::CONTEXT_ECOMMERCE_ORDER_ITEMS])) {
             return;
         }
 
@@ -68,24 +72,77 @@ final class ReportSubscriber implements EventSubscriberInterface
             ],
         ];
 
-        $event->addTable(
-            self::CONTEXT_ECOMMERCE_ORDERS,
-            [
-                'display_name' => 'mautic.plugin.ecommerce.report.table',
-                'columns'      => $columns,
-                'filters'      => $columns,
-            ],
-            'ecommerce'
-        );
+        if ($event->checkContext(self::CONTEXT_ECOMMERCE_ORDERS)) {
+            $event->addTable(
+                self::CONTEXT_ECOMMERCE_ORDERS,
+                [
+                    'display_name' => 'mautic.plugin.ecommerce.report.table',
+                    'columns'      => $columns,
+                    'filters'      => $columns,
+                ],
+                'ecommerce'
+            );
+        }
+
+        if ($event->checkContext(self::CONTEXT_ECOMMERCE_ORDER_ITEMS)) {
+            // One row per line item, with its order's columns alongside.
+            $itemColumns = [
+                self::PREFIX_ITEM.'.item_id' => [
+                    'label' => 'mautic.plugin.ecommerce.tab.item_id',
+                    'type'  => 'string',
+                ],
+                self::PREFIX_ITEM.'.item_name' => [
+                    'label' => 'mautic.plugin.ecommerce.tab.item_name',
+                    'type'  => 'string',
+                ],
+                self::PREFIX_ITEM.'.category' => [
+                    'label' => 'mautic.plugin.ecommerce.tab.item_category',
+                    'type'  => 'string',
+                ],
+                self::PREFIX_ITEM.'.qty' => [
+                    'label' => 'mautic.plugin.ecommerce.tab.item_qty',
+                    'type'  => 'int',
+                ],
+                self::PREFIX_ITEM.'.unit_price' => [
+                    'label' => 'mautic.plugin.ecommerce.tab.item_unit_price',
+                    'type'  => 'float',
+                ],
+                'line_total' => [
+                    'label'   => 'mautic.plugin.ecommerce.report.line_total',
+                    'type'    => 'float',
+                    'formula' => self::PREFIX_ITEM.'.qty * '.self::PREFIX_ITEM.'.unit_price',
+                ],
+            ] + $columns;
+
+            $event->addTable(
+                self::CONTEXT_ECOMMERCE_ORDER_ITEMS,
+                [
+                    'display_name' => 'mautic.plugin.ecommerce.report.items_table',
+                    'columns'      => $itemColumns,
+                    'filters'      => $itemColumns,
+                ],
+                'ecommerce'
+            );
+        }
     }
 
     public function onReportGenerate(ReportGeneratorEvent $event): void
     {
-        if (!$event->checkContext([self::CONTEXT_ECOMMERCE_ORDERS])) {
+        if (!$event->checkContext([self::CONTEXT_ECOMMERCE_ORDERS, self::CONTEXT_ECOMMERCE_ORDER_ITEMS])) {
             return;
         }
 
         $queryBuilder = $event->getQueryBuilder();
+
+        if ($event->checkContext(self::CONTEXT_ECOMMERCE_ORDER_ITEMS)) {
+            $queryBuilder->from(MAUTIC_TABLE_PREFIX.'ecommerce_order_items', self::PREFIX_ITEM)
+                ->innerJoin(self::PREFIX_ITEM, MAUTIC_TABLE_PREFIX.'ecommerce_orders', self::PREFIX_ORDER, self::PREFIX_ORDER.'.id = '.self::PREFIX_ITEM.'.order_id')
+                ->leftJoin(self::PREFIX_ORDER, MAUTIC_TABLE_PREFIX.'emails', self::PREFIX_EMAIL, self::PREFIX_EMAIL.'.id = '.self::PREFIX_ORDER.'.email_id')
+                ->leftJoin(self::PREFIX_ORDER, MAUTIC_TABLE_PREFIX.'leads', self::PREFIX_LEAD, self::PREFIX_LEAD.'.id = '.self::PREFIX_ORDER.'.lead_id');
+
+            return;
+        }
+
         $queryBuilder->from(MAUTIC_TABLE_PREFIX.'ecommerce_orders', self::PREFIX_ORDER)
             ->leftJoin(self::PREFIX_ORDER, MAUTIC_TABLE_PREFIX.'emails', self::PREFIX_EMAIL, self::PREFIX_EMAIL.'.id = '.self::PREFIX_ORDER.'.email_id')
             ->leftJoin(self::PREFIX_ORDER, MAUTIC_TABLE_PREFIX.'leads', self::PREFIX_LEAD, self::PREFIX_LEAD.'.id = '.self::PREFIX_ORDER.'.lead_id');
