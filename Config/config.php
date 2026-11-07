@@ -3,7 +3,7 @@
 return [
     'name'        => 'Ecommerce Connector',
     'description' => 'Track eCommerce orders from your store and attribute revenue to Mautic emails. Configure the webhook secret and endpoint under Plugins > Ecommerce Connector.',
-    'version'     => '1.5.0',
+    'version'     => '1.6.0',
     'author'      => 'Dog Byte Marketing',
     'routes'      => [
         'main' => [
@@ -55,6 +55,17 @@ return [
                 'method'       => 'DELETE',
                 'requirements' => ['id' => '\d+'],
             ],
+            'mautic_api_ecommerce_event_new' => [
+                'path'       => '/ecommerce/events/new',
+                'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\Api\EventApiController::newAction',
+                'method'     => 'POST',
+            ],
+            'mautic_api_ecommerce_contact_events' => [
+                'path'         => '/contacts/{id}/ecommerce/events',
+                'controller'   => 'MauticPlugin\EcommerceConnectorBundle\Controller\Api\EventApiController::contactEventsAction',
+                'method'       => 'GET',
+                'requirements' => ['id' => '\d+'],
+            ],
             'mautic_api_ecommerce_contact_orders' => [
                 'path'         => '/contacts/{id}/ecommerce/orders',
                 'controller'   => 'MauticPlugin\EcommerceConnectorBundle\Controller\Api\OrderApiController::contactOrdersAction',
@@ -66,6 +77,11 @@ return [
             'mautic_ecommerce_track' => [
                 'path'       => '/ecommerce/order',
                 'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\PublicController::ecommerceAction',
+                'method'     => 'POST',
+            ],
+            'mautic_ecommerce_event' => [
+                'path'       => '/ecommerce/event',
+                'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\PublicController::eventAction',
                 'method'     => 'POST',
             ],
             'mautic_ecommerce_track_legacy' => [

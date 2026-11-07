@@ -357,6 +357,37 @@ Under Mautic's API (`/api`, Basic Auth or OAuth, API enabled in the configuratio
 
 Edits and deletes update the commerce fields and behaviours of the contacts involved.
 
+## Storefront events
+
+Viewed product, added to cart and started checkout, for **identified contacts only**. Switch on **Record storefront events** in the plugin settings first, and only when your store collects tracking consent. Events of unknown or anonymous visitors are ignored; contacts are never created. Events older than **Keep events for (days)** (default 90) are deleted by `mautic:maintenance:cleanup`, and all of a contact's events are deleted with the contact.
+
+Send them signed, like orders, to `POST /ecommerce/event`: one event, or `{"events": [...]}` with up to 100.
+
+| Field | Description |
+|-------|-------------|
+| `event` | `viewed_product`, `added_to_cart` or `started_checkout` (also accepted: `product_viewed`, `view_item`, `add_to_cart`, `cart_updated`, `checkout_started`, `begin_checkout`, `initiate_checkout`) |
+| `email` | An existing contact's email |
+| `occurred_at` | Optional; ISO 8601 or Unix timestamp, default now |
+| `source` | Optional, default `web` |
+| `product` | For viewed_product: `id`, `name`, `category`, `price`, `url`, `image_url` (or flat `product_id`, `product_name`, ...) |
+| `cart` | For cart and checkout events: `id`, `total`, `currency`, `url` (a link that restores the cart), and `items` with `item_id`, `name`, `qty`, `price`, `category`, `url`, `image_url` |
+| `currency` | Optional 3-letter code |
+
+```json
+{"event":"added_to_cart","email":"jane@example.com","cart":{"id":"c-81","url":"https://shop.example/cart?restore=c-81","currency":"HUF","items":[{"item_id":"CND-LAV-200","name":"Lavender Candle 200g","qty":2,"price":"5990","url":"https://shop.example/p/lavender","image_url":"https://shop.example/img/lavender.jpg"}]}}
+```
+
+The same events can come from `POST /api/ecommerce/events/new` (with `contact_id` or `email`; `events` for a batch), or from `mtc.js` on store pages when page hit tracking is on and the visitor is an identified contact. Browser events are skipped when the browser sends Do Not Track or Global Privacy Control:
+
+```js
+mt('send', 'pageview', {
+  ecommerce_event: 'viewed_product',
+  product: JSON.stringify({id: 'CND-LAV-200', name: 'Lavender Candle 200g', category: 'Candles', price: '5990', url: location.href})
+});
+```
+
+`GET /api/contacts/{id}/ecommerce/events` lists a contact's events.
+
 ## Page hit tracking
 
 When **Track orders from page hits** is enabled, orders can be recorded from Mautic tracking requests on a thank-you page:
@@ -425,6 +456,14 @@ This software is provided **as is**, without warranty of any kind, express or im
 You are solely responsible for how you deploy and use this plugin, including compliance with applicable laws and data protection obligations.
 
 ## Changelog
+
+### 1.6.0
+```
+* Added: Storefront events (viewed product, added to cart, started checkout) for identified contacts, switched off by default.
+* Added: Signed POST /ecommerce/event webhook, POST /api/ecommerce/events/new and mtc.js pageview events.
+* Added: GET /api/contacts/{id}/ecommerce/events.
+* Added: Event retention (default 90 days) through mautic:maintenance:cleanup; events are deleted with the contact and moved on merge.
+```
 
 ### 1.5.0
 ```

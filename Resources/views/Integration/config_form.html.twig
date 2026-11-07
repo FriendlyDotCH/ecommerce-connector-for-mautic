@@ -181,6 +181,13 @@
                 {%- if form.featureSettings.max_order_total is defined -%}
                     {{- form_row(form.featureSettings.max_order_total) -}}
                 {%- endif -%}
+                {%- if form.featureSettings.enable_storefront_events is defined -%}
+                    <h4 class="mt-lg mb-sm">{{ 'mautic.plugin.ecommerce.storefront.header'|trans }}</h4>
+                    <p class="text-secondary">{{ 'mautic.plugin.ecommerce.storefront.help'|trans }}</p>
+                    {%- for key in ['enable_storefront_events', 'event_retention_days', 'cart_abandon_minutes', 'browse_abandon_minutes'] -%}
+                        {{- form_row(attribute(form.featureSettings, key)) -}}
+                    {%- endfor -%}
+                {%- endif -%}
                 {%- if form.featureSettings.lifecycle_lapsed_days is defined -%}
                     <h4 class="mt-lg mb-sm">{{ 'mautic.plugin.ecommerce.lifecycle.header'|trans }}</h4>
                     <p class="text-secondary">{{ 'mautic.plugin.ecommerce.lifecycle.help'|trans }}</p>

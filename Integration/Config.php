@@ -25,6 +25,14 @@ class Config
         'lifecycle_vip_min_orders'     => 5,
     ];
 
+    public const DEFAULT_EVENT_RETENTION_DAYS = 90;
+
+    /**
+     * Minutes after the last cart, checkout or product view event before it counts as abandoned.
+     */
+    public const DEFAULT_CART_ABANDON_MINUTES   = 60;
+    public const DEFAULT_BROWSE_ABANDON_MINUTES = 120;
+
     public const ON_CONTACT_DELETE_DELETE    = 'delete';
     public const ON_CONTACT_DELETE_ANONYMIZE = 'anonymize';
 
@@ -179,6 +187,37 @@ class Config
         }
 
         return $values;
+    }
+
+    /**
+     * Storefront events are off until switched on: they need tracking consent on the store.
+     */
+    public function isStorefrontEventsEnabled(): bool
+    {
+        return $this->getFeatureSetting('enable_storefront_events', false);
+    }
+
+    public function getEventRetentionDays(): int
+    {
+        return $this->getPositiveInt('event_retention_days', self::DEFAULT_EVENT_RETENTION_DAYS);
+    }
+
+    public function getCartAbandonMinutes(): int
+    {
+        return $this->getPositiveInt('cart_abandon_minutes', self::DEFAULT_CART_ABANDON_MINUTES);
+    }
+
+    public function getBrowseAbandonMinutes(): int
+    {
+        return $this->getPositiveInt('browse_abandon_minutes', self::DEFAULT_BROWSE_ABANDON_MINUTES);
+    }
+
+    private function getPositiveInt(string $key, int $default): int
+    {
+        $integration = $this->getIntegrationObject();
+        $value       = null !== $integration ? ($integration->getIntegrationSettings()->getFeatureSettings()[$key] ?? null) : null;
+
+        return is_numeric($value) && (int) $value > 0 ? (int) $value : $default;
     }
 
     private function getFeatureSetting(string $key, bool $default): bool

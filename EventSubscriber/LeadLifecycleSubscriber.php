@@ -7,6 +7,7 @@ namespace MauticPlugin\EcommerceConnectorBundle\EventSubscriber;
 use Mautic\LeadBundle\Event\LeadEvent;
 use Mautic\LeadBundle\Event\LeadMergeEvent;
 use Mautic\LeadBundle\LeadEvents;
+use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceEventRepository;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldUpdater;
@@ -18,6 +19,7 @@ final class LeadLifecycleSubscriber implements EventSubscriberInterface
         private EcommerceOrderRepository $orderRepository,
         private LeadCommerceFieldUpdater $leadCommerceFieldUpdater,
         private Config $config,
+        private EcommerceEventRepository $eventRepository,
     ) {
     }
 
@@ -36,6 +38,9 @@ final class LeadLifecycleSubscriber implements EventSubscriberInterface
             return;
         }
 
+        // Storefront events are always deleted with the contact; they are browsing history.
+        $this->eventRepository->deleteByLeadId($leadId);
+
         if (Config::ON_CONTACT_DELETE_ANONYMIZE === $this->config->getOnContactDelete()) {
             $this->orderRepository->anonymizeByLeadId($leadId);
 
@@ -52,6 +57,7 @@ final class LeadLifecycleSubscriber implements EventSubscriberInterface
         $victorId = (int) $victor->getId();
 
         $this->orderRepository->updateLead($loserId, $victorId);
+        $this->eventRepository->updateLead($loserId, $victorId);
         $this->leadCommerceFieldUpdater->syncForLead($victor);
     }
 }

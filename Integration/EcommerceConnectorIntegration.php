@@ -183,6 +183,35 @@ class EcommerceConnectorIntegration extends AbstractIntegration
             ]
         );
 
+        // Storefront events.
+        $builder->add(
+            'enable_storefront_events',
+            YesNoButtonGroupType::class,
+            [
+                'label' => 'mautic.plugin.ecommerce.enable_storefront_events',
+                'data'  => isset($data['enable_storefront_events']) && (bool) $data['enable_storefront_events'],
+                'attr'  => ['tooltip' => 'mautic.plugin.ecommerce.enable_storefront_events.tooltip'],
+            ]
+        );
+
+        foreach ([
+            'event_retention_days'   => Config::DEFAULT_EVENT_RETENTION_DAYS,
+            'cart_abandon_minutes'   => Config::DEFAULT_CART_ABANDON_MINUTES,
+            'browse_abandon_minutes' => Config::DEFAULT_BROWSE_ABANDON_MINUTES,
+        ] as $key => $default) {
+            $builder->add(
+                $key,
+                NumberType::class,
+                [
+                    'label'    => 'mautic.plugin.ecommerce.'.$key,
+                    'required' => false,
+                    'scale'    => 0,
+                    'data'     => isset($data[$key]) && is_numeric($data[$key]) ? (int) $data[$key] : $default,
+                    'attr'     => ['tooltip' => 'mautic.plugin.ecommerce.'.$key.'.tooltip'],
+                ]
+            );
+        }
+
         // Lifecycle stage thresholds.
         foreach (Config::LIFECYCLE_DEFAULTS as $key => $default) {
             $builder->add(

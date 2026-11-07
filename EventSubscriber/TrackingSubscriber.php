@@ -13,6 +13,8 @@ use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use MauticPlugin\EcommerceConnectorBundle\Service\EcommerceOrderTracker;
 use MauticPlugin\EcommerceConnectorBundle\Service\ExistingContactLookup;
 use MauticPlugin\EcommerceConnectorBundle\Service\OrderPayloadParser;
+use MauticPlugin\EcommerceConnectorBundle\Service\StorefrontEventParser;
+use MauticPlugin\EcommerceConnectorBundle\Service\StorefrontEventRecorder;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -26,6 +28,8 @@ class TrackingSubscriber implements EventSubscriberInterface
     ];
 
     public function __construct(
+        private StorefrontEventParser $eventParser,
+        private StorefrontEventRecorder $eventRecorder,
         private EcommerceOrderTracker $orderTracker,
         private OrderPayloadParser $payloadParser,
         private Config $config,
@@ -61,6 +65,8 @@ class TrackingSubscriber implements EventSubscriberInterface
         $request = $event->getRequest();
         $hit     = $event->getHit();
         $lead    = $hit->getLead();
+
+        $this->recordStorefrontEvent($request instanceof Request ? $request : null, $hit->getQuery() ?? [], $this->usableLead($lead));
 
         $this->recordFromInput(
             $this->extractInput($request instanceof Request ? $request : null, $hit->getQuery() ?? []),
@@ -98,6 +104,10 @@ class TrackingSubscriber implements EventSubscriberInterface
      */
     private function recordFromInput(array $input, ?Lead $lead, ?Email $email = null): void
     {
+        if (!empty($input['ecommerce_event'])) {
+            return;
+        }
+
         if (!$this->config->isPublished() || !$this->config->isPageHitTrackingEnabled()) {
             return;
         }
@@ -112,6 +122,37 @@ class TrackingSubscriber implements EventSubscriberInterface
         }
 
         $this->orderTracker->recordOrder($payload, $lead, $email);
+    }
+
+    /**
+     * Storefront events from mtc.js, e.g. mt('send', 'pageview', {ecommerce_event: 'viewed_product', ...}).
+     * Only here, not on the other tracking hooks, so a pageview records one event. Respects
+     * Do Not Track and Global Privacy Control.
+     *
+     * @param array<string, mixed> $hitQuery
+     */
+    private function recordStorefrontEvent(?Request $request, array $hitQuery, ?Lead $lead): void
+    {
+        $input = $this->extractInput($request, $hitQuery);
+        if (empty($input['ecommerce_event']) || !$this->config->isPublished() || !$this->config->isPageHitTrackingEnabled()) {
+            return;
+        }
+
+        if (null !== $request && ('1' === $request->headers->get('DNT') || '1' === $request->headers->get('Sec-GPC'))) {
+            return;
+        }
+
+        // Product and cart details arrive as JSON strings from mtc.js.
+        foreach (['product', 'cart'] as $key) {
+            if (isset($input[$key]) && is_string($input[$key])) {
+                $input[$key] = json_decode($input[$key], true);
+            }
+        }
+
+        $payload = $this->eventParser->parse($input, 'page_hit');
+        if (null !== $payload) {
+            $this->eventRecorder->record($payload, $lead);
+        }
     }
 
     private function usableLead(?Lead $lead): ?Lead
