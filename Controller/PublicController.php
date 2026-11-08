@@ -21,6 +21,7 @@ use MauticPlugin\EcommerceConnectorBundle\Service\StorefrontEventRecorder;
 use MauticPlugin\EcommerceConnectorBundle\Service\WebhookRequestBody;
 use MauticPlugin\EcommerceConnectorBundle\Service\WebhookSignatureValidator;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -85,8 +86,11 @@ class PublicController extends CommonController
 
             $payload = $eventParser->parse($eventInput, 'webhook');
             if (null !== $payload) {
-                // Existing contacts only; never created from events.
-                $eventRecorder->record($payload, $existingContactLookup->findByEmail($eventInput['email'] ?? $input['email'] ?? null));
+                // Existing contacts only; never created from events. Without an email, a guest who
+                // arrived from a Mautic email is identified by that send's tracking hash.
+                $contact = $existingContactLookup->findByEmail($eventInput['email'] ?? $input['email'] ?? null)
+                    ?? $existingContactLookup->findByEmailStat(ExistingContactLookup::emailStatFrom($eventInput) ?? ExistingContactLookup::emailStatFrom($input));
+                $eventRecorder->record($payload, $contact);
             }
         }
 
@@ -234,6 +238,35 @@ class PublicController extends CommonController
         $orderTracker->recordOrder($payload, $existingContactLookup->findByEmail($input['email'] ?? null));
 
         return new Response('', Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * Connection test for store connectors. A correctly signed request gets 200 with the plugin's
+     * state; everything else gets 204 like every other endpoint, so nothing is revealed without the secret.
+     */
+    public function pingAction(
+        Request $request,
+        WebhookSignatureValidator $signatureValidator,
+        Config $config,
+        LoggerInterface $logger,
+    ): Response {
+        $rejected = $this->rejectUnlessSigned($request, $config, $signatureValidator, $logger);
+        if (null !== $rejected) {
+            return $rejected;
+        }
+
+        return new JsonResponse([
+            'ok'                => true,
+            'version'           => self::pluginVersion(),
+            'storefront_events' => $config->isStorefrontEventsEnabled(),
+        ]);
+    }
+
+    private static function pluginVersion(): string
+    {
+        $config = require \dirname(__DIR__).'/Config/config.php';
+
+        return (string) ($config['version'] ?? '');
     }
 
     /**

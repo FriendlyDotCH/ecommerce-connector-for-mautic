@@ -19,7 +19,7 @@ class ExistingContactLookupTest extends TestCase
     protected function setUp(): void
     {
         $this->leadModel = $this->createMock(LeadModel::class);
-        $this->lookup    = new ExistingContactLookup($this->leadModel);
+        $this->lookup    = new ExistingContactLookup($this->leadModel, $this->createMock(\Doctrine\DBAL\Connection::class));
     }
 
     public function testReturnsNullForEmptyEmail(): void

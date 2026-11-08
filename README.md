@@ -237,6 +237,10 @@ $signature = hash_hmac('sha256', http_build_query($params), 'YOUR_WEBHOOK_SECRET
 
 Send the result in the `X-Mautic-Ecommerce-Signature` header.
 
+### Testing the connection
+
+Store connectors can check URL and secret with a signed `POST /ecommerce/ping` (any JSON body, for example `{"ping":true}`). A correct signature gets `200` with `{"ok":true,"version":"1.7.0","storefront_events":false}`. A wrong or missing signature, an unset secret or an unpublished plugin get `204` like every other endpoint, with the reason in Mautic's log.
+
 ### Example (JSON)
 
 ```bash
@@ -416,6 +420,7 @@ Send them signed, like orders, to `POST /ecommerce/event`: one event, or `{"even
 |-------|-------------|
 | `event` | `viewed_product`, `added_to_cart` or `started_checkout` (also accepted: `product_viewed`, `view_item`, `add_to_cart`, `cart_updated`, `checkout_started`, `begin_checkout`, `initiate_checkout`) |
 | `email` | An existing contact's email |
+| `stat` or `ct` | Instead of `email`, for guests who arrived from a Mautic email: the `ct` parameter of the email link as received (or just its `stat` tracking hash). The contact is the email's recipient; the contact ID inside `ct` is never used, as it can be changed. |
 | `occurred_at` | Optional; ISO 8601 or Unix timestamp, default now |
 | `source` | Optional, default `web` |
 | `product` | For viewed_product: `id`, `name`, `category`, `price`, `url`, `image_url` (or flat `product_id`, `product_name`, ...) |
@@ -537,6 +542,9 @@ You are solely responsible for how you deploy and use this plugin, including com
 * Added: Order lines store the product ID and take missing categories from the catalog, also for earlier orders.
 * Added: POST /ecommerce/webhook/{platform} for native shop webhooks; /ecommerce/woocommerce kept.
 * Added: Money format locale setting; whole-number currencies (HUF, JPY, …) without decimals.
+* Added: Signed POST /ecommerce/ping for connection tests.
+* Added: Storefront events identify guests from a Mautic email by the link's tracking hash (`ct` or `stat`).
+* Changed: Supports Mautic 7.2; a failing campaign run is logged and no longer fails the webhook.
 ```
 
 ### 1.6.0

@@ -46,7 +46,7 @@ class TrackingSubscriberStorefrontTest extends TestCase
             $this->orderTracker,
             $this->createMock(OrderPayloadParser::class),
             $config,
-            new ExistingContactLookup($this->createMock(LeadModel::class)),
+            new ExistingContactLookup($this->createMock(LeadModel::class), $this->createMock(\Doctrine\DBAL\Connection::class)),
         );
     }
 

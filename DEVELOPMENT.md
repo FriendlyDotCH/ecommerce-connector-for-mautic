@@ -87,7 +87,7 @@ rm -rf ../../var/cache/test   # the test container is not rebuilt automatically 
 ../../vendor/bin/phpunit -c ../plugins/EcommerceConnectorBundle/phpunit.xml.dist --testsuite Unit
 ```
 
-Run the whole suite before every deploy. 173 tests passed on `feature/1.7.0` against Mautic 7.2.2 (8 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
+Run the whole suite before every deploy. 175 tests passed on `feature/1.7.0` against Mautic 7.2.2 (8 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
 
 ## Mautic 7.2 compatibility
 

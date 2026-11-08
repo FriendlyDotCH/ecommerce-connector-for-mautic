@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace MauticPlugin\EcommerceConnectorBundle\Tests\Functional\Controller;
 
+use Mautic\CoreBundle\Helper\ClickthroughHelper;
 use Mautic\CoreBundle\Test\MauticMysqlTestCase;
+use Mautic\EmailBundle\Entity\Stat;
 use Mautic\LeadBundle\Entity\Lead;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceEvent;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceEventRepository;
@@ -52,6 +54,56 @@ class StorefrontEventFunctionalTest extends MauticMysqlTestCase
         // Unsigned: ignored.
         $this->client->request(Request::METHOD_POST, '/ecommerce/event', [], [], ['CONTENT_TYPE' => 'application/json'], '{"event":"viewed_product","email":"shopper@example.com","product_id":"X"}');
         Assert::assertCount(2, $this->eventTypes());
+    }
+
+    public function testGuestFromAMauticEmailIsIdentifiedByTheSendsTrackingHash(): void
+    {
+        $other = new Lead();
+        $other->setEmail('other@example.com');
+        static::getContainer()->get('mautic.lead.model.lead')->saveEntity($other);
+
+        $stat = new Stat();
+        $stat->setLead($this->em->getReference(Lead::class, $this->shopper->getId()));
+        $stat->setEmailAddress('shopper@example.com');
+        $stat->setTrackingHash('6aef89be59f70782047236');
+        $stat->setDateSent(new \DateTime());
+        $this->em->persist($stat);
+        $this->em->flush();
+
+        // As Mautic encodes it in email links. The "lead" in it names another contact and must be ignored.
+        $ct = ClickthroughHelper::encodeArrayForUrl(['source' => ['email', 1], 'email' => 1, 'stat' => '6aef89be59f70782047236', 'lead' => $other->getId()]);
+
+        $this->postSignedEvent(['event' => 'viewed_product', 'ct' => $ct, 'product' => ['id' => 'CND-1', 'name' => 'Candle']]);
+        $this->postSignedEvent(['event' => 'viewed_product', 'stat' => '6aef89be59f70782047236', 'product' => ['id' => 'CND-2', 'name' => 'Soap']]);
+        // Unknown hash, and a forged "ct" without a real hash: nobody.
+        $this->postSignedEvent(['event' => 'viewed_product', 'stat' => 'ffffffffffffffffffffff', 'product' => ['id' => 'CND-3']]);
+        $this->postSignedEvent(['event' => 'viewed_product', 'ct' => ClickthroughHelper::encodeArrayForUrl(['lead' => $other->getId()]), 'product' => ['id' => 'CND-4']]);
+
+        $rows = $this->connection->fetchAllKeyValue('SELECT product_id, lead_id FROM '.MAUTIC_TABLE_PREFIX.'ecommerce_events ORDER BY product_id');
+        Assert::assertSame(['CND-1' => (string) $this->shopper->getId(), 'CND-2' => (string) $this->shopper->getId()], array_map('strval', $rows));
+    }
+
+    public function testPingAnswersOnlyCorrectlySignedRequests(): void
+    {
+        $body = '{"ping":true}';
+        $this->client->request(Request::METHOD_POST, '/ecommerce/ping', [], [], [
+            'CONTENT_TYPE'                      => 'application/json',
+            'HTTP_X_MAUTIC_ECOMMERCE_SIGNATURE' => hash_hmac('sha256', $body, self::WEBHOOK_SECRET),
+        ], $body);
+
+        Assert::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $answer = json_decode((string) $this->client->getResponse()->getContent(), true);
+        Assert::assertTrue($answer['ok']);
+        Assert::assertTrue($answer['storefront_events']);
+        Assert::assertMatchesRegularExpression('/^\d+\.\d+\.\d+$/', $answer['version']);
+
+        $this->client->request(Request::METHOD_POST, '/ecommerce/ping', [], [], [
+            'CONTENT_TYPE'                      => 'application/json',
+            'HTTP_X_MAUTIC_ECOMMERCE_SIGNATURE' => hash_hmac('sha256', $body, 'wrong secret'),
+        ], $body);
+
+        Assert::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        Assert::assertSame('', (string) $this->client->getResponse()->getContent());
     }
 
     public function testNothingIsRecordedWhileSwitchedOff(): void

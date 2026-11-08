@@ -101,6 +101,11 @@ return [
                 'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\PublicController::eventAction',
                 'method'     => 'POST',
             ],
+            'mautic_ecommerce_ping' => [
+                'path'       => '/ecommerce/ping',
+                'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\PublicController::pingAction',
+                'method'     => 'POST',
+            ],
             'mautic_ecommerce_track_legacy' => [
                 'path'       => '/mtc/ecommerce',
                 'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\PublicController::ecommerceAction',
