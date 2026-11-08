@@ -58,6 +58,20 @@ class EcommerceProductRepository extends CommonRepository
         );
     }
 
+    /**
+     * The product as stored now, detached: upsertProduct() writes with SQL, so a managed entity
+     * would keep showing the old state for the rest of the request.
+     */
+    public function findStoredState(string $store, string $externalId): ?EcommerceProduct
+    {
+        $product = $this->findOneByExternalId($store, $externalId);
+        if (null !== $product) {
+            $this->getEntityManager()->detach($product);
+        }
+
+        return $product;
+    }
+
     public function findOneByExternalId(string $store, string $externalId): ?EcommerceProduct
     {
         return $this->findOneBy(['store' => $store, 'externalId' => $externalId]);

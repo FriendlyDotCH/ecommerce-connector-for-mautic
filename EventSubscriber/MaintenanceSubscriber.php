@@ -8,6 +8,7 @@ use Mautic\CoreBundle\CoreEvents;
 use Mautic\CoreBundle\Event\MaintenanceEvent;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceEventRepository;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
+use MauticPlugin\EcommerceConnectorBundle\Service\ProductAlertStore;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -21,6 +22,7 @@ final class MaintenanceSubscriber implements EventSubscriberInterface
         private EcommerceEventRepository $eventRepository,
         private Config $config,
         private TranslatorInterface $translator,
+        private ProductAlertStore $alertStore,
     ) {
     }
 
@@ -39,6 +41,12 @@ final class MaintenanceSubscriber implements EventSubscriberInterface
         $event->setStat(
             $this->translator->trans('mautic.plugin.ecommerce.maintenance.events'),
             $this->eventRepository->deleteOlderThan($before, $event->isDryRun())
+        );
+
+        // Alerts only matter for "once per product" and the alert tokens; keep them as long as events.
+        $event->setStat(
+            $this->translator->trans('mautic.plugin.ecommerce.maintenance.product_alerts'),
+            $this->alertStore->deleteOlderThan($before, $event->isDryRun())
         );
     }
 }

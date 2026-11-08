@@ -15,6 +15,7 @@ class CatalogSync
     public function __construct(
         private EcommerceProductRepository $productRepository,
         private CommerceRecalculator $commerceRecalculator,
+        private ProductAlertStore $alertStore,
     ) {
     }
 
@@ -26,7 +27,14 @@ class CatalogSync
      */
     public function upsert(string $store, array $product, bool $recalculate = true): array
     {
+        // Back in stock, price drop, stock going down: queued for the product alerts command.
+        $changes = ProductChangeDetector::detect($this->productRepository->findStoredState($store, (string) $product['external_id']), $product);
+
         $this->productRepository->upsertProduct($store, $product);
+
+        if ([] !== $changes) {
+            $this->alertStore->queueChanges($store, (string) $product['external_id'], $changes);
+        }
         $leadIds = $this->productRepository->fillMissingCategories($store, (string) $product['external_id']);
 
         // Behaviours and purchase history by category change for these contacts.

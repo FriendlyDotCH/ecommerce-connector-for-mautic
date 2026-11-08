@@ -11,6 +11,7 @@ use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceEventRepository;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldUpdater;
+use MauticPlugin\EcommerceConnectorBundle\Service\ProductAlertStore;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 final class LeadLifecycleSubscriber implements EventSubscriberInterface
@@ -20,6 +21,7 @@ final class LeadLifecycleSubscriber implements EventSubscriberInterface
         private LeadCommerceFieldUpdater $leadCommerceFieldUpdater,
         private Config $config,
         private EcommerceEventRepository $eventRepository,
+        private ProductAlertStore $alertStore,
     ) {
     }
 
@@ -40,6 +42,7 @@ final class LeadLifecycleSubscriber implements EventSubscriberInterface
 
         // Storefront events are always deleted with the contact; they are browsing history.
         $this->eventRepository->deleteByLeadId($leadId);
+        $this->alertStore->deleteAlertsForLead($leadId);
 
         if (Config::ON_CONTACT_DELETE_ANONYMIZE === $this->config->getOnContactDelete()) {
             $this->orderRepository->anonymizeByLeadId($leadId);
@@ -58,6 +61,7 @@ final class LeadLifecycleSubscriber implements EventSubscriberInterface
 
         $this->orderRepository->updateLead($loserId, $victorId);
         $this->eventRepository->updateLead($loserId, $victorId);
+        $this->alertStore->moveAlerts($loserId, $victorId);
         $this->leadCommerceFieldUpdater->syncForLead($victor);
     }
 }

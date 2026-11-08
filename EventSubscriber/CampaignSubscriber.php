@@ -21,6 +21,7 @@ use MauticPlugin\EcommerceConnectorBundle\Form\Type\NoOrderWithinConditionType;
 use MauticPlugin\EcommerceConnectorBundle\Form\Type\OrderPlacedDecisionType;
 use MauticPlugin\EcommerceConnectorBundle\Form\Type\PurchaseHistoryConditionType;
 use MauticPlugin\EcommerceConnectorBundle\Form\Type\StorefrontDecisionType;
+use MauticPlugin\EcommerceConnectorBundle\Service\CampaignDecisionRunner;
 use MauticPlugin\EcommerceConnectorBundle\Service\PurchaseHistoryQuery;
 use MauticPlugin\EcommerceConnectorBundle\Service\StorefrontEventMatcher;
 use Psr\Log\LoggerInterface;
@@ -64,6 +65,8 @@ final class CampaignSubscriber implements EventSubscriberInterface
      */
     public const MAX_TRIGGER_AGE = '-1 day';
 
+    private CampaignDecisionRunner $decisionRunner;
+
     public function __construct(
         private RealTimeExecutioner $realTimeExecutioner,
         private ContactTracker $contactTracker,
@@ -71,6 +74,7 @@ final class CampaignSubscriber implements EventSubscriberInterface
         private LoggerInterface $logger,
         private EcommerceOrderRepository $orderRepository,
     ) {
+        $this->decisionRunner = new CampaignDecisionRunner($realTimeExecutioner, $contactTracker, $logger);
     }
 
     public static function getSubscribedEvents(): array
@@ -194,39 +198,9 @@ final class CampaignSubscriber implements EventSubscriberInterface
         return $event->setResult(!$this->orderRepository->hasCountedOrderSince((int) $event->getLead()->getId(), $since));
     }
 
-    /**
-     * Webhook, API and cron triggers have no tracked visitor; run the decision for the contact.
-     *
-     * The order or event is already stored when this runs, so a failing campaign must not fail the
-     * request: the shop would retry, the retry is ignored as a duplicate and the campaign never runs.
-     * The failure is logged with enough context to find the contact and the order or event.
-     *
-     * @return bool false when the campaign run failed
-     */
     private function runDecision(string $decision, Lead $lead, object $passthrough, ?int $channelId): bool
     {
-        if (!$lead->getId()) {
-            return true;
-        }
-
-        $this->contactTracker->setSystemContact($lead);
-
-        try {
-            $this->realTimeExecutioner->execute($decision, $passthrough, 'ecommerce', $channelId);
-        } catch (\Throwable $exception) {
-            $this->logger->error('Ecommerce campaign decision could not be run: '.$exception->getMessage(), [
-                'decision'   => $decision,
-                'contact_id' => $lead->getId(),
-                'channel_id' => $channelId,
-                'exception'  => $exception,
-            ]);
-
-            return false;
-        } finally {
-            $this->contactTracker->setSystemContact(null);
-        }
-
-        return true;
+        return $this->decisionRunner->run($decision, $lead, $passthrough, $channelId);
     }
 
     public function onOrderPlacedDecision(CampaignExecutionEvent $event): ?CampaignExecutionEvent

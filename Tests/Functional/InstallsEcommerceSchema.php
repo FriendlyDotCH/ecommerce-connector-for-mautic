@@ -154,6 +154,40 @@ trait InstallsEcommerceSchema
             ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB"
         );
 
+        $connection->executeStatement("DROP TABLE IF EXISTS {$prefix}ecommerce_product_changes");
+        $connection->executeStatement(
+            "CREATE TABLE {$prefix}ecommerce_product_changes (
+                id INT UNSIGNED AUTO_INCREMENT NOT NULL,
+                store VARCHAR(64) NOT NULL,
+                external_id VARCHAR(191) NOT NULL,
+                change_type VARCHAR(32) NOT NULL,
+                old_value DECIMAL(19,4) DEFAULT NULL,
+                new_value DECIMAL(19,4) DEFAULT NULL,
+                detected_at DATETIME NOT NULL,
+                processed_at DATETIME DEFAULT NULL,
+                INDEX ecommerce_product_change_pending (processed_at, detected_at),
+                PRIMARY KEY(id)
+            ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB"
+        );
+
+        $connection->executeStatement("DROP TABLE IF EXISTS {$prefix}ecommerce_product_alerts");
+        $connection->executeStatement(
+            "CREATE TABLE {$prefix}ecommerce_product_alerts (
+                id INT UNSIGNED AUTO_INCREMENT NOT NULL,
+                lead_id BIGINT UNSIGNED NOT NULL,
+                change_id INT UNSIGNED DEFAULT NULL,
+                store VARCHAR(64) NOT NULL,
+                external_id VARCHAR(191) NOT NULL,
+                alert_type VARCHAR(32) NOT NULL,
+                old_value DECIMAL(19,4) DEFAULT NULL,
+                new_value DECIMAL(19,4) DEFAULT NULL,
+                alerted_at DATETIME NOT NULL,
+                INDEX ecommerce_product_alert_lead (lead_id, alerted_at),
+                INDEX ecommerce_product_alert_repeat (lead_id, store, external_id, alert_type, alerted_at),
+                PRIMARY KEY(id)
+            ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB"
+        );
+
         $connection->executeStatement('SET FOREIGN_KEY_CHECKS=1');
     }
 }
