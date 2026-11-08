@@ -610,6 +610,11 @@ You are solely responsible for how you deploy and use this plugin, including com
 
 ## Changelog
 
+### 1.8.2
+```
+* Changed: The order list on the contact's eCommerce tab shows each order's item count; click it to see the products and the order details link.
+```
+
 ### 1.8.1
 ```
 * Added: Cross-sell category and Cross-sell because of fields from category co-purchase data, recalculated daily and after orders.

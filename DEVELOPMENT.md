@@ -18,7 +18,7 @@ The branches are stacked; each builds on the previous one. All are pushed to `or
 | `feature/1.4.0` | 1.4.0 | Baseline from the gap analysis: order date, unit price, Places an order / Purchase history, behaviours, orders API, line items report, anonymize on delete, fixes |
 | `feature/1.5.0` | 1.5.0 | Phase 1: G1 to G5 |
 | `feature/1.6.0` | 1.6.0 | Phase 2: G6, G7, native WooCommerce order webhooks |
-| `feature/1.8.0` | 1.8.1 | Unique coupons (G13), cross-sell groups (G12) |
+| `feature/1.8.0` | 1.8.2 | Unique coupons (G13), cross-sell groups (G12), order items on the contact tab |
 | `feature/1.7.0` | 1.7.1 | Phase 3: product catalog and catalog page, platform adapters, signed product endpoint, product alerts (G10), product blocks and tokens (G11) |
 
 Work continues on `feature/1.8.0` (branched from `feature/1.7.0`), which runs on Mautic 7.2.2 (see "Mautic 7.2 compatibility" below).
@@ -92,7 +92,7 @@ rm -rf ../../var/cache/test   # the test container is not rebuilt automatically 
 ../../vendor/bin/phpunit -c ../plugins/EcommerceConnectorBundle/phpunit.xml.dist --testsuite Unit
 ```
 
-Run the whole suite before every deploy. 212 tests passed on `feature/1.8.0` against Mautic 7.2.2 (8 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
+Run the whole suite before every deploy. 213 tests passed on `feature/1.8.0` against Mautic 7.2.2 (8 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
 
 ## Mautic 7.2 compatibility
 

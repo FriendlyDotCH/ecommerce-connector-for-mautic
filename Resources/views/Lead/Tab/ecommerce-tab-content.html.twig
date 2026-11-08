@@ -126,6 +126,10 @@
                         'class': 'visible-md visible-lg',
                     }) }}
                     {{ include('@MauticCore/Helper/tableheader.html.twig', {
+                        'text': 'mautic.plugin.ecommerce.tab.line_items',
+                        'class': 'visible-md visible-lg',
+                    }) }}
+                    {{ include('@MauticCore/Helper/tableheader.html.twig', {
                         'text': 'mautic.plugin.ecommerce.tab.order_total',
                         'class': 'visible-md visible-lg',
                     }) }}
@@ -150,7 +154,7 @@
                     {% if lastDate != eventDate %}
                         {% set dateLabel = dateToText(order.dateAdded, 'local', 'Y-m-d H:i:s') %}
                         <tr class="timeline-date-header">
-                            <td colspan="6" class="text-center">
+                            <td colspan="7" class="text-center">
                                 <span size="md" class="label label-warm-gray" style="font-weight: normal; font-size:13px;">
                                     <i class="ri-time-line"></i>{{ dateLabel }}
                                 </span>
@@ -167,6 +171,27 @@
                             <span class="fa ri-fw ri-shopping-cart-2-line"></span>
                         </td>
                         <td class="visible-md visible-lg">{{ order.orderId|purify }}</td>
+                        <td class="visible-md visible-lg">
+                            {# Collapsed to an item count; clicking it shows the first three items here
+                               (stopPropagation keeps the row from opening the order modal). #}
+                            {% if order.items is empty %}
+                                <span class="text-secondary">&mdash;</span>
+                            {% else %}
+                                <a href="#" class="ecommerce-order-items-toggle" onclick="event.preventDefault(); event.stopPropagation(); mQuery(this).next().toggleClass('hide');">
+                                    {{ 'mautic.plugin.ecommerce.tab.item_count'|trans({'%count%': order.items|length}) }}
+                                    <i class="ri-arrow-down-s-line"></i>
+                                </a>
+                                <div class="ecommerce-order-items hide">
+                                    {% for item in order.items|slice(0, 3) %}
+                                        <div>{{ item.qty }} &times; {{ item.itemName|purify }}</div>
+                                    {% endfor %}
+                                    {% if order.items|length > 3 %}
+                                        <div class="text-secondary">+{{ order.items|length - 3 }}</div>
+                                    {% endif %}
+                                    <a href="#" class="small" data-toggle="modal" data-target="#ecommerce-order-modal-{{ order.id }}">{{ 'mautic.plugin.ecommerce.tab.view_order'|trans }}</a>
+                                </div>
+                            {% endif %}
+                        </td>
                         <td class="visible-md visible-lg">
                             {{ order.orderTotalFormatted|purify }}
                             {{ include('@EcommerceConnector/Lead/_order_status.html.twig', {'order': order}) }}
