@@ -18,6 +18,8 @@ class ProductPayloadParser
 
     private const STOCK_STATUSES = ['instock', 'outofstock', 'onbackorder'];
 
+    private ?string $lastError = null;
+
     public function __construct(
         private Config $config,
         private LoggerInterface $logger,
@@ -31,6 +33,8 @@ class ProductPayloadParser
      */
     public function parse(array $input, string $context = 'request'): ?array
     {
+        $this->lastError = null;
+
         $store = $this->store($input['store'] ?? null);
         if (null === $store) {
             return $this->reject($context, 'store must match the order_source the store uses for orders, and be allowed.');
@@ -75,6 +79,14 @@ class ProductPayloadParser
                 'date_modified'  => $this->date($input['updated_at'] ?? null),
             ],
         ];
+    }
+
+    /**
+     * Why the last parse() returned null.
+     */
+    public function getLastError(): ?string
+    {
+        return $this->lastError;
     }
 
     /**
@@ -143,6 +155,7 @@ class ProductPayloadParser
 
     private function reject(string $context, string $reason): null
     {
+        $this->lastError = $reason;
         $this->logger->warning(sprintf('Ecommerce product rejected (%s): %s', $context, $reason));
 
         return null;

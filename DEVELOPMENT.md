@@ -19,9 +19,10 @@ The branches are stacked; each builds on the previous one. All are pushed to `or
 | `feature/1.5.0` | 1.5.0 | Phase 1: G1 to G5 |
 | `feature/1.6.0` | 1.6.0 | Phase 2: G6, G7, native WooCommerce order webhooks |
 | `feature/1.8.0` | 1.8.4 | Unique coupons (G13), cross-sell groups (G12), order items and shopping activity on the contact, combined product alerts |
+| `feature/1.9.0` | 1.9.0 | G8/G9: catalog REST API |
 | `feature/1.7.0` | 1.7.1 | Phase 3: product catalog and catalog page, platform adapters, signed product endpoint, product alerts (G10), product blocks and tokens (G11) |
 
-Work continues on `feature/1.8.0` (branched from `feature/1.7.0`), which runs on Mautic 7.2.2 (see "Mautic 7.2 compatibility" below).
+Work continues on `feature/1.9.0` (branched from `feature/1.8.0`, itself from `feature/1.7.0`), which runs on Mautic 7.2.2 (see "Mautic 7.2 compatibility" below).
 
 ### Roadmap status
 
@@ -35,7 +36,7 @@ Work continues on `feature/1.8.0` (branched from `feature/1.7.0`), which runs on
 | G6 Storefront events | Done (1.6.0) | Webhook, API, mtc.js; identified contacts only; off by default |
 | G7 Abandonment | Done (1.6.0) | Six decisions, No order within, cart tokens, detector command |
 | G8 WooCommerce connector | Mostly | Native WooCommerce webhooks (no store plugin), and the store plugin 0.3.0 (see Next steps). |
-| G9 Product catalog | Partly (1.7.0) | Catalog table, WooCommerce and Shopify product webhooks, signed `/ecommerce/product`, categories filled in on order lines. Catalog page (Components → Shop catalog) done in 1.7.1. Not done: catalog API, Magento. |
+| G9 Product catalog | Partly (1.7.0) | Catalog table, WooCommerce and Shopify product webhooks, signed `/ecommerce/product`, categories filled in on order lines. Catalog page (Components → Shop catalog) done in 1.7.1. Catalog REST API (`ProductApiController`, batch logic shared with `/ecommerce/product` in `ProductBatchImporter`) done in 1.9.0. Not done: Magento. |
 | G10 Stock and price triggers | Done (1.7.1) | Back in stock, price drop, low inventory decisions; changes detected on product upsert (`ProductChangeDetector`), queued in `ecommerce_product_changes`, fired by `mautic:ecommerce:product-alerts`; audience per decision (viewed / carted / bought within N days); once per contact, product and alert in 7 days (`ecommerce_product_alerts`) |
 | G11 Product content in emails | Done (1.7.1) | `{ecommerce_products source=recommended\|best_sellers\|viewed\|last_purchased}` written into the content before link tracking, so links are tracked; alert product tokens. Recommended = best sellers in the contact's categories not bought yet (no co-purchase model; that is G12) |
 | G13 Unique coupons | Done (1.8.0) | Issue coupon action (batch, `PendingEvent`; never passes without a coupon: shop down = retry in 15 min, refusal = retry hourly; Mautic retries without limit), code made in Mautic, created by the connector's signed `/wp-json/mautic-ecommerce/v1/coupon` (opt-in, timestamped); `ecommerce_coupons`; redeemed from the order's `coupons`; Coupon used condition; tokens. Not done: Shopify (needs an app) |
@@ -93,7 +94,7 @@ rm -rf ../../var/cache/test   # the test container is not rebuilt automatically 
 ../../vendor/bin/phpunit -c ../plugins/EcommerceConnectorBundle/phpunit.xml.dist --testsuite Unit
 ```
 
-Run the whole suite before every deploy. 220 tests passed on `feature/1.8.0` against Mautic 7.2.2 (8 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
+Run the whole suite before every deploy. 222 tests passed on `feature/1.9.0` against Mautic 7.2.2 (8 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
 
 ## Mautic 7.2 compatibility
 

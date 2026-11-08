@@ -372,8 +372,12 @@ Under Mautic's API (`/api`, Basic Auth or OAuth, API enabled in the configuratio
 | `PATCH` / `PUT` | `/api/ecommerce/orders/{id}/edit` | Change total, currency, location, order date, attributed email, contact (`contact_id` or `email`) and items. `PATCH` keeps fields you do not send; `PUT` replaces them. Order ID and source cannot change. Does not trigger campaigns. |
 | `DELETE` | `/api/ecommerce/orders/{id}/delete` | Delete an order |
 | `GET` | `/api/contacts/{id}/ecommerce/orders` | Orders of one contact (same query parameters for paging) |
+| `GET` | `/api/ecommerce/products` | List catalog products, by ID. Query: `store`, `category` (main or any category, exact name), `stock_status`, `sku`, `external_id` (the shop's product ID), `search` (name, SKU or category), `since` (date; changed in Mautic since then, sorted by that change, for incremental exports), `start`, `limit` (max 200). Returns `total` and `products`. Reading the catalog needs only "view own", like the catalog page. |
+| `GET` | `/api/ecommerce/products/{id}` | One product, by Mautic's ID |
+| `POST` | `/api/ecommerce/products/batch` | Create or update products by `store` + shop product ID, and delete products: the same body as `POST /ecommerce/product` (see [Product catalog](#product-catalog)), up to 250 products and deletions. Returns `products` (as saved), `deleted` (with `existed`) and `errors` (`index` in `products`, or `deleted.N`, and `message`); `400` when nothing could be applied. Changes fire product alerts like a store update. |
+| `DELETE` | `/api/ecommerce/products/{id}/delete` | Delete a product |
 
-Edits and deletes update the commerce fields and behaviours of the contacts involved.
+Edits and deletes update the commerce fields and behaviours of the contacts involved. Products come back with the fields below, plus `id` (Mautic's), `external_id` (the shop's), `updated_at` (the shop's last change), `date_added` and `date_updated` (in Mautic).
 
 ## Product catalog
 
@@ -622,6 +626,12 @@ This software is provided **as is**, without warranty of any kind, express or im
 You are solely responsible for how you deploy and use this plugin, including compliance with applicable laws and data protection obligations.
 
 ## Changelog
+
+### 1.9.0
+```
+* Added: Catalog REST API: GET /api/ecommerce/products (filters, paging, changes since a date), GET /api/ecommerce/products/{id}, POST /api/ecommerce/products/batch (upsert and delete, with per-product errors), DELETE /api/ecommerce/products/{id}/delete.
+* Changed: POST /ecommerce/product logs why a product or deletion in a batch was refused.
+```
 
 ### 1.8.4
 ```

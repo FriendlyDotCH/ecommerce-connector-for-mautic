@@ -3,7 +3,7 @@
 return [
     'name'        => 'Ecommerce Connector',
     'description' => 'Track eCommerce orders from your store and attribute revenue to Mautic emails. Configure the webhook secret and endpoint under Plugins > Ecommerce Connector.',
-    'version'     => '1.8.4',
+    'version'     => '1.9.0',
     'author'      => 'Dog Byte Marketing',
     'routes'      => [
         'main' => [
@@ -59,6 +59,28 @@ return [
             'mautic_api_ecommerce_order_delete' => [
                 'path'         => '/ecommerce/orders/{id}/delete',
                 'controller'   => 'MauticPlugin\EcommerceConnectorBundle\Controller\Api\OrderApiController::deleteAction',
+                'method'       => 'DELETE',
+                'requirements' => ['id' => '\d+'],
+            ],
+            'mautic_api_ecommerce_products' => [
+                'path'       => '/ecommerce/products',
+                'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\Api\ProductApiController::listAction',
+                'method'     => 'GET',
+            ],
+            'mautic_api_ecommerce_products_batch' => [
+                'path'       => '/ecommerce/products/batch',
+                'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\Api\ProductApiController::batchAction',
+                'method'     => 'POST',
+            ],
+            'mautic_api_ecommerce_product' => [
+                'path'         => '/ecommerce/products/{id}',
+                'controller'   => 'MauticPlugin\EcommerceConnectorBundle\Controller\Api\ProductApiController::getAction',
+                'method'       => 'GET',
+                'requirements' => ['id' => '\d+'],
+            ],
+            'mautic_api_ecommerce_product_delete' => [
+                'path'         => '/ecommerce/products/{id}/delete',
+                'controller'   => 'MauticPlugin\EcommerceConnectorBundle\Controller\Api\ProductApiController::deleteAction',
                 'method'       => 'DELETE',
                 'requirements' => ['id' => '\d+'],
             ],

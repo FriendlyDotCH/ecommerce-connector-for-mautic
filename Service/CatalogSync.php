@@ -57,9 +57,12 @@ class CatalogSync
         }
     }
 
-    public function delete(string $store, string $externalId): void
+    /**
+     * @return bool whether the product existed
+     */
+    public function delete(string $store, string $externalId): bool
     {
-        $this->productRepository->deleteByExternalId($store, $externalId);
+        return $this->productRepository->deleteByExternalId($store, $externalId);
     }
 
     public function categoryForLine(string $store, ?string $productId, string $itemId): ?string

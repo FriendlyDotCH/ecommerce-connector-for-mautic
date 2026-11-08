@@ -50,9 +50,12 @@ class EcommerceProductRepository extends CommonRepository
         );
     }
 
-    public function deleteByExternalId(string $store, string $externalId): void
+    /**
+     * @return bool whether the product existed
+     */
+    public function deleteByExternalId(string $store, string $externalId): bool
     {
-        $this->getEntityManager()->getConnection()->executeStatement(
+        return 0 < (int) $this->getEntityManager()->getConnection()->executeStatement(
             'DELETE FROM '.MAUTIC_TABLE_PREFIX.'ecommerce_products WHERE store = ? AND external_id = ?',
             [$store, $externalId]
         );
@@ -205,5 +208,48 @@ class EcommerceProductRepository extends CommonRepository
         return array_map('strval', $this->getEntityManager()->getConnection()->fetchFirstColumn(
             'SELECT DISTINCT store FROM '.MAUTIC_TABLE_PREFIX.'ecommerce_products ORDER BY store'
         ));
+    }
+
+    /**
+     * Products for the REST API. Filters: store, category (main or any), stock_status, sku,
+     * external_id, search (name, SKU or category), since (last change in Mautic). Sorted by ID,
+     * or by last change when since is given, so a client can page through changes.
+     *
+     * @param array{store?: string, category?: string, stock_status?: string, sku?: string, external_id?: string, search?: string, since?: \DateTimeInterface} $filters
+     *
+     * @return array{products: list<EcommerceProduct>, total: int}
+     */
+    public function findForApi(array $filters, int $start, int $limit): array
+    {
+        $qb = $this->createQueryBuilder('p');
+
+        foreach (['store' => 'store', 'stock_status' => 'stockStatus', 'sku' => 'sku', 'external_id' => 'externalId'] as $filter => $field) {
+            if (isset($filters[$filter])) {
+                $qb->andWhere(sprintf('p.%1$s = :%1$s', $field))->setParameter($field, $filters[$filter]);
+            }
+        }
+        if (isset($filters['category'])) {
+            // categories is JSON; the quoted name avoids matching "Candles" inside "Scented Candles".
+            $qb->andWhere('p.category = :category OR p.categories LIKE :categoryJson')
+                ->setParameter('category', $filters['category'])
+                ->setParameter('categoryJson', '%'.addcslashes(json_encode($filters['category'], JSON_UNESCAPED_UNICODE) ?: '', '%_\\').'%');
+        }
+        if (isset($filters['search'])) {
+            $qb->andWhere('p.name LIKE :search OR p.sku LIKE :search OR p.category LIKE :search')
+                ->setParameter('search', '%'.addcslashes($filters['search'], '%_\\').'%');
+        }
+        if (isset($filters['since'])) {
+            $qb->andWhere('p.dateUpdated >= :since')
+                ->setParameter('since', \DateTimeImmutable::createFromInterface($filters['since'])->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s'));
+            $qb->orderBy('p.dateUpdated', 'ASC');
+        }
+        $qb->addOrderBy('p.id', 'ASC');
+
+        $total = (int) (clone $qb)->select('COUNT(p.id)')->resetDQLPart('orderBy')->getQuery()->getSingleScalarResult();
+
+        /** @var list<EcommerceProduct> $products */
+        $products = $qb->setFirstResult($start)->setMaxResults($limit)->getQuery()->getResult();
+
+        return ['products' => $products, 'total' => $total];
     }
 }
