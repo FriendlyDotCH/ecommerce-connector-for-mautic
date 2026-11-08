@@ -407,13 +407,19 @@ Shops with native webhooks can feed the catalog without a connector; see below.
 
 Three campaign decisions fire on catalog changes: **Product back in stock**, **Product price drop** (by at least a set percentage, default 10 %) and **Product low inventory** (stock falls from above a set quantity to it or below, default 5; needs stock tracking in the shop). Each decision chooses its audience: contacts who viewed the product, had it in a cart or checkout, and/or bought it, within the last N days (default 30, up to 365), optionally only for some categories or products. Contacts who viewed or carted the product and bought it since are left out. A contact gets the same alert for the same product at most once in 7 days. **Viewed at least (times)** (default 1) leaves out one-off browsing: views only count from that many views in the period, while carts and purchases always count. Only interest shown before the change counts, so someone who views the product after it is back in stock (or cheaper) is not alerted about it.
 
+A sale on many products is one email per contact, not one per product:
+
+* **Collect changes for (minutes)** (plugin settings, default 60): alerts wait this long after the first stock or price change, so a sale set up product by product goes out together. 0 sends at the next run.
+* All products of one type that a contact is alerted about together fire the decision once. `{ecommerce_alert_products}` lists them as product cards (a price drop shows the old price crossed out).
+* **At most one alert per contact every (hours)** (default 24, 0 for no limit): a contact who got a product alert within that time gets no further one, and those changes are not sent later. When one run has several types for a contact, back in stock goes first, then price drop, then low inventory.
+
 Every product update is compared with the stored product (older updates arriving late, new products and drafts are ignored); changes wait for the alerts command, which only looks at members of published campaigns using the matching decision. Run it from cron:
 
 ```
 */10 * * * * www-data php /path/to/mautic/bin/console mautic:ecommerce:product-alerts
 ```
 
-Alert emails can show the product: `{ecommerce_alert_product}`, `{ecommerce_alert_product_url}`, `{ecommerce_alert_product_image}`, `{ecommerce_alert_product_price}`, `{ecommerce_alert_product_old_price}` (the price before a drop, else the regular price when on sale) and `{ecommerce_alert_product_stock}`. They come from the contact's latest alert, so send the email straight after the decision.
+Alert emails can list all products of the alert with `{ecommerce_alert_products}`, or show one product (the latest): `{ecommerce_alert_product}`, `{ecommerce_alert_product_url}`, `{ecommerce_alert_product_image}`, `{ecommerce_alert_product_price}`, `{ecommerce_alert_product_old_price}` (the price before a drop, else the regular price when on sale) and `{ecommerce_alert_product_stock}`. They come from the contact's latest alert, so send the email straight after the decision.
 
 ### Product blocks in emails
 
@@ -616,6 +622,12 @@ This software is provided **as is**, without warranty of any kind, express or im
 You are solely responsible for how you deploy and use this plugin, including compliance with applicable laws and data protection obligations.
 
 ## Changelog
+
+### 1.8.4
+```
+* Added: Product alerts collect changes for 60 minutes (setting) and send one email per contact with all products, listed by {ecommerce_alert_products}.
+* Added: At most one product alert per contact every 24 hours (setting).
+```
 
 ### 1.8.3
 ```

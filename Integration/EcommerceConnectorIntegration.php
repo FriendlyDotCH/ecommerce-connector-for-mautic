@@ -251,6 +251,8 @@ class EcommerceConnectorIntegration extends AbstractIntegration
             'event_retention_days'   => Config::DEFAULT_EVENT_RETENTION_DAYS,
             'cart_abandon_minutes'   => Config::DEFAULT_CART_ABANDON_MINUTES,
             'browse_abandon_minutes' => Config::DEFAULT_BROWSE_ABANDON_MINUTES,
+            'alert_collect_minutes'  => Config::DEFAULT_ALERT_COLLECT_MINUTES,
+            'alert_cap_hours'        => Config::DEFAULT_ALERT_CAP_HOURS,
         ] as $key => $default) {
             $builder->add(
                 $key,

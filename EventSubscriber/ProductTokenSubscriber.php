@@ -15,7 +15,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Product content in emails: the product of the contact's latest product alert, and product
+ * Product content in emails: the product(s) of the contact's latest product alert, and product
  * blocks ({ecommerce_products source="..." limit="..." category="..."}).
  *
  * Blocks are written into the content itself, before Mautic converts links to tracked links
@@ -23,6 +23,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final class ProductTokenSubscriber implements EventSubscriberInterface
 {
+    /** All products of the contact's latest alert email, as cards (old price crossed out). */
+    public const ALERT_PRODUCTS_TOKEN = '{ecommerce_alert_products}';
+
     public const ALERT_TOKENS = [
         '{ecommerce_alert_product}'           => 'mautic.plugin.ecommerce.token.alert_product',
         '{ecommerce_alert_product_url}'       => 'mautic.plugin.ecommerce.token.alert_product_url',
@@ -56,6 +59,7 @@ final class ProductTokenSubscriber implements EventSubscriberInterface
         foreach (ProductBlocks::SOURCES as $source) {
             $tokens[sprintf('{ecommerce_products source="%s" limit="%d"}', $source, ProductBlocks::DEFAULT_LIMIT)] = $this->translator->trans('mautic.plugin.ecommerce.token.products.'.$source);
         }
+        $tokens[self::ALERT_PRODUCTS_TOKEN] = $this->translator->trans('mautic.plugin.ecommerce.token.alert_products');
         foreach (self::ALERT_TOKENS as $token => $label) {
             $tokens[$token] = $this->translator->trans($label);
         }
@@ -84,7 +88,15 @@ final class ProductTokenSubscriber implements EventSubscriberInterface
             $event->setPlainText($this->replaceBlocks($text, $leadId, false));
         }
 
-        if (str_contains($all, '{ecommerce_alert_product')) {
+        if (str_contains($all, self::ALERT_PRODUCTS_TOKEN)) {
+            [$products, $oldPrices] = $this->alertProducts($leadId);
+            $event->addTokens([self::ALERT_PRODUCTS_TOKEN => $this->blocks->renderHtml($products, $oldPrices)]);
+            if (str_contains($text, self::ALERT_PRODUCTS_TOKEN)) {
+                $event->setPlainText(str_replace(self::ALERT_PRODUCTS_TOKEN, $this->blocks->renderText($products), $text));
+            }
+        }
+
+        if (preg_match('/\{ecommerce_alert_product[_}]/', $all)) {
             $event->addTokens($this->alertTokens($leadId));
         }
     }
@@ -102,6 +114,26 @@ final class ProductTokenSubscriber implements EventSubscriberInterface
 
             return $rendered[$match[0]];
         }, $content);
+    }
+
+    /**
+     * @return array{0: list<\MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceProduct>, 1: array<int, string>} products, and old prices of price drops by product id
+     */
+    private function alertProducts(int $leadId): array
+    {
+        $batch = $leadId > 0 ? $this->alertStore->latestAlertBatch($leadId) : [];
+        if ([] === $batch) {
+            return [[], []];
+        }
+
+        $oldPrices = [];
+        foreach ($batch as $row) {
+            if ('price_drop' === $row['alert_type'] && is_numeric($row['old_value'])) {
+                $oldPrices[(int) $row['product_id']] = (string) $row['old_value'];
+            }
+        }
+
+        return [$this->blocks->load(array_map(static fn (array $row): int => (int) $row['product_id'], $batch)), $oldPrices];
     }
 
     /**

@@ -10,6 +10,8 @@ use Mautic\CampaignBundle\Event\CampaignExecutionEvent;
 use MauticPlugin\EcommerceConnectorBundle\EcommerceEvents;
 use MauticPlugin\EcommerceConnectorBundle\Form\Type\ProductAlertDecisionType;
 use MauticPlugin\EcommerceConnectorBundle\DTO\ProductChange;
+use MauticPlugin\EcommerceConnectorBundle\DTO\ProductChangeSet;
+use MauticPlugin\EcommerceConnectorBundle\Service\ProductAlertStore;
 use MauticPlugin\EcommerceConnectorBundle\Service\ProductChangeDetector;
 use MauticPlugin\EcommerceConnectorBundle\Service\ProductInterest;
 use MauticPlugin\EcommerceConnectorBundle\DTO\PurchaseCriteria;
@@ -38,6 +40,7 @@ class ProductAlertSubscriber implements EventSubscriberInterface
 
     public function __construct(
         private ProductInterest $interest,
+        private ProductAlertStore $alertStore,
     ) {
     }
 
@@ -69,13 +72,29 @@ class ProductAlertSubscriber implements EventSubscriberInterface
                 continue;
             }
 
-            $change = $event->getEventDetails();
-            if (!$change instanceof ProductChange || $change->type !== $changeType) {
+            $set = $event->getEventDetails();
+            if ($set instanceof ProductChange) {
+                $set = new ProductChangeSet($set->type, [$set], ProductAlertStore::now());
+            }
+            if (!$set instanceof ProductChangeSet || $set->type !== $changeType) {
                 return $event->setResult(false);
             }
 
-            $matched = $this->matches($change, (array) $event->getConfig(), (int) $event->getLead()->getId(), $decision);
-            $change->matched = $change->matched || $matched;
+            // Each product of the set against this campaign's settings; the matched ones are
+            // recorded now, before the campaign's email is sent, so its tokens find them. A product
+            // matched by an earlier campaign is recorded once.
+            $leadId  = (int) $event->getLead()->getId();
+            $matched = false;
+            foreach ($set->changes as $change) {
+                if (!$this->matches($change, (array) $event->getConfig(), $leadId, $decision)) {
+                    continue;
+                }
+                $matched = true;
+                if (!$change->matched) {
+                    $change->matched = true;
+                    $this->alertStore->recordAlert($leadId, $change, $changeType, $set->alertedAt);
+                }
+            }
 
             return $event->setResult($matched);
         }

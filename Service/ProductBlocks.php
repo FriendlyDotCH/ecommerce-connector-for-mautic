@@ -124,9 +124,9 @@ class ProductBlocks
     /**
      * @param list<int> $ids
      *
-     * @return list<EcommerceProduct>
+     * @return list<EcommerceProduct> in the order of $ids
      */
-    private function load(array $ids): array
+    public function load(array $ids): array
     {
         if ([] === $ids) {
             return [];
@@ -144,8 +144,9 @@ class ProductBlocks
      * Inline-styled cards, up to three per row; works in Outlook and Gmail.
      *
      * @param list<EcommerceProduct> $products
+     * @param array<int, string>     $oldPrices product id => price to cross out (a price drop)
      */
-    public function renderHtml(array $products): string
+    public function renderHtml(array $products, array $oldPrices = []): string
     {
         if ([] === $products) {
             return '';
@@ -170,7 +171,7 @@ class ProductBlocks
                     $width,
                     $link($image),
                     $link($name),
-                    $this->priceHtml($product)
+                    $this->priceHtml($product, $oldPrices[(int) $product->getId()] ?? null)
                 );
             }
             // Keep the cards the same width when the last row is short.
@@ -195,10 +196,10 @@ class ProductBlocks
         return implode("\n", $lines);
     }
 
-    private function priceHtml(EcommerceProduct $product): string
+    private function priceHtml(EcommerceProduct $product, ?string $was = null): string
     {
         $price = self::escape($this->price($product, $product->getPrice()));
-        $was   = $product->getRegularPrice();
+        $was ??= $product->getRegularPrice();
 
         if (null !== $was && null !== $product->getPrice() && (float) $was > (float) $product->getPrice()) {
             return sprintf('<s style="opacity:0.6;">%s</s> %s', self::escape($this->price($product, $was)), $price);

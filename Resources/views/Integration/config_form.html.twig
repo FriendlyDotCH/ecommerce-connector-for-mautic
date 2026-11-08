@@ -188,6 +188,13 @@
                         {{- form_row(attribute(form.featureSettings, key)) -}}
                     {%- endfor -%}
                 {%- endif -%}
+                {%- if form.featureSettings.alert_collect_minutes is defined -%}
+                    <h4 class="mt-lg mb-sm">{{ 'mautic.plugin.ecommerce.alerts.header'|trans }}</h4>
+                    <p class="text-secondary">{{ 'mautic.plugin.ecommerce.alerts.help'|trans }}</p>
+                    {%- for key in ['alert_collect_minutes', 'alert_cap_hours'] -%}
+                        {{- form_row(attribute(form.featureSettings, key)) -}}
+                    {%- endfor -%}
+                {%- endif -%}
                 {%- if form.featureSettings.lifecycle_lapsed_days is defined -%}
                     <h4 class="mt-lg mb-sm">{{ 'mautic.plugin.ecommerce.lifecycle.header'|trans }}</h4>
                     <p class="text-secondary">{{ 'mautic.plugin.ecommerce.lifecycle.help'|trans }}</p>

@@ -42,10 +42,20 @@ class ProductAlertStore
     /**
      * Claims up to $limit waiting changes, oldest first; overlapping runs cannot claim the same one.
      *
+     * With $collectMinutes, nothing is claimed until the oldest waiting change is that old: a sale
+     * set up product by product then goes out together, as one alert email per contact.
+     *
      * @return list<array{id: int, store: string, external_id: string, change_type: string, old_value: string|null, new_value: string|null, detected_at: string}>
      */
-    public function claimPendingChanges(int $limit): array
+    public function claimPendingChanges(int $limit, int $collectMinutes = 0): array
     {
+        if ($collectMinutes > 0) {
+            $oldest = $this->connection->fetchOne('SELECT MIN(detected_at) FROM '.MAUTIC_TABLE_PREFIX.'ecommerce_product_changes WHERE processed_at IS NULL');
+            if (!is_string($oldest) || $oldest > self::now(sprintf('-%d minutes', $collectMinutes))) {
+                return [];
+            }
+        }
+
         $ids = $this->connection->fetchFirstColumn(
             'SELECT id FROM '.MAUTIC_TABLE_PREFIX.'ecommerce_product_changes WHERE processed_at IS NULL ORDER BY detected_at, id LIMIT '.max(1, $limit)
         );
@@ -79,7 +89,21 @@ class ProductAlertStore
         );
     }
 
-    public function recordAlert(int $leadId, ProductChange $change, string $alertType): void
+    /**
+     * Whether the contact got any product alert since the given moment (the per-contact cap).
+     */
+    public function wasAlertedSince(int $leadId, \DateTimeInterface $since): bool
+    {
+        return false !== $this->connection->fetchOne(
+            'SELECT 1 FROM '.MAUTIC_TABLE_PREFIX.'ecommerce_product_alerts WHERE lead_id = ? AND alerted_at > ? LIMIT 1',
+            [$leadId, \DateTimeImmutable::createFromInterface($since)->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s')]
+        );
+    }
+
+    /**
+     * @param string|null $alertedAt shared by the alerts of one email (see latestAlertBatch)
+     */
+    public function recordAlert(int $leadId, ProductChange $change, string $alertType, ?string $alertedAt = null): void
     {
         $this->connection->insert(MAUTIC_TABLE_PREFIX.'ecommerce_product_alerts', [
             'lead_id'     => $leadId,
@@ -89,7 +113,7 @@ class ProductAlertStore
             'alert_type'  => $alertType,
             'old_value'   => $change->oldValue,
             'new_value'   => $change->newValue,
-            'alerted_at'  => self::now(),
+            'alerted_at'  => $alertedAt ?? self::now(),
         ]);
     }
 
@@ -109,6 +133,40 @@ class ProductAlertStore
         );
 
         return false !== $row ? $row : null;
+    }
+
+    /**
+     * The alerts of the contact's latest alert email: same type, recorded in the same run.
+     * One row per product (its latest change), with the product id, oldest change first.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function latestAlertBatch(int $leadId): array
+    {
+        $latest = $this->connection->fetchAssociative(
+            'SELECT alert_type, alerted_at FROM '.MAUTIC_TABLE_PREFIX.'ecommerce_product_alerts WHERE lead_id = ? ORDER BY alerted_at DESC, id DESC LIMIT 1',
+            [$leadId]
+        );
+        if (false === $latest) {
+            return [];
+        }
+
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT a.id AS alert_id, a.alert_type, a.old_value, a.new_value, p.id AS product_id
+             FROM '.MAUTIC_TABLE_PREFIX.'ecommerce_product_alerts a
+             JOIN '.MAUTIC_TABLE_PREFIX.'ecommerce_products p ON p.store = a.store AND p.external_id = a.external_id
+             WHERE a.lead_id = ? AND a.alert_type = ? AND a.alerted_at = ? ORDER BY a.id',
+            [$leadId, $latest['alert_type'], $latest['alerted_at']]
+        );
+
+        // Two drops of one product in a batch: the first old price, the last new price.
+        $byProduct = [];
+        foreach ($rows as $row) {
+            $id = (int) $row['product_id'];
+            $byProduct[$id] = isset($byProduct[$id]) ? ['new_value' => $row['new_value']] + $byProduct[$id] : $row;
+        }
+
+        return array_values($byProduct);
     }
 
     public function deleteAlert(int $leadId, int $changeId): void
@@ -147,8 +205,8 @@ class ProductAlertStore
         return $count;
     }
 
-    private static function now(): string
+    public static function now(string $modifier = 'now'): string
     {
-        return (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d H:i:s');
+        return (new \DateTimeImmutable($modifier, new \DateTimeZone('UTC')))->format('Y-m-d H:i:s');
     }
 }

@@ -32,6 +32,10 @@ class Config
      */
     public const DEFAULT_CART_ABANDON_MINUTES   = 60;
     public const DEFAULT_BROWSE_ABANDON_MINUTES = 120;
+    /** Product alerts wait this long after the first change, so a sale goes out as one email. */
+    public const DEFAULT_ALERT_COLLECT_MINUTES = 60;
+    /** A contact gets at most one product alert email in this many hours. */
+    public const DEFAULT_ALERT_CAP_HOURS = 24;
 
     public const ON_CONTACT_DELETE_DELETE    = 'delete';
     public const ON_CONTACT_DELETE_ANONYMIZE = 'anonymize';
@@ -252,6 +256,26 @@ class Config
     public function getBrowseAbandonMinutes(): int
     {
         return $this->getPositiveInt('browse_abandon_minutes', self::DEFAULT_BROWSE_ABANDON_MINUTES);
+    }
+
+    /** 0 sends alerts at the next run. */
+    public function getAlertCollectMinutes(): int
+    {
+        return $this->getNonNegativeInt('alert_collect_minutes', self::DEFAULT_ALERT_COLLECT_MINUTES);
+    }
+
+    /** 0 means no cap. */
+    public function getAlertCapHours(): int
+    {
+        return $this->getNonNegativeInt('alert_cap_hours', self::DEFAULT_ALERT_CAP_HOURS);
+    }
+
+    private function getNonNegativeInt(string $key, int $default): int
+    {
+        $integration = $this->getIntegrationObject();
+        $value       = null !== $integration ? ($integration->getIntegrationSettings()->getFeatureSettings()[$key] ?? null) : null;
+
+        return is_numeric($value) && (int) $value >= 0 ? (int) $value : $default;
     }
 
     private function getPositiveInt(string $key, int $default): int

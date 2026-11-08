@@ -38,7 +38,8 @@ class ProductAlertFunctionalTest extends MauticMysqlTestCase
         // IpLookupHelper caches IP entities in a static array that outlives the test database reset.
         static::getContainer()->get(IpLookupHelper::class)->reset();
         $this->installEcommerceSchema($this->connection);
-        $this->configureIntegration(['enable_storefront_events' => 1]);
+        // Alerts at once and without a cap, except where a test says otherwise.
+        $this->configureIntegration(['enable_storefront_events' => 1, 'alert_collect_minutes' => 0, 'alert_cap_hours' => 0]);
     }
 
     public function testBackInStockAlertsInterestedContactsOnce(): void
@@ -116,6 +117,45 @@ class ProductAlertFunctionalTest extends MauticMysqlTestCase
         Assert::assertSame(['restocked'], $this->tagsOf($carter), 'A cart counts whatever the minimum views.');
         Assert::assertSame([], $this->tagsOf($once), 'One view is below the minimum.');
         Assert::assertSame([], $this->tagsOf($latecomer), 'A view after the restock does not count.');
+    }
+
+    public function testASaleIsOneAlertAfterTheCollectionWindowWithinTheCap(): void
+    {
+        $this->configureIntegration(['enable_storefront_events' => 1, 'alert_collect_minutes' => 60, 'alert_cap_hours' => 24]);
+        $viewer = $this->createContact('sale@example.com');
+        $this->createTagCampaign(ProductAlertSubscriber::DECISION_PRICE_DROP, ['min_drop_percent' => 10, 'interests' => ['viewed']], 'sale', [$viewer]);
+
+        $rose = ['id' => 156, 'sku' => 'RSE-1', 'name' => 'Rose Candle', 'url' => 'https://shop.example/rose'];
+        $this->pushProduct(['price' => '30']);
+        $this->pushProduct($rose + ['price' => '40']);
+        $this->sendEvent('sale@example.com', 'viewed_product', 'CND-1', '-2 days');
+        $this->sendEvent('sale@example.com', 'viewed_product', '156', '-1 day');
+
+        // The sale, product by product.
+        $this->pushProduct(['price' => '24']);
+        $this->pushProduct($rose + ['price' => '30']);
+
+        $dispatcher = static::getContainer()->get(ProductAlertDispatcher::class);
+        Assert::assertSame([], $dispatcher->run(), 'Held for the collection window.');
+
+        $this->connection->executeStatement('UPDATE '.MAUTIC_TABLE_PREFIX."ecommerce_product_changes SET detected_at = DATE_SUB(detected_at, INTERVAL 61 MINUTE)");
+        Assert::assertSame(['price_drop' => ['changes' => 2, 'alerted' => 2]], $dispatcher->run());
+        Assert::assertSame(['sale'], $this->tagsOf($viewer));
+        Assert::assertSame(1, (int) $this->connection->fetchOne('SELECT COUNT(DISTINCT alerted_at) FROM '.MAUTIC_TABLE_PREFIX.'ecommerce_product_alerts WHERE lead_id = ?', [$viewer->getId()]), 'Both products are one alert.');
+
+        // One email lists both, old prices crossed out.
+        $send = new EmailSendEvent(null, ['content' => '{ecommerce_alert_products}', 'plainText' => '{ecommerce_alert_products}', 'lead' => ['id' => $viewer->getId()]]);
+        static::getContainer()->get(EventDispatcherInterface::class)->dispatch($send, EmailEvents::EMAIL_ON_DISPLAY);
+        $cards = $send->getTokens()['{ecommerce_alert_products}'];
+        Assert::assertStringContainsString('Lavender Candle', $cards);
+        Assert::assertStringContainsString('Rose Candle', $cards);
+        Assert::assertSame(2, substr_count($cards, '<s '), 'Each card shows its old price.');
+        Assert::assertStringContainsString('Rose Candle', $send->getPlainText());
+
+        // Another drop the same day: the contact got an alert within 24 hours.
+        $this->pushProduct(['price' => '18']);
+        $this->connection->executeStatement('UPDATE '.MAUTIC_TABLE_PREFIX."ecommerce_product_changes SET detected_at = DATE_SUB(detected_at, INTERVAL 61 MINUTE) WHERE processed_at IS NULL");
+        Assert::assertSame(['price_drop' => ['changes' => 1, 'alerted' => 0]], $dispatcher->run());
     }
 
     public function testPriceDropAndLowStockThresholds(): void
