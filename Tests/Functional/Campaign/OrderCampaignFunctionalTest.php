@@ -7,6 +7,7 @@ namespace MauticPlugin\EcommerceConnectorBundle\Tests\Functional\Campaign;
 use Mautic\CampaignBundle\Entity\Campaign;
 use Mautic\CampaignBundle\Entity\Event;
 use Mautic\CampaignBundle\Entity\Lead as CampaignMember;
+use Mautic\CoreBundle\Helper\IpLookupHelper;
 use Mautic\CoreBundle\Test\MauticMysqlTestCase;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Entity\Tag;
@@ -28,6 +29,10 @@ class OrderCampaignFunctionalTest extends MauticMysqlTestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // IpLookupHelper caches IP entities in a static array that outlives the test database reset.
+        // Since Mautic 7.2 campaign logs are written with a raw upsert, so a stale cached ip_id breaks the foreign key.
+        static::getContainer()->get(IpLookupHelper::class)->reset();
 
         $this->installEcommerceSchema($this->connection);
         $this->configureIntegration();

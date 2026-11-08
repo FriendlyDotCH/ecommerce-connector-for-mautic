@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace MauticPlugin\EcommerceConnectorBundle\Tests\Unit\Service;
 
-use Mautic\CoreBundle\Helper\CoreParametersHelper;
-use Mautic\LeadBundle\Model\FieldModel;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use MauticPlugin\EcommerceConnectorBundle\Service\EcommerceContactColumnsDictionary;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldDefinition;
@@ -15,45 +13,30 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 class EcommerceContactColumnsDictionaryTest extends TestCase
 {
-    private FieldModel&MockObject $fieldModel;
-
     private TranslatorInterface&MockObject $translator;
-
-    private CoreParametersHelper&MockObject $coreParametersHelper;
 
     private Config&MockObject $config;
 
     protected function setUp(): void
     {
-        $this->fieldModel            = $this->createMock(FieldModel::class);
-        $this->translator            = $this->createMock(TranslatorInterface::class);
-        $this->coreParametersHelper  = $this->createMock(CoreParametersHelper::class);
-        $this->config                = $this->createMock(Config::class);
+        $this->translator = $this->createMock(TranslatorInterface::class);
+        $this->config     = $this->createMock(Config::class);
 
-        $this->fieldModel->method('getFieldList')->willReturn([]);
         $this->translator->method('trans')->willReturnCallback(static fn (string $id): string => $id);
     }
 
     public function testInsertsTotalRevenueAfterPointsWhenPublished(): void
     {
         $this->config->method('isPublished')->willReturn(true);
-        $this->coreParametersHelper->method('get')->with('contact_columns', [])->willReturn([
-            'name',
-            'email',
-            'points',
-            'last_active',
-            'id',
+
+        $columns = (new EcommerceContactColumnsDictionary($this->translator, $this->config))->addRevenueColumn([
+            'name'        => 'Name',
+            'email'       => 'Email',
+            'points'      => 'Points',
+            'last_active' => 'Last active',
+            'id'          => 'ID',
         ]);
-
-        $dictionary = new EcommerceContactColumnsDictionary(
-            $this->fieldModel,
-            $this->translator,
-            $this->coreParametersHelper,
-            $this->config
-        );
-
-        $columns = $dictionary->getColumns();
-        $keys    = array_keys($columns);
+        $keys = array_keys($columns);
 
         $pointsIndex  = array_search('points', $keys, true);
         $revenueIndex = array_search(LeadCommerceFieldDefinition::LIFETIME_VALUE, $keys, true);
@@ -63,25 +46,28 @@ class EcommerceContactColumnsDictionaryTest extends TestCase
         $this->assertSame($pointsIndex + 1, $revenueIndex);
     }
 
+    public function testInsertsBeforeIdWhenPointsColumnMissing(): void
+    {
+        $this->config->method('isPublished')->willReturn(true);
+
+        $columns = (new EcommerceContactColumnsDictionary($this->translator, $this->config))->addRevenueColumn([
+            'name' => 'Name',
+            'id'   => 'ID',
+        ]);
+
+        $this->assertSame(['name', LeadCommerceFieldDefinition::LIFETIME_VALUE, 'id'], array_keys($columns));
+    }
+
     public function testDoesNotAddColumnWhenUnpublished(): void
     {
         $this->config->method('isPublished')->willReturn(false);
-        $this->coreParametersHelper->method('get')->with('contact_columns', [])->willReturn([
-            'name',
-            'points',
-            'id',
+
+        $columns = (new EcommerceContactColumnsDictionary($this->translator, $this->config))->addRevenueColumn([
+            'name'   => 'Name',
+            'points' => 'Points',
+            'id'     => 'ID',
         ]);
 
-        $dictionary = new EcommerceContactColumnsDictionary(
-            $this->fieldModel,
-            $this->translator,
-            $this->coreParametersHelper,
-            $this->config
-        );
-
-        $this->assertArrayNotHasKey(
-            LeadCommerceFieldDefinition::LIFETIME_VALUE,
-            $dictionary->getColumns()
-        );
+        $this->assertArrayNotHasKey(LeadCommerceFieldDefinition::LIFETIME_VALUE, $columns);
     }
 }

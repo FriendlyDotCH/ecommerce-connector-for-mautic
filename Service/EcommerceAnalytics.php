@@ -31,8 +31,8 @@ class EcommerceAnalytics
     {
         $chart  = new LineChart($unit, $dateFrom, $dateTo, $dateFormat);
         $query  = new ChartQuery($this->connection, $dateFrom, $dateTo);
-        // Static values only: ChartQuery does not quote IN lists.
-        $counted = ['counted' => ['subquery' => "t.status IN ('".implode("','", EcommerceOrder::COUNTED_STATUSES)."')"]];
+        // ChartQuery binds an array value as a parameterised "t.status IN (...)"; Mautic 7.2 rejects raw subquery filters.
+        $counted = ['status' => EcommerceOrder::COUNTED_STATUSES];
 
         $chart->setDataset(
             $this->translator->trans('mautic.plugin.ecommerce.widget.revenue'),

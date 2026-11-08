@@ -2,7 +2,7 @@
 
 Working notes for continuing development: where the roadmap stands, how the code is organised, how to test, and what to do next. User documentation is in [README.md](README.md).
 
-Last updated: 7 November 2026.
+Last updated: 8 November 2026.
 
 ## Where things stand
 
@@ -20,7 +20,7 @@ The branches are stacked; each builds on the previous one. None is pushed yet.
 | `feature/1.6.0` | 1.6.0 | Phase 2: G6, G7, native WooCommerce order webhooks |
 | `feature/1.7.0` | 1.7.0 | Phase 3 so far: product catalog, platform adapters, signed product endpoint |
 
-Work continues on `feature/1.7.0`. Open decision: push the branches to `origin` as they are, or squash per version first.
+Work continues on `feature/1.7.0`, which runs on Mautic 7.2.2 (see "Mautic 7.2 compatibility" below). Open decision: push the branches to `origin` as they are, or squash per version first.
 
 ### Roadmap status
 
@@ -87,7 +87,15 @@ rm -rf ../../var/cache/test   # the test container is not rebuilt automatically 
 ../../vendor/bin/phpunit -c ../plugins/EcommerceConnectorBundle/phpunit.xml.dist --testsuite Unit
 ```
 
-Run the whole suite before every deploy. 169 tests passed on `feature/1.7.0` (7 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
+Run the whole suite before every deploy. 172 tests passed on `feature/1.7.0` against Mautic 7.2.2 (8 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
+
+## Mautic 7.2 compatibility
+
+Changes in Mautic 7.2 that the plugin had to follow:
+
+* `ContactColumnsDictionary` is `final`. The Total revenue column on the contacts list is added by `EventSubscriber/ContactListColumnsSubscriber` (the `columns` var of `@MauticLead/Lead/*` templates), not by replacing the core service. Do not extend or swap final core classes; use events.
+* `ChartQuery::applyFilters()` rejects raw `subquery` filters. Pass an array value (`['status' => [...]]`) for an `IN` filter.
+* Campaign event logs are written with a raw upsert. In functional tests that trigger campaigns, call `IpLookupHelper::reset()` in `setUp()`: its static IP cache outlives the database reset and breaks the `ip_id` foreign key.
 
 ## Deploying to an install
 

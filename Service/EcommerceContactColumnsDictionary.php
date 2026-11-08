@@ -4,29 +4,31 @@ declare(strict_types=1);
 
 namespace MauticPlugin\EcommerceConnectorBundle\Service;
 
-use Mautic\CoreBundle\Helper\CoreParametersHelper;
-use Mautic\LeadBundle\Model\FieldModel;
-use Mautic\LeadBundle\Services\ContactColumnsDictionary;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Adds Total revenue after Points on the contacts list when Ecommerce Connector is published.
+ *
+ * Mautic 7.2 made Mautic\LeadBundle\Services\ContactColumnsDictionary final, so this no longer
+ * replaces the core service. Instead it post-processes the core columns array and is applied
+ * to the contact list templates by ContactListColumnsSubscriber.
  */
-final class EcommerceContactColumnsDictionary extends ContactColumnsDictionary
+final class EcommerceContactColumnsDictionary
 {
     public function __construct(
-        FieldModel $fieldModel,
         private TranslatorInterface $translator,
-        CoreParametersHelper $coreParametersHelper,
         private Config $ecommerceConfig,
     ) {
-        parent::__construct($fieldModel, $translator, $coreParametersHelper);
     }
 
-    public function getColumns(): array
+    /**
+     * @param array<string, mixed> $columns Column alias => label, as returned by the core ContactColumnsDictionary
+     *
+     * @return array<string, mixed>
+     */
+    public function addRevenueColumn(array $columns): array
     {
-        $columns = parent::getColumns();
         if (!$this->ecommerceConfig->isPublished()) {
             return $columns;
         }
