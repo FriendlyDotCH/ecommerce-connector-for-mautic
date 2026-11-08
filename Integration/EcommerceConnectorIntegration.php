@@ -54,6 +54,22 @@ class EcommerceConnectorIntegration extends AbstractIntegration
      */
     public function appendToForm(&$builder, $data, $formArea): void
     {
+        if ('keys' === $formArea) {
+            // Optional, so not a required key field; saved and encrypted with the keys.
+            $builder->add('shopify_webhook_secret', TextType::class, [
+                'label'      => 'mautic.plugin.ecommerce.shopify_webhook_secret',
+                'label_attr' => ['class' => 'control-label'],
+                'required'   => false,
+                'attr'       => [
+                    'class'        => 'form-control',
+                    'autocomplete' => 'off',
+                    'tooltip'      => 'mautic.plugin.ecommerce.shopify_webhook_secret.tooltip',
+                ],
+            ]);
+
+            return;
+        }
+
         if ('features' !== $formArea) {
             return;
         }

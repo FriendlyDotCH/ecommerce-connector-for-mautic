@@ -1,0 +1,52 @@
+{
+  "id": 8312345678001,
+  "admin_graphql_api_id": "gid://shopify/Product/8312345678001",
+  "title": "Lavender Candle",
+  "handle": "lavender-candle",
+  "body_html": "<p>Hand-poured.</p>",
+  "vendor": "Friendly Candles",
+  "product_type": "Candles",
+  "status": "active",
+  "tags": "lavender, gift",
+  "category": {
+    "admin_graphql_api_id": "gid://shopify/TaxonomyCategory/hg-3-12",
+    "name": "Candles",
+    "full_name": "Home & Garden > Decor > Candles"
+  },
+  "created_at": "2026-10-01T09:00:00+02:00",
+  "updated_at": "2026-11-02T10:14:51+01:00",
+  "variants": [
+    {
+      "id": 45012345678001,
+      "product_id": 8312345678001,
+      "title": "200g",
+      "sku": "CND-LAV-200",
+      "price": "12.50",
+      "compare_at_price": "15.00",
+      "inventory_management": "shopify",
+      "inventory_policy": "deny",
+      "inventory_quantity": 7
+    },
+    {
+      "id": 45012345678003,
+      "product_id": 8312345678001,
+      "title": "400g",
+      "sku": "CND-LAV-400",
+      "price": "19.90",
+      "compare_at_price": null,
+      "inventory_management": "shopify",
+      "inventory_policy": "deny",
+      "inventory_quantity": 0
+    }
+  ],
+  "image": {
+    "id": 1,
+    "src": "https://cdn.shopify.com/s/files/1/0000/0001/products/lavender.jpg"
+  },
+  "images": [
+    {
+      "id": 1,
+      "src": "https://cdn.shopify.com/s/files/1/0000/0001/products/lavender.jpg"
+    }
+  ]
+}

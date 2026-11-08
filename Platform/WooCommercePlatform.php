@@ -29,6 +29,14 @@ class WooCommercePlatform implements StorePlatformInterface
     }
 
     /**
+     * WooCommerce webhooks take any secret: the plugin's webhook secret.
+     */
+    public function getSigningSecret(Config $config): ?string
+    {
+        return $config->getWebhookSecret();
+    }
+
+    /**
      * Base64 HMAC-SHA256 of the raw body.
      */
     public function isSignatureValid(Request $request, string $secret): bool
@@ -62,7 +70,7 @@ class WooCommercePlatform implements StorePlatformInterface
         return WooCommerceOrderMapper::map($order);
     }
 
-    public function mapProduct(array $product): ?array
+    public function mapProduct(array $product, ?Request $request = null): ?array
     {
         if (!isset($product['id'], $product['name']) || '' === (string) $product['name']) {
             return null;

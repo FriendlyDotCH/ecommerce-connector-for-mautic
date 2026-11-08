@@ -19,9 +19,10 @@ trait ConfiguresEcommerceIntegration
     private const WEBHOOK_SECRET = 'test-webhook-secret';
 
     /**
-     * @param array<string, mixed> $featureSettings
+     * @param array<string, mixed>  $featureSettings
+     * @param array<string, string> $keys            further integration keys, unencrypted
      */
-    private function configureIntegration(array $featureSettings = []): void
+    private function configureIntegration(array $featureSettings = [], array $keys = []): void
     {
         /** @var EncryptionHelper $encryptionHelper */
         $encryptionHelper = static::getContainer()->get('mautic.helper.encryption');
@@ -36,9 +37,10 @@ trait ConfiguresEcommerceIntegration
         }
 
         $integration->setIsPublished(true);
-        $integration->setApiKeys([
-            'webhook_secret' => $encryptionHelper->encrypt(self::WEBHOOK_SECRET),
-        ]);
+        $integration->setApiKeys(array_map(
+            static fn (string $value): string => $encryptionHelper->encrypt($value),
+            ['webhook_secret' => self::WEBHOOK_SECRET] + $keys
+        ));
         $integration->setFeatureSettings(array_merge([
             'enable_page_hit_tracking' => true,
             'attribute_last_email'     => false,

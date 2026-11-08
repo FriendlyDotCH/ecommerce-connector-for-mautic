@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MauticPlugin\EcommerceConnectorBundle\Platform;
 
+use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -26,6 +27,12 @@ interface StorePlatformInterface
      * Lowercase name: the webhook path segment, order source and catalog store, e.g. "woocommerce".
      */
     public function getName(): string;
+
+    /**
+     * The secret this platform's webhooks are signed with: usually the plugin's webhook secret;
+     * Shopify signs with its own key.
+     */
+    public function getSigningSecret(Config $config): ?string;
 
     public function isSignatureValid(Request $request, string $secret): bool;
 
@@ -51,10 +58,11 @@ interface StorePlatformInterface
      * stock_quantity, status, date_modified.
      *
      * @param array<string, mixed> $product
+     * @param Request|null         $request the webhook, for platforms that send details in headers
      *
      * @return array<string, mixed>|null
      */
-    public function mapProduct(array $product): ?array;
+    public function mapProduct(array $product, ?Request $request = null): ?array;
 
     /**
      * @param array<string, mixed> $body

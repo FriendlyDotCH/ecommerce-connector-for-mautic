@@ -410,6 +410,27 @@ How WooCommerce orders map:
 
 The signature (`X-WC-Webhook-Signature`) is checked against the same webhook secret. Storefront events (cart, checkout, product views) are not available as WooCommerce webhooks; send them with mtc.js or the store connector.
 
+## Shopify without an app
+
+Orders, refunds, cancellations and products can come straight from Shopify's webhooks:
+
+1. In Shopify, open **Settings → Notifications → Webhooks** and click **Create webhook**.
+2. **Event**: Order update. **Format**: JSON. **URL**: `https://your-mautic-site.com/ecommerce/webhook/shopify`. **Webhook API version**: the latest stable.
+3. Shopify signs webhooks with its own key, shown below the webhook list ("Your webhooks will be signed with …"). Copy it into **Shopify webhook signing secret** in this plugin's settings. (Webhooks created by a Shopify app are signed with the app's client secret instead.)
+4. Add webhooks for **Order creation**, **Product creation**, **Product update** and **Product deletion** with the same URL, to record orders right away and keep the product catalog in sync.
+
+How Shopify orders map:
+
+* Orders are recorded once **paid**, with the processed date as order date; **pending**, **authorized** and **partially paid** orders are skipped until paid. Shopify test orders (and "Send test notification") are skipped.
+* Refunds arrive with **Order update**: successful refund transactions set the refunded total, and refunded line quantities are kept. A cancelled order counts nothing; a fully refunded one is `refunded`.
+* Amounts and currency are what the customer paid (presentment currency); this plugin converts them to the base currency. Unit prices include tax, also for shops that show prices before tax.
+* Order number (the order name without `#`), billing email (existing contacts only), shipping city as location, and line items (SKU, or the variant or product ID; product ID; name; quantity) are taken over. Categories come from the catalog: the product type, or Shopify's standard product category.
+* When the customer arrived from a Mautic email, Shopify's landing page URL carries the link's `ct`; the order is credited to that email and its campaign.
+* Product links use the shop's myshopify.com address, which redirects to the shop's own domain.
+* Order source is `shopify`. If **Allowed order sources** is set, include it.
+
+Storefront events (cart, checkout, product views) are not available as Shopify webhooks.
+
 ## Storefront events
 
 Viewed product, added to cart and started checkout, for **identified contacts only**. Switch on **Record storefront events** in the plugin settings first, and only when your store collects tracking consent. Events of unknown or anonymous visitors are ignored; contacts are never created. Events older than **Keep events for (days)** (default 90) are deleted by `mautic:maintenance:cleanup`, and all of a contact's events are deleted with the contact.
@@ -545,6 +566,7 @@ You are solely responsible for how you deploy and use this plugin, including com
 * Added: Signed POST /ecommerce/ping for connection tests.
 * Added: Storefront events identify guests from a Mautic email by the link's tracking hash (`ct` or `stat`).
 * Changed: Supports Mautic 7.2; a failing campaign run is logged and no longer fails the webhook.
+* Added: Shopify webhooks at POST /ecommerce/webhook/shopify (orders, refunds, cancellations, products) with their own signing secret.
 * Changed: An order's `ct` is attributed by its tracking hash (email and campaign of that send); a malformed `ct` no longer fails the order.
 ```
 

@@ -34,7 +34,7 @@ Work continues on `feature/1.7.0`, which runs on Mautic 7.2.2 (see "Mautic 7.2 c
 | G6 Storefront events | Done (1.6.0) | Webhook, API, mtc.js; identified contacts only; off by default |
 | G7 Abandonment | Done (1.6.0) | Six decisions, No order within, cart tokens, detector command |
 | G8 WooCommerce connector | Mostly | Native WooCommerce webhooks (no store plugin), and the store plugin 0.3.0 (see Next steps). |
-| G9 Product catalog | Partly (1.7.0) | Catalog table, WooCommerce product webhooks, signed `/ecommerce/product`, categories filled in on order lines. Not done: catalog page in Mautic, catalog API, Shopify/Magento adapters. |
+| G9 Product catalog | Partly (1.7.0) | Catalog table, WooCommerce and Shopify product webhooks, signed `/ecommerce/product`, categories filled in on order lines. Not done: catalog page in Mautic, catalog API, Magento. |
 | G10 to G21 | Not started | Phases 3 to 5 |
 
 Deliberately out of scope (from the gap analysis): checkout and payments, courses and communities, apps, affiliates, reviews, WhatsApp, Instagram capture, AI assistants.
@@ -44,7 +44,7 @@ Deliberately out of scope (from the gap analysis): checkout and payments, course
 Agreed direction (7 November 2026): Mautic stays platform-neutral. Each shop platform gets a native-webhook adapter in Mautic (`Platform/`, WooCommerce done) for zero-install setups, plus a thin store connector that sends the standard formats to `/ecommerce/order`, `/ecommerce/event` and `/ecommerce/product`. Target platforms: WooCommerce, Shopify, Magento. The REST import from Mautic (option B) is dropped in favour of the connector pushing the catalog and order history.
 
 1. **WooCommerce connector plugin (G8)**, repository `FriendlyDotCH/mautic-ecommerce-woocommerce`, 0.3.0 (8 November 2026, not pushed): orders, refunds with per-line refunded quantity, cancellations, products, storefront events for known shoppers with consent (WP Consent API or "always"; DNT/GPC honoured), restore-cart links, WP-CLI sync and test. 0.3.0 added Test connection (uses `/ecommerce/ping`), Sync now in the background, guests identified from Mautic email links (`ct`, resolved by tracking hash here) and integration tests (wp-phpunit with WooCommerce, 27 tests, own database `woo_test`). Orders carry the email link (`ct`) for attribution.
-2. **Shopify adapter** (`X-Shopify-Hmac-Sha256`, orders/refunds/products webhooks; category from product type or taxonomy) and a Shopify app for customer events; **Magento** needs an extension (no native webhooks in Open Source).
+2. **Shopify adapter**: done (8 November 2026). `Platform/ShopifyPlatform` and `Service/ShopifyOrderMapper`: `X-Shopify-Hmac-Sha256` with its own key (`shopify_webhook_secret`, an optional key field added in `appendToForm('keys')`), orders/create and orders/updated with refunds inside, products, category from product type or taxonomy, `ct` from `landing_site`. Fixtures in `Tests/Fixtures/shopify-*.json` are written from Shopify's documented payloads, not captured from a store: check them against a real development store before release. Open: a Shopify app for storefront events (customer events / web pixels), and an API import of the catalog and past orders (`CatalogImporterInterface`). **Magento** needs an extension (no native webhooks in Open Source).
 3. **Rest of Phase 3:** catalog page in Mautic, back-in-stock / price-drop / low-inventory triggers (G10), product blocks and tokens in emails (G11).
 
 ## How the code is organised
@@ -52,7 +52,7 @@ Agreed direction (7 November 2026): Mautic stays platform-neutral. Each shop pla
 | Area | Main classes |
 |------|--------------|
 | Intake | `Controller/PublicController` (signed `/ecommerce/order`, `/ecommerce/event`, `/ecommerce/product`; native `/ecommerce/webhook/{platform}`), `EventSubscriber/TrackingSubscriber` (mtc.js), `Controller/Api/*` |
-| Shop platforms | `Platform/StorePlatformInterface` (signature, webhook type, order and product mapping; tagged, collected by `PlatformRegistry`), `Platform/WooCommercePlatform`; `Platform/CatalogImporterInterface` for API pulls (no implementation yet) |
+| Shop platforms | `Platform/StorePlatformInterface` (signing secret, signature, webhook type, order and product mapping; tagged, collected by `PlatformRegistry`), `Platform/WooCommercePlatform`, `Platform/ShopifyPlatform`; `Platform/CatalogImporterInterface` for API pulls (no implementation yet) |
 | Catalog | `Entity/EcommerceProduct(Repository)`, `Service/CatalogSync` (upsert, category fill-in, recalculation), `Service/ProductPayloadParser` |
 | Parsing | `Service/OrderPayloadParser`, `Service/StorefrontEventParser`, `Service/WooCommerceOrderMapper` |
 | Writing orders | `Service/EcommerceOrderTracker` (new orders; known orders go to `OrderManager::applyRefunds`), `Service/OrderManager` (edit, delete, refunds) |
@@ -87,7 +87,7 @@ rm -rf ../../var/cache/test   # the test container is not rebuilt automatically 
 ../../vendor/bin/phpunit -c ../plugins/EcommerceConnectorBundle/phpunit.xml.dist --testsuite Unit
 ```
 
-Run the whole suite before every deploy. 177 tests passed on `feature/1.7.0` against Mautic 7.2.2 (8 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
+Run the whole suite before every deploy. 193 tests passed on `feature/1.7.0` against Mautic 7.2.2 (8 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
 
 ## Mautic 7.2 compatibility
 

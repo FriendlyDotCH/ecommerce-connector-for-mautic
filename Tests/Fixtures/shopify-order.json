@@ -1,0 +1,162 @@
+{
+  "id": 5874316542161,
+  "admin_graphql_api_id": "gid://shopify/Order/5874316542161",
+  "name": "#1042",
+  "order_number": 1042,
+  "number": 42,
+  "email": "jane@example.com",
+  "contact_email": "jane@example.com",
+  "created_at": "2026-11-07T14:02:11+01:00",
+  "processed_at": "2026-11-07T14:02:10+01:00",
+  "updated_at": "2026-11-07T14:05:43+01:00",
+  "cancelled_at": null,
+  "cancel_reason": null,
+  "closed_at": null,
+  "currency": "EUR",
+  "presentment_currency": "CHF",
+  "financial_status": "paid",
+  "fulfillment_status": null,
+  "test": false,
+  "taxes_included": true,
+  "total_price": "52.40",
+  "total_price_set": {
+    "shop_money": {
+      "amount": "52.40",
+      "currency_code": "EUR"
+    },
+    "presentment_money": {
+      "amount": "49.80",
+      "currency_code": "CHF"
+    }
+  },
+  "subtotal_price": "47.40",
+  "subtotal_price_set": {
+    "shop_money": {
+      "amount": "47.40",
+      "currency_code": "EUR"
+    },
+    "presentment_money": {
+      "amount": "45.00",
+      "currency_code": "CHF"
+    }
+  },
+  "total_tax": "3.90",
+  "total_discounts": "0.00",
+  "landing_site": "/products/lavender-candle?utm_source=mautic&ct=YTozOntzOjY6InNvdXJjZSI7YToyOntpOjA7czo1OiJlbWFpbCI7aToxO2k6MTt9czo1OiJlbWFpbCI7aToxO3M6NDoic3RhdCI7czoyMjoiNmFlZjg5YmU1OWY3MDc4MjA0NzIzNiI7fQ%3D%3D",
+  "referring_site": "",
+  "customer": {
+    "id": 7380271792337,
+    "email": "jane@example.com",
+    "first_name": "Jane",
+    "last_name": "Muster"
+  },
+  "billing_address": {
+    "first_name": "Jane",
+    "last_name": "Muster",
+    "city": "Zürich",
+    "country_code": "CH"
+  },
+  "shipping_address": {
+    "first_name": "Jane",
+    "last_name": "Muster",
+    "city": "Basel",
+    "country_code": "CH"
+  },
+  "line_items": [
+    {
+      "id": 14120938045649,
+      "product_id": 8312345678001,
+      "variant_id": 45012345678001,
+      "title": "Lavender Candle",
+      "name": "Lavender Candle - 200g",
+      "variant_title": "200g",
+      "sku": "CND-LAV-200",
+      "quantity": 2,
+      "price": "13.20",
+      "price_set": {
+        "shop_money": {
+          "amount": "13.20",
+          "currency_code": "EUR"
+        },
+        "presentment_money": {
+          "amount": "12.50",
+          "currency_code": "CHF"
+        }
+      },
+      "total_discount": "0.00",
+      "tax_lines": [
+        {
+          "title": "MWST",
+          "rate": 0.081,
+          "price": "1.98",
+          "price_set": {
+            "shop_money": {
+              "amount": "1.98",
+              "currency_code": "EUR"
+            },
+            "presentment_money": {
+              "amount": "1.88",
+              "currency_code": "CHF"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 14120938078417,
+      "product_id": 8312345678002,
+      "variant_id": 45012345678002,
+      "title": "Reed Diffuser",
+      "name": "Reed Diffuser",
+      "variant_title": null,
+      "sku": "",
+      "quantity": 1,
+      "price": "21.00",
+      "price_set": {
+        "shop_money": {
+          "amount": "21.00",
+          "currency_code": "EUR"
+        },
+        "presentment_money": {
+          "amount": "20.00",
+          "currency_code": "CHF"
+        }
+      },
+      "total_discount": "0.00",
+      "tax_lines": [
+        {
+          "title": "MWST",
+          "rate": 0.081,
+          "price": "1.57",
+          "price_set": {
+            "shop_money": {
+              "amount": "1.57",
+              "currency_code": "EUR"
+            },
+            "presentment_money": {
+              "amount": "1.50",
+              "currency_code": "CHF"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "shipping_lines": [
+    {
+      "title": "Standard",
+      "price": "5.00",
+      "price_set": {
+        "shop_money": {
+          "amount": "5.00",
+          "currency_code": "EUR"
+        },
+        "presentment_money": {
+          "amount": "4.80",
+          "currency_code": "CHF"
+        }
+      }
+    }
+  ],
+  "refunds": []
+}

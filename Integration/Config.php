@@ -61,6 +61,19 @@ class Config
         return '' !== $secret ? $secret : null;
     }
 
+    /**
+     * The key Shopify signs webhooks with (shown under Settings > Notifications > Webhooks, or
+     * the app's client secret). Null when not set.
+     */
+    public function getShopifyWebhookSecret(): ?string
+    {
+        $integration = $this->getIntegrationObject();
+        $keys        = null !== $integration ? $integration->getKeys() : [];
+        $secret      = isset($keys['shopify_webhook_secret']) ? trim((string) $keys['shopify_webhook_secret']) : '';
+
+        return '' !== $secret ? $secret : null;
+    }
+
     public function isPageHitTrackingEnabled(): bool
     {
         return $this->getFeatureSetting('enable_page_hit_tracking', self::DEFAULT_ENABLE_PAGE_HIT_TRACKING);

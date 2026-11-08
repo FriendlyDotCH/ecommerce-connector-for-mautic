@@ -9,6 +9,7 @@ use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrder;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use MauticPlugin\EcommerceConnectorBundle\Platform\PlatformRegistry;
+use MauticPlugin\EcommerceConnectorBundle\Platform\ShopifyPlatform;
 use MauticPlugin\EcommerceConnectorBundle\Platform\StorePlatformInterface;
 use MauticPlugin\EcommerceConnectorBundle\Service\CatalogSync;
 use MauticPlugin\EcommerceConnectorBundle\Service\EcommerceOrderTracker;
@@ -177,14 +178,19 @@ class PublicController extends CommonController
         }
 
         $name = $adapter->getName();
-        if (!$config->isPublished() || null === ($secret = $config->getWebhookSecret())) {
+        if (!$config->isPublished() || null === ($secret = $adapter->getSigningSecret($config))) {
             $logger->warning(sprintf('%s webhook rejected: the integration is not published or has no webhook secret.', $name));
 
             return new Response('', Response::HTTP_NO_CONTENT);
         }
 
         if (!$adapter->isSignatureValid($request, $secret)) {
-            $logger->warning(sprintf('%s webhook rejected: missing or invalid signature. Use the plugin\'s webhook secret as the webhook secret in the shop.', $name));
+            $logger->warning(sprintf(
+                ShopifyPlatform::NAME === $name
+                    ? '%s webhook rejected: missing or invalid signature. Enter the key Shopify signs webhooks with (Settings > Notifications > Webhooks) as "Shopify webhook signing secret".'
+                    : '%s webhook rejected: missing or invalid signature. Use the plugin\'s webhook secret as the webhook secret in the shop.',
+                $name
+            ));
 
             return new Response('', Response::HTTP_NO_CONTENT);
         }
@@ -198,7 +204,7 @@ class PublicController extends CommonController
         }
 
         if (StorePlatformInterface::RESOURCE_PRODUCT === $resource) {
-            $product = $adapter->mapProduct($body);
+            $product = $adapter->mapProduct($body, $request);
             if (null !== $product) {
                 $catalogSync->upsert($name, $product);
             }
