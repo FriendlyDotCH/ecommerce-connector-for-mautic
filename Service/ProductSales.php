@@ -123,6 +123,20 @@ class ProductSales
         ));
     }
 
+    public function crossSellCategory(int $leadId): ?string
+    {
+        $column = $this->connection->quoteIdentifier(LeadCommerceFieldDefinition::CROSS_SELL_CATEGORY);
+
+        try {
+            $category = $this->connection->fetchOne('SELECT '.$column.' FROM '.MAUTIC_TABLE_PREFIX.'leads WHERE id = ?', [$leadId]);
+        } catch (\Doctrine\DBAL\Exception) {
+            // The field is created on Install/Upgrade Plugins.
+            return null;
+        }
+
+        return is_string($category) && '' !== $category ? $category : null;
+    }
+
     private const FOR_SALE = "(p.stock_status IS NULL OR p.stock_status <> 'outofstock') AND (p.status IS NULL OR p.status NOT IN (:hidden))";
 
     private function from(string $orderCondition = ''): string

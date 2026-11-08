@@ -229,6 +229,11 @@ class Config
     /**
      * Storefront events are off until switched on: they need tracking consent on the store.
      */
+    public function isCrossSellSegmentsEnabled(): bool
+    {
+        return $this->getFeatureSetting('create_cross_sell_segments', false);
+    }
+
     public function isStorefrontEventsEnabled(): bool
     {
         return $this->getFeatureSetting('enable_storefront_events', false);

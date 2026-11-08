@@ -331,6 +331,17 @@ Change the thresholds under **Lifecycle stages** on the plugin's Validation tab.
 
 Cancelled and fully refunded orders do not count; amounts are net of refunds. Contacts without counting orders have no stage or score.
 
+## Cross-sell
+
+The daily recalculation (`mautic:ecommerce:recalculate`) learns which product categories customers buy together, then gives each customer the category they are most likely to buy next:
+
+* **Cross-sell category**: a category the contact has not bought, from the strongest rule "customers who bought A also bought B". A rule needs at least 5 customers who bought both, and buying A must make B more likely than average (lift above 1). Among the contact's rules, the one with the highest share of A-buyers who also bought B wins.
+* **Cross-sell because of**: that A, for copy like "Because you bought {contactfield=ecommerce_cross_sell_from}".
+
+Customers count once per category, from paid orders, without fully refunded lines. After an order the contact is updated straight away with the last daily model, so someone who now bought the category loses the opportunity. Order lines need categories (sent by the shop, or taken from the catalog).
+
+One campaign covers every pair: a segment on **Cross-sell category** is not empty, an email with `{contactfield=ecommerce_cross_sell_category}` and `{ecommerce_products source="cross_sell"}` (best sellers in that category that the contact has not bought). With **Create cross-sell segments** on (Validation tab), the recalculation also creates one segment per category, "Cross-sell: Diffusers", up to 20 per run; they are never changed or removed afterwards, and Mautic's segment update cron fills them.
+
 ## Behaviours
 
 **Settings → Ecommerce behaviours** (requires the permission to manage custom fields) defines rolling purchase measures. Each behaviour keeps its own number contact field, for example `ecb_candle_spend_90d`, which you can use in segments, campaign conditions and email tokens like any contact field.
@@ -410,6 +421,7 @@ Alert emails can show the product: `{ecommerce_alert_product}`, `{ecommerce_aler
 
 | `source` | Products |
 |----------|----------|
+| `cross_sell` | Best sellers in the contact's cross-sell category that they have not bought (see Cross-sell) |
 | `recommended` (default) | Best sellers in the contact's favourite categories (from purchases and views) that they have not bought, topped up with overall best sellers |
 | `best_sellers` | Most units sold in the last 90 days, net of refunds |
 | `viewed` | The contact's recently viewed products |
@@ -597,6 +609,12 @@ This software is provided **as is**, without warranty of any kind, express or im
 You are solely responsible for how you deploy and use this plugin, including compliance with applicable laws and data protection obligations.
 
 ## Changelog
+
+### 1.8.1
+```
+* Added: Cross-sell category and Cross-sell because of fields from category co-purchase data, recalculated daily and after orders.
+* Added: Optional cross-sell segments, one per category; {ecommerce_products source="cross_sell"}.
+```
 
 ### 1.8.0
 ```

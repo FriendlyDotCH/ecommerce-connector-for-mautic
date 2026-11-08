@@ -228,6 +228,16 @@ class EcommerceConnectorIntegration extends AbstractIntegration
 
         // Storefront events.
         $builder->add(
+            'create_cross_sell_segments',
+            YesNoButtonGroupType::class,
+            [
+                'label' => 'mautic.plugin.ecommerce.create_cross_sell_segments',
+                'data'  => isset($data['create_cross_sell_segments']) && (bool) $data['create_cross_sell_segments'],
+                'attr'  => ['tooltip' => 'mautic.plugin.ecommerce.create_cross_sell_segments.tooltip'],
+            ]
+        );
+
+        $builder->add(
             'enable_storefront_events',
             YesNoButtonGroupType::class,
             [

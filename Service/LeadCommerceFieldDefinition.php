@@ -32,6 +32,12 @@ final class LeadCommerceFieldDefinition
 
     public const RFM_MONETARY = 'ecommerce_rfm_monetary';
 
+    /** The category this contact is most likely to buy next (see CrossSellCalculator). */
+    public const CROSS_SELL_CATEGORY = 'ecommerce_cross_sell_category';
+
+    /** The category they bought that points to it. */
+    public const CROSS_SELL_FROM = 'ecommerce_cross_sell_from';
+
     public const STAGE_NEW     = 'new';
     public const STAGE_ACTIVE  = 'active';
     public const STAGE_VIP     = 'vip';
@@ -111,6 +117,16 @@ final class LeadCommerceFieldDefinition
                 'label' => 'mautic.plugin.ecommerce.field.rfm_monetary',
                 'type'  => 'number',
                 'alias' => self::RFM_MONETARY,
+            ],
+            self::CROSS_SELL_CATEGORY => [
+                'label' => 'mautic.plugin.ecommerce.field.cross_sell_category',
+                'type'  => 'text',
+                'alias' => self::CROSS_SELL_CATEGORY,
+            ],
+            self::CROSS_SELL_FROM => [
+                'label' => 'mautic.plugin.ecommerce.field.cross_sell_from',
+                'type'  => 'text',
+                'alias' => self::CROSS_SELL_FROM,
             ],
         ];
     }

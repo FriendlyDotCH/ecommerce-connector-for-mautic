@@ -18,7 +18,7 @@ The branches are stacked; each builds on the previous one. All are pushed to `or
 | `feature/1.4.0` | 1.4.0 | Baseline from the gap analysis: order date, unit price, Places an order / Purchase history, behaviours, orders API, line items report, anonymize on delete, fixes |
 | `feature/1.5.0` | 1.5.0 | Phase 1: G1 to G5 |
 | `feature/1.6.0` | 1.6.0 | Phase 2: G6, G7, native WooCommerce order webhooks |
-| `feature/1.8.0` | 1.8.0 | Phase 4 so far: unique coupons (G13) |
+| `feature/1.8.0` | 1.8.1 | Unique coupons (G13), cross-sell groups (G12) |
 | `feature/1.7.0` | 1.7.1 | Phase 3: product catalog and catalog page, platform adapters, signed product endpoint, product alerts (G10), product blocks and tokens (G11) |
 
 Work continues on `feature/1.8.0` (branched from `feature/1.7.0`), which runs on Mautic 7.2.2 (see "Mautic 7.2 compatibility" below).
@@ -39,7 +39,8 @@ Work continues on `feature/1.8.0` (branched from `feature/1.7.0`), which runs on
 | G10 Stock and price triggers | Done (1.7.1) | Back in stock, price drop, low inventory decisions; changes detected on product upsert (`ProductChangeDetector`), queued in `ecommerce_product_changes`, fired by `mautic:ecommerce:product-alerts`; audience per decision (viewed / carted / bought within N days); once per contact, product and alert in 7 days (`ecommerce_product_alerts`) |
 | G11 Product content in emails | Done (1.7.1) | `{ecommerce_products source=recommended\|best_sellers\|viewed\|last_purchased}` written into the content before link tracking, so links are tracked; alert product tokens. Recommended = best sellers in the contact's categories not bought yet (no co-purchase model; that is G12) |
 | G13 Unique coupons | Done (1.8.0) | Issue coupon action (batch, `PendingEvent`; never passes without a coupon: shop down = retry in 15 min, refusal = retry hourly; Mautic retries without limit), code made in Mautic, created by the connector's signed `/wp-json/mautic-ecommerce/v1/coupon` (opt-in, timestamped); `ecommerce_coupons`; redeemed from the order's `coupons`; Coupon used condition; tokens. Not done: Shopify (needs an app) |
-| G12, G14 to G21 | Not started | G12 next |
+| G12 Cross-sell groups | Done (1.8.1) | `CrossSellCalculator`: category co-purchase by customer (support 5, lift > 1, best confidence); fields `ecommerce_cross_sell_category` / `_from`; model cached from the nightly run, contact rescored after orders; opt-in auto-segments (`CrossSellSegments`, created once, never changed); block source `cross_sell`. Product-level pairs not done (categories are more robust on small shops) |
+| G14 to G21 | Not started | G14 loyalty and G15 POS need client systems |
 
 Deliberately out of scope (from the gap analysis): checkout and payments, courses and communities, apps, affiliates, reviews, WhatsApp, Instagram capture, AI assistants.
 
@@ -91,7 +92,7 @@ rm -rf ../../var/cache/test   # the test container is not rebuilt automatically 
 ../../vendor/bin/phpunit -c ../plugins/EcommerceConnectorBundle/phpunit.xml.dist --testsuite Unit
 ```
 
-Run the whole suite before every deploy. 208 tests passed on `feature/1.8.0` against Mautic 7.2.2 (8 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
+Run the whole suite before every deploy. 212 tests passed on `feature/1.8.0` against Mautic 7.2.2 (8 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
 
 ## Mautic 7.2 compatibility
 
