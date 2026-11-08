@@ -22,6 +22,8 @@ final class ProductChange
         public readonly ?string $oldValue,
         public readonly ?string $newValue,
         public readonly EcommerceProduct $product,
+        /** When the change was detected: only interest shown before it counts. */
+        public readonly ?\DateTimeImmutable $detectedAt = null,
     ) {
     }
 }

@@ -18,7 +18,7 @@ The branches are stacked; each builds on the previous one. All are pushed to `or
 | `feature/1.4.0` | 1.4.0 | Baseline from the gap analysis: order date, unit price, Places an order / Purchase history, behaviours, orders API, line items report, anonymize on delete, fixes |
 | `feature/1.5.0` | 1.5.0 | Phase 1: G1 to G5 |
 | `feature/1.6.0` | 1.6.0 | Phase 2: G6, G7, native WooCommerce order webhooks |
-| `feature/1.8.0` | 1.8.2 | Unique coupons (G13), cross-sell groups (G12), order items on the contact tab |
+| `feature/1.8.0` | 1.8.3 | Unique coupons (G13), cross-sell groups (G12), order items and shopping activity on the contact |
 | `feature/1.7.0` | 1.7.1 | Phase 3: product catalog and catalog page, platform adapters, signed product endpoint, product alerts (G10), product blocks and tokens (G11) |
 
 Work continues on `feature/1.8.0` (branched from `feature/1.7.0`), which runs on Mautic 7.2.2 (see "Mautic 7.2 compatibility" below).
@@ -64,6 +64,7 @@ Agreed direction (7 November 2026): Mautic stays platform-neutral. Each shop pla
 | Computed contact fields | `Service/CommerceRecalculator` is the single entry point. It runs `CommerceMetricsCalculator` (lifetime value, order count, last order, timing), `LifecycleCalculator` (stage, RFM) and `BehaviourCalculator`. All write in bulk through `LeadColumnWriter`. |
 | Queries | `Service/PurchaseHistoryQuery` (spend, qty, orders per contact; condition and behaviours), `Service/EcommerceAnalytics` (widgets) |
 | Campaigns | `EventSubscriber/CampaignSubscriber` (all decisions and conditions), `Service/AbandonmentDetector` |
+| Contact page | `EventSubscriber/ContactProfileTabSubscriber` (eCommerce tab), `EventSubscriber/LeadSubscriber` (history), `Service/ShoppingActivity` (condenses storefront events: one entry per cart session, status open / abandoned / ordered) |
 | Currency | `Service/ExchangeRateProvider`, `EcbRateFetcher`, `BaseCurrencyRebaser` |
 | Settings | `Integration/Config` (getters with defaults), `Integration/EcommerceConnectorIntegration` (form), `Resources/views/Integration/config_form.html.twig` (renders each field by name: add new fields there) |
 

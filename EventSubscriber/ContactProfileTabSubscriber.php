@@ -15,6 +15,7 @@ use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use MauticPlugin\EcommerceConnectorBundle\Service\CurrencyFormatter;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldDefinition;
 use MauticPlugin\EcommerceConnectorBundle\Service\LocationFormatter;
+use MauticPlugin\EcommerceConnectorBundle\Service\ShoppingActivity;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Routing\RouterInterface;
 
@@ -30,6 +31,7 @@ final class ContactProfileTabSubscriber implements EventSubscriberInterface
         private LocationFormatter $locationFormatter,
         private RouterInterface $router,
         private EcommerceBehaviourRepository $behaviourRepository,
+        private ShoppingActivity $shoppingActivity,
     ) {
     }
 
@@ -78,6 +80,8 @@ final class ContactProfileTabSubscriber implements EventSubscriberInterface
                     ? $this->currencyFormatter->format($defaultCurrency, $stats['last_order_total'])
                     : null,
                 'behaviours'             => $this->formatBehaviours($lead, $defaultCurrency),
+                'activity'               => $this->formatActivity($leadId),
+                'activityRetentionDays'  => $this->config->getEventRetentionDays(),
                 'timing'                 => [
                     'daysSinceLastOrder'   => $lead->getFieldValue(LeadCommerceFieldDefinition::DAYS_SINCE_LAST_ORDER),
                     'avgDaysBetweenOrders' => $lead->getFieldValue(LeadCommerceFieldDefinition::AVG_DAYS_BETWEEN_ORDERS),
@@ -173,5 +177,42 @@ final class ContactProfileTabSubscriber implements EventSubscriberInterface
         }
 
         return $formatted;
+    }
+
+    /** Rows shown under Shopping activity; older entries stay in the timeline and the API. */
+    private const ACTIVITY_ROWS = 20;
+
+    /**
+     * @return list<array{kind: string, at: \DateTimeImmutable, products: list<string>, value: ?string, status: ?string}>
+     */
+    private function formatActivity(int $leadId): array
+    {
+        $rows = [];
+        foreach (array_slice($this->shoppingActivity->forLead($leadId), 0, self::ACTIVITY_ROWS) as $entry) {
+            $event    = $entry['event'];
+            $currency = $event->getCurrency() ?: $this->config->getDefaultCurrency();
+
+            if (ShoppingActivity::KIND_VIEW === $entry['kind']) {
+                $products = array_filter([(string) $event->getProductName()]);
+                $amount   = $event->getPrice();
+            } else {
+                $products = [];
+                foreach ($event->getCartItems() ?? [] as $item) {
+                    $name       = (string) ($item['item_name'] ?? $item['name'] ?? $item['item_id'] ?? '');
+                    $products[] = isset($item['qty']) ? $item['qty'].' × '.$name : $name;
+                }
+                $amount = $event->getCartValue();
+            }
+
+            $rows[] = [
+                'kind'     => $entry['kind'],
+                'at'       => $entry['at'],
+                'products' => array_values($products),
+                'value'    => null !== $amount && '' !== $amount ? $this->currencyFormatter->format($currency, $amount) : null,
+                'status'   => $entry['status'],
+            ];
+        }
+
+        return $rows;
     }
 }

@@ -1,0 +1,17 @@
+{# Cart, checkout and abandonment entries in the contact timeline: the cart contents and its link. #}
+{% if event.extra.items is not empty %}
+    <table class="table table-condensed mb-xs">
+        <tbody>
+        {% for item in event.extra.items %}
+            <tr>
+                <td style="width: 1%; white-space: nowrap;">{% if item.qty is not null %}{{ item.qty }} &times;{% endif %}</td>
+                <td>{{ item.name|purify }}</td>
+                <td class="text-right">{{ item.price ? item.price|purify : '' }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% if event.extra.cartUrl %}
+    <a href="{{ event.extra.cartUrl|e('html_attr') }}" target="_blank" rel="noopener noreferrer">{{ 'mautic.plugin.ecommerce.timeline.cart_link'|trans }}</a>
+{% endif %}

@@ -49,6 +49,22 @@ class EcommerceEventRepository extends CommonRepository
     }
 
     /**
+     * All of the contact's storefront events, oldest first (retention keeps this short).
+     *
+     * @return list<EcommerceEvent>
+     */
+    public function findAllForLead(int $leadId): array
+    {
+        return $this->createQueryBuilder('ev')
+            ->where('IDENTITY(ev.lead) = :leadId')
+            ->setParameter('leadId', $leadId)
+            ->orderBy('ev.occurredAt', 'ASC')
+            ->addOrderBy('ev.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * @return int number of deleted events
      */
     public function deleteOlderThan(\DateTimeInterface $before, bool $dryRun = false): int

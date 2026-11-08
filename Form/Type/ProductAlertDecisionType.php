@@ -44,6 +44,16 @@ class ProductAlertDecisionType extends AbstractType
             'constraints' => [new Range(['min' => 1, 'max' => ProductInterest::MAX_DAYS])],
         ]);
 
+        // A single view is often just browsing; only applies when "viewed" is ticked.
+        $builder->add('min_views', IntegerType::class, [
+            'label'       => 'mautic.plugin.ecommerce.campaign.alert.min_views',
+            'label_attr'  => ['class' => 'control-label'],
+            'required'    => false,
+            'empty_data'  => '1',
+            'attr'        => ['class' => 'form-control', 'min' => 1, 'max' => 50, 'placeholder' => '1', 'tooltip' => 'mautic.plugin.ecommerce.campaign.alert.min_views.tooltip'],
+            'constraints' => [new Range(['min' => 1, 'max' => 50])],
+        ]);
+
         if (ProductAlertSubscriber::DECISION_PRICE_DROP === $options['alert']) {
             $builder->add('min_drop_percent', NumberType::class, [
                 'label'       => 'mautic.plugin.ecommerce.campaign.alert.min_drop_percent',

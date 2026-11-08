@@ -9,6 +9,9 @@ use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Event\LeadTimelineEvent;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
 use MauticPlugin\EcommerceConnectorBundle\EventSubscriber\LeadSubscriber;
+use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
+use MauticPlugin\EcommerceConnectorBundle\Service\CurrencyFormatter;
+use MauticPlugin\EcommerceConnectorBundle\Service\ShoppingActivity;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Routing\RouterInterface;
@@ -72,7 +75,7 @@ class LeadSubscriberTest extends TestCase
 
         $event = new LeadTimelineEvent($lead);
 
-        $subscriber = new LeadSubscriber($this->orderRepository, $this->translator, $this->router);
+        $subscriber = new LeadSubscriber($this->orderRepository, $this->translator, $this->router, $this->createMock(ShoppingActivity::class), new CurrencyFormatter(), $this->createMock(Config::class));
         $subscriber->onTimelineGenerate($event);
 
         $events = $event->getEvents();

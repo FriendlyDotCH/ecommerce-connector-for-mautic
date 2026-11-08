@@ -98,7 +98,10 @@ class ProductAlertSubscriber implements EventSubscriberInterface
             return false;
         }
 
-        $latest = $this->interest->latestInterest($leadId, $change->product, $types, $days);
+        $minViews = max(1, (int) ($config['min_views'] ?? 1));
+
+        // Interest shown after the change (a view of the restocked product) does not count.
+        $latest = $this->interest->latestInterest($leadId, $change->product, $types, $days, $minViews, $change->detectedAt);
         if (null === $latest) {
             return false;
         }

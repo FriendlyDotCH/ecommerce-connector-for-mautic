@@ -84,6 +84,40 @@ class ProductAlertFunctionalTest extends MauticMysqlTestCase
         Assert::assertSame(['back_in_stock' => ['changes' => 1, 'alerted' => 0]], static::getContainer()->get(ProductAlertDispatcher::class)->run());
     }
 
+    public function testMinimumViewsAndInterestAfterTheChange(): void
+    {
+        $once    = $this->createContact('viewed-once@example.com');
+        $twice   = $this->createContact('viewed-twice@example.com');
+        $carter  = $this->createContact('carted-once@example.com');
+        $latecomer = $this->createContact('viewed-after-restock@example.com');
+
+        $this->createTagCampaign(
+            ProductAlertSubscriber::DECISION_BACK_IN_STOCK,
+            ['days' => 30, 'interests' => ['viewed', 'carted'], 'min_views' => 2],
+            'restocked',
+            [$once, $twice, $carter, $latecomer]
+        );
+
+        $this->pushProduct(['stock_status' => 'outofstock', 'stock_quantity' => 0]);
+        $this->sendEvent('viewed-once@example.com', 'viewed_product', 'CND-1', '-2 days');
+        $this->sendEvent('viewed-twice@example.com', 'viewed_product', 'CND-1', '-3 days');
+        $this->sendEvent('viewed-twice@example.com', 'viewed_product', 'CND-1', '-1 day');
+        $this->sendEvent('carted-once@example.com', 'added_to_cart', 'CND-1', '-2 days');
+        $this->sendEvent('viewed-after-restock@example.com', 'viewed_product', 'CND-1', '-4 days');
+
+        // Restocked; then the latecomer views it again before the alerts run (2 views, but one is after).
+        $this->pushProduct(['stock_status' => 'instock', 'stock_quantity' => 8]);
+        $this->sendEvent('viewed-after-restock@example.com', 'viewed_product', 'CND-1', 'now');
+
+        $stats = static::getContainer()->get(ProductAlertDispatcher::class)->run();
+
+        Assert::assertSame(['back_in_stock' => ['changes' => 1, 'alerted' => 2]], $stats);
+        Assert::assertSame(['restocked'], $this->tagsOf($twice), 'Two views meet the minimum.');
+        Assert::assertSame(['restocked'], $this->tagsOf($carter), 'A cart counts whatever the minimum views.');
+        Assert::assertSame([], $this->tagsOf($once), 'One view is below the minimum.');
+        Assert::assertSame([], $this->tagsOf($latecomer), 'A view after the restock does not count.');
+    }
+
     public function testPriceDropAndLowStockThresholds(): void
     {
         $buyer  = $this->createContact('buyer@example.com');

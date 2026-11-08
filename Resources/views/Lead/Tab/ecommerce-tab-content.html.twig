@@ -236,4 +236,44 @@
             </div>
         {% endfor %}
     {% endif %}
+    {# Storefront activity: product views, carts (one row per cart, latest contents) and checkouts. #}
+    {% if activity is defined %}
+        <h5 class="fw-sb mb-xs mt-lg">{{ 'mautic.plugin.ecommerce.activity.title'|trans }}</h5>
+        <p class="text-secondary small mb-sm">{{ 'mautic.plugin.ecommerce.activity.intro'|trans({'%days%': activityRetentionDays}) }}</p>
+        {% if activity is empty %}
+            <p class="text-secondary ecommerce-activity-empty">{{ 'mautic.plugin.ecommerce.activity.empty'|trans }}</p>
+        {% else %}
+            <div class="table-responsive">
+                <table class="table table-condensed ecommerce-activity">
+                    <thead>
+                    <tr>
+                        <th>{{ 'mautic.plugin.ecommerce.activity.type'|trans }}</th>
+                        <th>{{ 'mautic.plugin.ecommerce.activity.products'|trans }}</th>
+                        <th class="text-right">{{ 'mautic.plugin.ecommerce.activity.value'|trans }}</th>
+                        <th>{{ 'mautic.plugin.ecommerce.activity.status'|trans }}</th>
+                        <th>{{ 'mautic.plugin.ecommerce.tab.date'|trans }}</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for row in activity %}
+                        <tr class="ecommerce-activity-row ecommerce-activity-{{ row.kind }}">
+                            <td>{{ ('mautic.plugin.ecommerce.timeline.' ~ row.kind)|trans }}</td>
+                            <td>
+                                {% for product in row.products %}<div>{{ product|purify }}</div>{% else %}&mdash;{% endfor %}
+                            </td>
+                            <td class="text-right">{{ row.value ? row.value|purify : '' }}</td>
+                            <td>
+                                {% if row.status %}
+                                    {% set statusClass = {'abandoned': 'label-warning', 'ordered': 'label-success', 'open': 'label-default'}[row.status] %}
+                                    <span class="label {{ statusClass }}">{{ ('mautic.plugin.ecommerce.activity.status.' ~ row.status)|trans }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ dateToText(row.at, 'UTC', 'Y-m-d H:i:s', true) }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    {% endif %}
 </div>

@@ -405,7 +405,7 @@ Shops with native webhooks can feed the catalog without a connector; see below.
 
 ### Product alerts
 
-Three campaign decisions fire on catalog changes: **Product back in stock**, **Product price drop** (by at least a set percentage, default 10 %) and **Product low inventory** (stock falls from above a set quantity to it or below, default 5; needs stock tracking in the shop). Each decision chooses its audience: contacts who viewed the product, had it in a cart or checkout, and/or bought it, within the last N days (default 30, up to 365), optionally only for some categories or products. Contacts who viewed or carted the product and bought it since are left out. A contact gets the same alert for the same product at most once in 7 days.
+Three campaign decisions fire on catalog changes: **Product back in stock**, **Product price drop** (by at least a set percentage, default 10 %) and **Product low inventory** (stock falls from above a set quantity to it or below, default 5; needs stock tracking in the shop). Each decision chooses its audience: contacts who viewed the product, had it in a cart or checkout, and/or bought it, within the last N days (default 30, up to 365), optionally only for some categories or products. Contacts who viewed or carted the product and bought it since are left out. A contact gets the same alert for the same product at most once in 7 days. **Viewed at least (times)** (default 1) leaves out one-off browsing: views only count from that many views in the period, while carts and purchases always count. Only interest shown before the change counts, so someone who views the product after it is back in stock (or cheaper) is not alerted about it.
 
 Every product update is compared with the stored product (older updates arriving late, new products and drafts are ignored); changes wait for the alerts command, which only looks at members of published campaigns using the matching decision. Run it from cron:
 
@@ -503,6 +503,8 @@ mt('send', 'pageview', {
 
 `GET /api/contacts/{id}/ecommerce/events` lists a contact's events.
 
+On the contact, the eCommerce tab lists the latest 20 under **Shopping activity** (views, carts and checkouts, with products, value and status: open, abandoned or ordered). The contact history shows carts, checkouts and abandonments, but not product views, so browsing does not crowd out emails and orders. Changes to the same cart within the abandonment delay appear once, with the latest contents; the history filter can hide each of the three types.
+
 ### Abandonment campaigns
 
 Campaign decisions for storefront events, each with optional filters for a minimum value (cart total, or product price for views), categories and products:
@@ -519,6 +521,11 @@ Abandonments fire once per event and need the detector in cron, every 5 to 15 mi
 ```
 
 Events older than the delay plus 48 hours are skipped, so a first run sends nothing about old carts.
+
+Two campaign settings matter for reminders that should go out every time a cart is abandoned:
+
+* Send the reminder as a **transactional** email (in the Send email action). Mautic sends a marketing email only once per contact.
+* Mautic runs each campaign step once per round. Tick **Allow contacts to restart the campaign** and end each path with **Change campaigns → add to this campaign** (Mautic requires a delay of at least 30 minutes; one day keeps it to one reminder a day). That starts a new round, so the next abandoned cart fires the decision again.
 
 The condition **No order within** (N hours) stops a follow-up once the contact has bought, for example: Abandons cart → wait 1 day → No order within 24 hours → send the reminder.
 
@@ -609,6 +616,14 @@ This software is provided **as is**, without warranty of any kind, express or im
 You are solely responsible for how you deploy and use this plugin, including compliance with applicable laws and data protection obligations.
 
 ## Changelog
+
+### 1.8.3
+```
+* Added: Viewed at least (times) on the product alert decisions, to leave out one-off browsing.
+* Fixed: Product alerts only count interest shown before the stock or price change.
+* Added: Shopping activity on the contact's eCommerce tab: product views, carts and checkouts with products, value and status.
+* Added: Carts, checkouts and abandonments in the contact history (one entry per cart, with its contents and restore link); product views stay out.
+```
 
 ### 1.8.2
 ```

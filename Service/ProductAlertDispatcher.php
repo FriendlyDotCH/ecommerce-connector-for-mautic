@@ -50,7 +50,8 @@ class ProductAlertDispatcher
                     continue;
                 }
 
-                foreach ($this->interest->campaignCandidates($product, $decision) as $leadId) {
+                $detectedAt = isset($row['detected_at']) ? new \DateTimeImmutable((string) $row['detected_at'], new \DateTimeZone('UTC')) : null;
+                foreach ($this->interest->campaignCandidates($product, $decision, $detectedAt) as $leadId) {
                     if ($this->alertContact($leadId, $decision, $row, $product)) {
                         ++$stats[$type]['alerted'];
                     }
@@ -75,7 +76,10 @@ class ProductAlertDispatcher
             return false;
         }
 
-        $change = new ProductChange($row['id'], $row['store'], $row['external_id'], $row['change_type'], $row['old_value'], $row['new_value'], $product);
+        $change = new ProductChange(
+            $row['id'], $row['store'], $row['external_id'], $row['change_type'], $row['old_value'], $row['new_value'], $product,
+            isset($row['detected_at']) ? new \DateTimeImmutable((string) $row['detected_at'], new \DateTimeZone('UTC')) : null
+        );
 
         // Recorded before the run, so the alert email tokens find the product.
         $this->store->recordAlert($leadId, $change, $row['change_type']);

@@ -14,6 +14,7 @@ use MauticPlugin\EcommerceConnectorBundle\EventSubscriber\ContactProfileTabSubsc
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use MauticPlugin\EcommerceConnectorBundle\Service\CurrencyFormatter;
 use MauticPlugin\EcommerceConnectorBundle\Service\LocationFormatter;
+use MauticPlugin\EcommerceConnectorBundle\Service\ShoppingActivity;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Routing\RouterInterface;
@@ -55,7 +56,8 @@ class ContactProfileTabSubscriberTest extends TestCase
             $this->currencyFormatter,
             $this->locationFormatter,
             $this->router,
-            $this->behaviourRepository
+            $this->behaviourRepository,
+            $this->createMock(ShoppingActivity::class)
         );
     }
 
