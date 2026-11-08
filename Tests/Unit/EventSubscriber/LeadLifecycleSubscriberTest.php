@@ -7,6 +7,7 @@ namespace MauticPlugin\EcommerceConnectorBundle\Tests\Unit\EventSubscriber;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Event\LeadEvent;
 use Mautic\LeadBundle\Event\LeadMergeEvent;
+use MauticPlugin\EcommerceConnectorBundle\Coupon\CouponStore;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceEventRepository;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrderRepository;
 use MauticPlugin\EcommerceConnectorBundle\EventSubscriber\LeadLifecycleSubscriber;
@@ -46,7 +47,7 @@ class LeadLifecycleSubscriberTest extends TestCase
             ->method('deleteByLeadId')
             ->with(42);
 
-        $subscriber = new LeadLifecycleSubscriber($this->orderRepository, $this->fieldUpdater, $this->config, $this->eventRepository, $this->createMock(ProductAlertStore::class));
+        $subscriber = new LeadLifecycleSubscriber($this->orderRepository, $this->fieldUpdater, $this->config, $this->eventRepository, $this->createMock(ProductAlertStore::class), $this->createMock(CouponStore::class));
         $subscriber->onLeadPreDelete(new LeadEvent($lead));
     }
 
@@ -59,7 +60,7 @@ class LeadLifecycleSubscriberTest extends TestCase
         $this->orderRepository->expects($this->once())->method('anonymizeByLeadId')->with(42);
         $this->orderRepository->expects($this->never())->method('deleteByLeadId');
 
-        $subscriber = new LeadLifecycleSubscriber($this->orderRepository, $this->fieldUpdater, $this->config, $this->eventRepository, $this->createMock(ProductAlertStore::class));
+        $subscriber = new LeadLifecycleSubscriber($this->orderRepository, $this->fieldUpdater, $this->config, $this->eventRepository, $this->createMock(ProductAlertStore::class), $this->createMock(CouponStore::class));
         $subscriber->onLeadPreDelete(new LeadEvent($lead));
     }
 
@@ -67,7 +68,7 @@ class LeadLifecycleSubscriberTest extends TestCase
     {
         $this->orderRepository->expects($this->never())->method('deleteByLeadId');
 
-        $subscriber = new LeadLifecycleSubscriber($this->orderRepository, $this->fieldUpdater, $this->config, $this->eventRepository, $this->createMock(ProductAlertStore::class));
+        $subscriber = new LeadLifecycleSubscriber($this->orderRepository, $this->fieldUpdater, $this->config, $this->eventRepository, $this->createMock(ProductAlertStore::class), $this->createMock(CouponStore::class));
         $subscriber->onLeadPreDelete(new LeadEvent(new Lead()));
     }
 
@@ -88,7 +89,7 @@ class LeadLifecycleSubscriberTest extends TestCase
             ->method('syncForLead')
             ->with($victor);
 
-        $subscriber = new LeadLifecycleSubscriber($this->orderRepository, $this->fieldUpdater, $this->config, $this->eventRepository, $this->createMock(ProductAlertStore::class));
+        $subscriber = new LeadLifecycleSubscriber($this->orderRepository, $this->fieldUpdater, $this->config, $this->eventRepository, $this->createMock(ProductAlertStore::class), $this->createMock(CouponStore::class));
         $subscriber->onLeadMerge(new LeadMergeEvent($victor, $loser));
     }
 }

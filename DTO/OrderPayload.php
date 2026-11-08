@@ -9,6 +9,7 @@ final readonly class OrderPayload
     /**
      * @param array<string, mixed>|null $clickthrough
      * @param list<OrderItemPayload>    $items
+     * @param list<string>              $coupons coupon codes used on the order
      */
     public function __construct(
         public string $orderId,
@@ -23,6 +24,7 @@ final readonly class OrderPayload
         /** One of EcommerceOrder::STATUSES, or null when the sender did not say. */
         public ?string $status = null,
         public ?string $refundedTotal = null,
+        public array $coupons = [],
     ) {
     }
 }

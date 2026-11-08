@@ -18,9 +18,10 @@ The branches are stacked; each builds on the previous one. All are pushed to `or
 | `feature/1.4.0` | 1.4.0 | Baseline from the gap analysis: order date, unit price, Places an order / Purchase history, behaviours, orders API, line items report, anonymize on delete, fixes |
 | `feature/1.5.0` | 1.5.0 | Phase 1: G1 to G5 |
 | `feature/1.6.0` | 1.6.0 | Phase 2: G6, G7, native WooCommerce order webhooks |
+| `feature/1.8.0` | 1.8.0 | Phase 4 so far: unique coupons (G13) |
 | `feature/1.7.0` | 1.7.1 | Phase 3: product catalog and catalog page, platform adapters, signed product endpoint, product alerts (G10), product blocks and tokens (G11) |
 
-Work continues on `feature/1.7.0`, which runs on Mautic 7.2.2 (see "Mautic 7.2 compatibility" below).
+Work continues on `feature/1.8.0` (branched from `feature/1.7.0`), which runs on Mautic 7.2.2 (see "Mautic 7.2 compatibility" below).
 
 ### Roadmap status
 
@@ -37,7 +38,8 @@ Work continues on `feature/1.7.0`, which runs on Mautic 7.2.2 (see "Mautic 7.2 c
 | G9 Product catalog | Partly (1.7.0) | Catalog table, WooCommerce and Shopify product webhooks, signed `/ecommerce/product`, categories filled in on order lines. Catalog page (Components → Shop catalog) done in 1.7.1. Not done: catalog API, Magento. |
 | G10 Stock and price triggers | Done (1.7.1) | Back in stock, price drop, low inventory decisions; changes detected on product upsert (`ProductChangeDetector`), queued in `ecommerce_product_changes`, fired by `mautic:ecommerce:product-alerts`; audience per decision (viewed / carted / bought within N days); once per contact, product and alert in 7 days (`ecommerce_product_alerts`) |
 | G11 Product content in emails | Done (1.7.1) | `{ecommerce_products source=recommended\|best_sellers\|viewed\|last_purchased}` written into the content before link tracking, so links are tracked; alert product tokens. Recommended = best sellers in the contact's categories not bought yet (no co-purchase model; that is G12) |
-| G12 to G21 | Not started | Phases 3 to 5 |
+| G13 Unique coupons | Done (1.8.0) | Issue coupon action (batch, `PendingEvent`; never passes without a coupon: shop down = retry in 15 min, refusal = retry hourly; Mautic retries without limit), code made in Mautic, created by the connector's signed `/wp-json/mautic-ecommerce/v1/coupon` (opt-in, timestamped); `ecommerce_coupons`; redeemed from the order's `coupons`; Coupon used condition; tokens. Not done: Shopify (needs an app) |
+| G12, G14 to G21 | Not started | G12 next |
 
 Deliberately out of scope (from the gap analysis): checkout and payments, courses and communities, apps, affiliates, reviews, WhatsApp, Instagram capture, AI assistants.
 
@@ -45,7 +47,7 @@ Deliberately out of scope (from the gap analysis): checkout and payments, course
 
 Agreed direction (7 November 2026): Mautic stays platform-neutral. Each shop platform gets a native-webhook adapter in Mautic (`Platform/`, WooCommerce done) for zero-install setups, plus a thin store connector that sends the standard formats to `/ecommerce/order`, `/ecommerce/event` and `/ecommerce/product`. Target platforms: WooCommerce, Shopify, Magento. The REST import from Mautic (option B) is dropped in favour of the connector pushing the catalog and order history.
 
-1. **WooCommerce connector plugin (G8)**, repository [`jos0405/mautic-ecommerce-woocommerce`](https://github.com/jos0405/mautic-ecommerce-woocommerce), 0.3.0 (pushed 8 November 2026): orders, refunds with per-line refunded quantity, cancellations, products, storefront events for known shoppers with consent (WP Consent API or "always"; DNT/GPC honoured), restore-cart links, WP-CLI sync and test. 0.3.0 added Test connection (uses `/ecommerce/ping`), Sync now in the background, guests identified from Mautic email links (`ct`, resolved by tracking hash here) and integration tests (wp-phpunit with WooCommerce, 27 tests, own database `woo_test`). Orders carry the email link (`ct`) for attribution. 0.4.0 (8 November 2026, not pushed yet) adds a weekly full product sync as a safety net for missed product updates (32 tests).
+1. **WooCommerce connector plugin (G8)**, repository [`jos0405/mautic-ecommerce-woocommerce`](https://github.com/jos0405/mautic-ecommerce-woocommerce), 0.3.0 (pushed 8 November 2026): orders, refunds with per-line refunded quantity, cancellations, products, storefront events for known shoppers with consent (WP Consent API or "always"; DNT/GPC honoured), restore-cart links, WP-CLI sync and test. 0.3.0 added Test connection (uses `/ecommerce/ping`), Sync now in the background, guests identified from Mautic email links (`ct`, resolved by tracking hash here) and integration tests (wp-phpunit with WooCommerce, 27 tests, own database `woo_test`). Orders carry the email link (`ct`) for attribution. 0.4.0 (8 November 2026, not pushed yet) adds a weekly full product sync as a safety net for missed product updates; 0.5.0 the signed coupon endpoint for G13 and coupon codes on orders (36 tests).
 2. **Shopify adapter**: done (8 November 2026). `Platform/ShopifyPlatform` and `Service/ShopifyOrderMapper`: `X-Shopify-Hmac-Sha256` with its own key (`shopify_webhook_secret`, an optional key field added in `appendToForm('keys')`), orders/create and orders/updated with refunds inside, products, category from product type or taxonomy, `ct` from `landing_site`. Fixtures in `Tests/Fixtures/shopify-*.json` are written from Shopify's documented payloads, not captured from a store: check them against a real development store before release. Open: a Shopify app for storefront events (customer events / web pixels), and an API import of the catalog and past orders (`CatalogImporterInterface`). **Magento** needs an extension (no native webhooks in Open Source).
 3. **Phase 3 done** (8 November 2026) apart from G12 (cross-sell groups from co-purchase data), which the roadmap puts in Phase 3 too but rates Medium. Add `mautic:ecommerce:product-alerts` to cron on each install. Open: a visual product block in the GrapesJS builder (today the token is typed or picked from the token list).
 
@@ -89,7 +91,7 @@ rm -rf ../../var/cache/test   # the test container is not rebuilt automatically 
 ../../vendor/bin/phpunit -c ../plugins/EcommerceConnectorBundle/phpunit.xml.dist --testsuite Unit
 ```
 
-Run the whole suite before every deploy. 203 tests passed on `feature/1.7.0` against Mautic 7.2.2 (8 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
+Run the whole suite before every deploy. 208 tests passed on `feature/1.8.0` against Mautic 7.2.2 (8 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
 
 ## Mautic 7.2 compatibility
 

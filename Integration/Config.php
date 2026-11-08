@@ -74,6 +74,19 @@ class Config
         return '' !== $secret ? $secret : null;
     }
 
+    /**
+     * The shop's coupon endpoint (WooCommerce connector: https://shop/wp-json/mautic-ecommerce/v1/coupon).
+     * Only http(s) URLs; null when not set.
+     */
+    public function getCouponUrl(): ?string
+    {
+        $integration = $this->getIntegrationObject();
+        $keys        = null !== $integration ? $integration->getKeys() : [];
+        $url         = isset($keys['coupon_url']) ? trim((string) $keys['coupon_url']) : '';
+
+        return '' !== $url && 1 === preg_match('#^https?://[^\s/]+#i', $url) && false !== filter_var($url, FILTER_VALIDATE_URL) ? $url : null;
+    }
+
     public function isPageHitTrackingEnabled(): bool
     {
         return $this->getFeatureSetting('enable_page_hit_tracking', self::DEFAULT_ENABLE_PAGE_HIT_TRACKING);

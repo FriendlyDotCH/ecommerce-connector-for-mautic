@@ -20,4 +20,9 @@ final class EcommerceEvents
     public const ON_CAMPAIGN_TRIGGER_DECISION = 'ecommerce.on_campaign_trigger_decision';
 
     public const ON_CAMPAIGN_TRIGGER_CONDITION = 'ecommerce.on_campaign_trigger_condition';
+
+    /**
+     * Batch campaign actions (PendingEvent), e.g. issue coupon.
+     */
+    public const ON_CAMPAIGN_BATCH_ACTION = 'ecommerce.on_campaign_batch_action';
 }

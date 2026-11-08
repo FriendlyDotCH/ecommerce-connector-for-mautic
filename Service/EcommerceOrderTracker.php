@@ -18,6 +18,7 @@ use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceProductRepository;
 use MauticPlugin\EcommerceConnectorBundle\EcommerceEvents;
 use MauticPlugin\EcommerceConnectorBundle\Event\EcommerceOrderEvent;
 use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
+use MauticPlugin\EcommerceConnectorBundle\Coupon\CouponStore;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
@@ -34,6 +35,7 @@ class EcommerceOrderTracker
         private CampaignAttributor $campaignAttributor,
         private ExchangeRateProvider $exchangeRateProvider,
         private EcommerceProductRepository $productRepository,
+        private CouponStore $couponStore,
     ) {
     }
 
@@ -94,6 +96,10 @@ class EcommerceOrderTracker
 
             return null;
         }
+
+        // Coupons issued from Mautic and used on this order. Matched by code and store, not by
+        // contact: a coupon is limited to its email in the shop already.
+        $this->couponStore->redeem(strtolower($payload->orderSource), $payload->coupons, (int) $order->getId());
 
         if (null !== $lead) {
             $this->leadCommerceFieldUpdater->syncForLead($lead);

@@ -175,7 +175,34 @@ class OrderPayloadParser
             $orderDate,
             $status,
             $refundedTotal,
+            self::parseCoupons($input['coupons'] ?? null),
         );
+    }
+
+    /**
+     * Coupon codes used on the order: a list, or a comma-separated string. At most 20.
+     *
+     * @return list<string>
+     */
+    public static function parseCoupons(mixed $coupons): array
+    {
+        if (is_string($coupons)) {
+            $coupons = explode(',', $coupons);
+        }
+        if (!is_array($coupons)) {
+            return [];
+        }
+
+        $codes = [];
+        foreach ($coupons as $coupon) {
+            $code = is_array($coupon) ? ($coupon['code'] ?? null) : $coupon;
+            $code = is_scalar($code) ? trim((string) $code) : '';
+            if ('' !== $code && mb_strlen($code) <= 64) {
+                $codes[mb_strtolower($code)] ??= $code;
+            }
+        }
+
+        return array_slice(array_values($codes), 0, 20);
     }
 
     private function parseOrderDate(mixed $value): ?\DateTimeImmutable

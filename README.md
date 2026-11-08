@@ -206,6 +206,7 @@ The previous path `/mtc/ecommerce` is still accepted as a legacy alias to the sa
 | `status` | No | `paid` (default), `partially_refunded`, `refunded` or `cancelled`. Common store names are accepted too: `completed`, `processing` and `fulfilled` mean paid, `partially-refunded` and `partly_refunded` mean partly refunded, `canceled` and `voided` mean cancelled. Unknown values reject the order. |
 | `refunded_total` | No | Amount refunded so far. Decides between partly and fully refunded; `refunded` without an amount refunds the full total. |
 | `items` | No | Line items as a JSON array (or JSON string) with `item_id`, `item_name`, `qty`, and optional `category`, `unit_price` (or `price`) and `refunded_qty`. Without a unit price, the item counts as 0 in category and product spend. |
+| `coupons` | No | Coupon codes used on the order (list, or comma-separated). Marks coupons issued by Mautic as used; codes compare case-insensitively. |
 
 ### Refunds and cancellations
 
@@ -511,6 +512,21 @@ The condition **No order within** (N hours) stops a follow-up once the contact h
 
 Email tokens, from the contact's latest storefront events: `{ecommerce_cart}` (items with image, link, quantity and price, plus total), `{ecommerce_cart_total}`, `{ecommerce_cart_url}` (the store's restore-cart link), `{ecommerce_viewed_product}`, `{ecommerce_viewed_product_url}` and `{ecommerce_viewed_product_image}`.
 
+## Coupons
+
+The **Issue coupon** campaign action has the shop create a single-use coupon for the contact: percentage or fixed amount off the cart, valid for N days (default 14), optionally with a minimum spend, a code prefix (`PREFIX-XXXXXXXX`, no look-alike characters), not for sale items, or free shipping. The coupon works once and only with the contact's email. Show it in the next email with `{ecommerce_coupon}`, `{ecommerce_coupon_value}` (`15 %` or `CHF 10.00`) and `{ecommerce_coupon_expiry}` (the last valid day).
+
+Setup:
+
+1. In the WooCommerce connector (0.5.0 or later), tick **Allow Mautic to create coupons**. The setting shows the shop's coupon endpoint.
+2. In Mautic's plugin settings, enter it as **Shop coupon endpoint** (`https://your-shop/wp-json/mautic-ecommerce/v1/coupon`).
+
+Mautic signs each request with the webhook secret and a timestamp; the shop refuses anything unsigned or older than five minutes. The action never passes without a coupon, so an email after it never goes out without a code. If the shop cannot be reached (timeout, 5xx), the action fails and is retried every 15 minutes; if the shop refuses (setting off, invalid values), every hour, with the reason on the contact's campaign history. Mautic keeps retrying until it works, notifies after repeated failures, and unpublishes a campaign when most of its contacts fail, so fix the cause rather than waiting. A retried or repeated action reuses the contact's open coupon from that action instead of creating another. Contacts without an email get none.
+
+When an order arrives with a coupon's code in `coupons` (the WooCommerce connector, WooCommerce webhooks and Shopify webhooks all send them), the coupon is marked used. The **Coupon used** condition checks whether the contact used a coupon from this campaign, for a reminder before it expires. Coupons are deleted with the contact and move to the winner on a merge.
+
+Shopify: not yet; creating discount codes needs a Shopify app with API access.
+
 ## Page hit tracking
 
 When **Track orders from page hits** is enabled, orders can be recorded from Mautic tracking requests on a thank-you page:
@@ -581,6 +597,13 @@ This software is provided **as is**, without warranty of any kind, express or im
 You are solely responsible for how you deploy and use this plugin, including compliance with applicable laws and data protection obligations.
 
 ## Changelog
+
+### 1.8.0
+```
+* Added: Issue coupon campaign action (single-use, per-contact codes created in the shop through the WooCommerce connector) and the Coupon used condition.
+* Added: {ecommerce_coupon}, {ecommerce_coupon_value} and {ecommerce_coupon_expiry} email tokens.
+* Added: Orders accept the coupon codes used (`coupons`); WooCommerce and Shopify webhooks pass them on.
+```
 
 ### 1.7.1
 ```

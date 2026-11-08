@@ -90,6 +90,7 @@ final class ShopifyOrderMapper
             'email'          => self::email($order),
             'location'       => !empty($shipping['city']) ? (string) $shipping['city'] : null,
             'items'          => $items,
+            'coupons'        => array_column(array_filter((array) ($order['discount_codes'] ?? []), 'is_array'), 'code'),
         ] + self::clickthrough($order);
     }
 

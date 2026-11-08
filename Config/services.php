@@ -30,5 +30,8 @@ return function (ContainerConfigurator $configurator): void {
     $services->set(PrivacyUpgradeNotice::class)
         ->arg('$integrationHelper', service('mautic.helper.integration'));
 
+    // Public so functional tests can swap the shop's HTTP endpoint.
+    $services->get(MauticPlugin\EcommerceConnectorBundle\Coupon\CouponGateway::class)->public();
+
     $services->alias('mautic.integration.ecommerceconnector', EcommerceConnectorIntegration::class);
 };

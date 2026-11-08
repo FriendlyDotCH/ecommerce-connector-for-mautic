@@ -74,6 +74,7 @@ final class WooCommerceOrderMapper
             'email'          => is_array($order['billing'] ?? null) ? ($order['billing']['email'] ?? null) : null,
             'location'       => is_array($order['shipping'] ?? null) && !empty($order['shipping']['city']) ? (string) $order['shipping']['city'] : null,
             'items'          => $items,
+            'coupons'        => array_column(array_filter((array) ($order['coupon_lines'] ?? []), 'is_array'), 'code'),
         ];
     }
 

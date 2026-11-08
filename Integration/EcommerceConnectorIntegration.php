@@ -10,6 +10,7 @@ use MauticPlugin\EcommerceConnectorBundle\Service\PrivacyUpgradeNotice;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\Form;
 use Symfony\Component\Form\FormBuilder;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -64,6 +65,18 @@ class EcommerceConnectorIntegration extends AbstractIntegration
                     'class'        => 'form-control',
                     'autocomplete' => 'off',
                     'tooltip'      => 'mautic.plugin.ecommerce.shopify_webhook_secret.tooltip',
+                ],
+            ]);
+
+            $builder->add('coupon_url', UrlType::class, [
+                'label'            => 'mautic.plugin.ecommerce.coupon_url',
+                'label_attr'       => ['class' => 'control-label'],
+                'required'         => false,
+                'default_protocol' => 'https',
+                'attr'             => [
+                    'class'       => 'form-control',
+                    'placeholder' => 'https://shop.example/wp-json/mautic-ecommerce/v1/coupon',
+                    'tooltip'     => 'mautic.plugin.ecommerce.coupon_url.tooltip',
                 ],
             ]);
 
