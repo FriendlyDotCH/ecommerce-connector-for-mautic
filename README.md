@@ -389,6 +389,33 @@ Store connectors push products signed like orders, to `POST /ecommerce/product`:
 
 Shops with native webhooks can feed the catalog without a connector; see below.
 
+**Components → Shop catalog** lists the synced products (for users who can see contacts): search by name, SKU, category or ID, filter by store and stock, with price (and the regular price when on sale), stock and units sold in the last 90 days (net of refunds). Products are edited in the shop, not here.
+
+### Product alerts
+
+Three campaign decisions fire on catalog changes: **Product back in stock**, **Product price drop** (by at least a set percentage, default 10 %) and **Product low inventory** (stock falls from above a set quantity to it or below, default 5; needs stock tracking in the shop). Each decision chooses its audience: contacts who viewed the product, had it in a cart or checkout, and/or bought it, within the last N days (default 30, up to 365), optionally only for some categories or products. Contacts who viewed or carted the product and bought it since are left out. A contact gets the same alert for the same product at most once in 7 days.
+
+Every product update is compared with the stored product (older updates arriving late, new products and drafts are ignored); changes wait for the alerts command, which only looks at members of published campaigns using the matching decision. Run it from cron:
+
+```
+*/10 * * * * www-data php /path/to/mautic/bin/console mautic:ecommerce:product-alerts
+```
+
+Alert emails can show the product: `{ecommerce_alert_product}`, `{ecommerce_alert_product_url}`, `{ecommerce_alert_product_image}`, `{ecommerce_alert_product_price}`, `{ecommerce_alert_product_old_price}` (the price before a drop, else the regular price when on sale) and `{ecommerce_alert_product_stock}`. They come from the contact's latest alert, so send the email straight after the decision.
+
+### Product blocks in emails
+
+`{ecommerce_products source="recommended" limit="3"}` renders product cards (image, name, price, link; three per row) in HTML and a list in plain text. Put it in its own text block. Links are tracked like other email links, so orders from them are attributed to the email.
+
+| `source` | Products |
+|----------|----------|
+| `recommended` (default) | Best sellers in the contact's favourite categories (from purchases and views) that they have not bought, topped up with overall best sellers |
+| `best_sellers` | Most units sold in the last 90 days, net of refunds |
+| `viewed` | The contact's recently viewed products |
+| `last_purchased` | The contact's most recent purchases |
+
+`limit` is 1 to 12 (default 3); `category="Candles"` limits `recommended` and `best_sellers` to a category. Out-of-stock and unpublished products are not offered (except under `last_purchased`, which leaves out unpublished ones only). Previews without a contact show best sellers; contact-based blocks are empty there. The email builder lists the four sources under the ecommerce tokens.
+
 ## WooCommerce without a plugin
 
 Orders and refunds can come straight from WooCommerce's built-in webhooks:
@@ -554,6 +581,13 @@ This software is provided **as is**, without warranty of any kind, express or im
 You are solely responsible for how you deploy and use this plugin, including compliance with applicable laws and data protection obligations.
 
 ## Changelog
+
+### 1.7.1
+```
+* Added: Components → Shop catalog: synced products with stock, prices and units sold.
+* Added: Product back in stock, price drop and low inventory campaign decisions, run by mautic:ecommerce:product-alerts.
+* Added: Product alert tokens ({ecommerce_alert_product…}) and product blocks ({ecommerce_products source="recommended|best_sellers|viewed|last_purchased"}) in emails, with tracked links.
+```
 
 ### 1.7.0
 ```

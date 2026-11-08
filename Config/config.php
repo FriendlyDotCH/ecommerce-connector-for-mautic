@@ -16,6 +16,13 @@ return [
                     'objectId' => '\d+',
                 ],
             ],
+            'mautic_ecommerce_catalog_index' => [
+                'path'         => '/ecommerce/catalog/{page}',
+                'controller'   => 'MauticPlugin\\EcommerceConnectorBundle\\Controller\\CatalogController::indexAction',
+                'method'       => 'GET',
+                'defaults'     => ['page' => 1],
+                'requirements' => ['page' => '\\d+'],
+            ],
             'mautic_ecommerce_behaviour_index' => [
                 'path'       => '/ecommerce/behaviours',
                 'controller' => 'MauticPlugin\EcommerceConnectorBundle\Controller\BehaviourController::indexAction',
@@ -114,6 +121,16 @@ return [
         ],
     ],
     'menu' => [
+        'main' => [
+            'mautic.plugin.ecommerce.catalog.menu' => [
+                'id'        => 'mautic_ecommerce_catalog_index',
+                'route'     => 'mautic_ecommerce_catalog_index',
+                'iconClass' => 'ri-store-2-line',
+                'access'    => 'lead:leads:viewown',
+                'parent'    => 'mautic.core.components',
+                'priority'  => 5,
+            ],
+        ],
         'admin' => [
             'mautic.plugin.ecommerce.behaviour.menu' => [
                 'id'        => 'mautic_ecommerce_behaviour_index',

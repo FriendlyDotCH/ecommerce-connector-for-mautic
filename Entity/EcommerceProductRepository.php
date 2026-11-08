@@ -161,4 +161,49 @@ class EcommerceProductRepository extends CommonRepository
 
         return array_map('intval', $leadIds);
     }
+
+    /**
+     * One page of the catalog for the catalog list, by name.
+     *
+     * @param string $stock '' for all, else instock, outofstock or onbackorder
+     *
+     * @return array{items: list<EcommerceProduct>, total: int}
+     */
+    public function findCatalogPage(string $search, string $store, string $stock, int $page, int $limit): array
+    {
+        $qb = $this->createQueryBuilder('p');
+
+        if ('' !== $search) {
+            $qb->andWhere('p.name LIKE :search OR p.sku LIKE :search OR p.category LIKE :search OR p.externalId = :exact')
+                ->setParameter('search', '%'.addcslashes($search, '%_\\').'%')
+                ->setParameter('exact', $search);
+        }
+        if ('' !== $store) {
+            $qb->andWhere('p.store = :store')->setParameter('store', $store);
+        }
+        if ('' !== $stock) {
+            $qb->andWhere('p.stockStatus = :stock')->setParameter('stock', $stock);
+        }
+
+        $total = (int) (clone $qb)->select('COUNT(p.id)')->getQuery()->getSingleScalarResult();
+
+        /** @var list<EcommerceProduct> $items */
+        $items = $qb->orderBy('p.name', 'ASC')->addOrderBy('p.id', 'ASC')
+            ->setFirstResult(max(0, ($page - 1) * $limit))
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+
+        return ['items' => $items, 'total' => $total];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function findStores(): array
+    {
+        return array_map('strval', $this->getEntityManager()->getConnection()->fetchFirstColumn(
+            'SELECT DISTINCT store FROM '.MAUTIC_TABLE_PREFIX.'ecommerce_products ORDER BY store'
+        ));
+    }
 }

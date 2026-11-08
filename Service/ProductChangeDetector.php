@@ -19,7 +19,7 @@ final class ProductChangeDetector
     public const STOCK_DROP = 'stock_drop';
 
     /** Shop statuses of products that are not for sale. */
-    private const HIDDEN_STATUSES = ['draft', 'pending', 'private', 'trash', 'archived', 'unlisted'];
+    public const HIDDEN_STATUSES = ['draft', 'pending', 'private', 'trash', 'archived', 'unlisted'];
 
     /**
      * @param array<string, mixed> $update mapped product (see StorePlatformInterface::mapProduct)

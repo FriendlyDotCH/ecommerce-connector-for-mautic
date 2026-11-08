@@ -1,0 +1,119 @@
+{#
+  Variables
+    - items: list of EcommerceProduct (this page)
+    - total, page, totalPages
+    - sold: catalog ID => units sold in the last salesDays days
+    - search, store, stock, stores, stockFilters, filters (the active ones, for links)
+#}
+{% extends '@MauticCore/Default/content.html.twig' %}
+
+{% block mauticContent %}ecommercecatalog{% endblock %}
+
+{% block headerTitle %}{{ 'mautic.plugin.ecommerce.catalog.header'|trans }}{% endblock %}
+
+{% block content %}
+<div id="page-list-wrapper" class="panel panel-default">
+    <div class="panel-body">
+        <p class="text-secondary">{{ 'mautic.plugin.ecommerce.catalog.intro'|trans({'%count%': total}) }}</p>
+        <form method="get" action="{{ path('mautic_ecommerce_catalog_index') }}" class="form-inline" id="ecommerceCatalogFilters">
+            <input type="search" name="search" value="{{ search }}" class="form-control" placeholder="{{ 'mautic.plugin.ecommerce.catalog.search'|trans }}" aria-label="{{ 'mautic.plugin.ecommerce.catalog.search'|trans }}">
+            {% if stores|length > 1 %}
+                <select name="store" class="form-control" aria-label="{{ 'mautic.plugin.ecommerce.catalog.store'|trans }}">
+                    <option value="">{{ 'mautic.plugin.ecommerce.catalog.all_stores'|trans }}</option>
+                    {% for option in stores %}
+                        <option value="{{ option }}"{{ option == store ? ' selected' }}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+            <select name="stock" class="form-control" aria-label="{{ 'mautic.plugin.ecommerce.catalog.stock'|trans }}">
+                <option value="">{{ 'mautic.plugin.ecommerce.catalog.any_stock'|trans }}</option>
+                {% for option in stockFilters %}
+                    <option value="{{ option }}"{{ option == stock ? ' selected' }}>{{ ('mautic.plugin.ecommerce.catalog.stock.' ~ option)|trans }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-ghost">{{ 'mautic.plugin.ecommerce.catalog.filter'|trans }}</button>
+            {% if filters is not empty %}
+                <a href="{{ path('mautic_ecommerce_catalog_index') }}" data-toggle="ajax" class="btn btn-ghost">{{ 'mautic.plugin.ecommerce.catalog.clear'|trans }}</a>
+            {% endif %}
+        </form>
+    </div>
+    <div class="page-list">
+    {% if items|length > 0 %}
+        <div class="table-responsive">
+            <table class="table table-hover" id="ecommerceCatalogTable">
+                <thead>
+                <tr>
+                    <th style="width: 56px"></th>
+                    <th>{{ 'mautic.core.name'|trans }}</th>
+                    <th class="visible-md visible-lg">{{ 'mautic.plugin.ecommerce.catalog.sku'|trans }}</th>
+                    <th class="visible-md visible-lg">{{ 'mautic.plugin.ecommerce.catalog.category'|trans }}</th>
+                    <th class="text-right">{{ 'mautic.plugin.ecommerce.catalog.price'|trans }}</th>
+                    <th>{{ 'mautic.plugin.ecommerce.catalog.stock'|trans }}</th>
+                    <th class="text-right">{{ 'mautic.plugin.ecommerce.catalog.sold'|trans({'%days%': salesDays}) }}</th>
+                    <th class="visible-md visible-lg">{{ 'mautic.plugin.ecommerce.catalog.updated'|trans }}</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for item in items %}
+                    <tr>
+                        <td>
+                            {% if item.imageUrl %}
+                                <img src="{{ item.imageUrl }}" alt="" loading="lazy" referrerpolicy="no-referrer" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px">
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.url %}
+                                <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.name }} <i class="ri-external-link-line" aria-hidden="true"></i></a>
+                            {% else %}
+                                {{ item.name }}
+                            {% endif %}
+                            {% if item.status and item.status not in ['publish', 'active'] %}
+                                <span class="label label-gray ml-xs">{{ item.status }}</span>
+                            {% endif %}
+                            {% if stores|length > 1 %}<div class="text-secondary small">{{ item.store }}</div>{% endif %}
+                        </td>
+                        <td class="visible-md visible-lg"><code>{{ item.sku ?: item.externalId }}</code></td>
+                        <td class="visible-md visible-lg">{{ item.category }}</td>
+                        <td class="text-right" style="white-space: nowrap">
+                            {% if item.price is not null %}
+                                {% if item.salePrice is not null and item.regularPrice is not null and item.regularPrice > item.salePrice %}
+                                    <s class="text-secondary">{{ item.regularPrice|number_format(2) }}</s>
+                                {% endif %}
+                                {{ item.price|number_format(2) }} {{ item.currency }}
+                            {% endif %}
+                        </td>
+                        <td style="white-space: nowrap">
+                            {% if item.stockStatus %}
+                                {% set stockClass = {'instock': 'label-success', 'outofstock': 'label-danger', 'onbackorder': 'label-warning'}[item.stockStatus] ?? 'label-gray' %}
+                                <span class="label {{ stockClass }}">{{ ('mautic.plugin.ecommerce.catalog.stock.' ~ item.stockStatus)|trans }}</span>
+                            {% endif %}
+                            {% if item.stockQuantity is not null %}<span class="ml-xs">{{ item.stockQuantity }}</span>{% endif %}
+                        </td>
+                        <td class="text-right">{{ sold[item.id] ?? 0 }}</td>
+                        <td class="visible-md visible-lg">{{ dateToText(item.dateModified ?? item.dateUpdated) }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if totalPages > 1 %}
+            <div class="panel-footer">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="{{ page <= 1 ? 'disabled' }}">
+                        <a href="{{ page > 1 ? path('mautic_ecommerce_catalog_index', {'page': page - 1} + filters) : '#' }}" data-toggle="ajax">&laquo;</a>
+                    </li>
+                    <li class="active"><span>{{ 'mautic.plugin.ecommerce.catalog.page'|trans({'%page%': page, '%pages%': totalPages}) }}</span></li>
+                    <li class="{{ page >= totalPages ? 'disabled' }}">
+                        <a href="{{ page < totalPages ? path('mautic_ecommerce_catalog_index', {'page': page + 1} + filters) : '#' }}" data-toggle="ajax">&raquo;</a>
+                    </li>
+                </ul>
+            </div>
+        {% endif %}
+    {% elseif filters is not empty %}
+        {{ include('@MauticCore/Helper/noresults.html.twig') }}
+    {% else %}
+        {{ include('@MauticCore/Helper/noresults.html.twig', {'tip': 'mautic.plugin.ecommerce.catalog.empty'}) }}
+    {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -185,6 +185,11 @@ class EcommerceProduct
         return $this->status;
     }
 
+    public function getDateUpdated(): \DateTimeInterface
+    {
+        return $this->dateUpdated;
+    }
+
     public function getDateModified(): ?\DateTimeInterface
     {
         return $this->dateModified;

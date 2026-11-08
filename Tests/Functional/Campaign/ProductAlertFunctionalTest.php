@@ -9,6 +9,8 @@ use Mautic\CampaignBundle\Entity\Event;
 use Mautic\CampaignBundle\Entity\Lead as CampaignMember;
 use Mautic\CoreBundle\Helper\IpLookupHelper;
 use Mautic\CoreBundle\Test\MauticMysqlTestCase;
+use Mautic\EmailBundle\EmailEvents;
+use Mautic\EmailBundle\Event\EmailSendEvent;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Entity\Tag;
 use MauticPlugin\EcommerceConnectorBundle\DTO\OrderItemPayload;
@@ -19,6 +21,7 @@ use MauticPlugin\EcommerceConnectorBundle\Service\ProductAlertDispatcher;
 use MauticPlugin\EcommerceConnectorBundle\Tests\Functional\ConfiguresEcommerceIntegration;
 use MauticPlugin\EcommerceConnectorBundle\Tests\Functional\InstallsEcommerceSchema;
 use PHPUnit\Framework\Assert;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 class ProductAlertFunctionalTest extends MauticMysqlTestCase
@@ -112,6 +115,18 @@ class ProductAlertFunctionalTest extends MauticMysqlTestCase
             ['price_drop', '27.0000', '20.0000'],
             array_values($this->connection->fetchAssociative('SELECT alert_type, old_value, new_value FROM '.MAUTIC_TABLE_PREFIX.'ecommerce_product_alerts WHERE lead_id = ?', [$viewer->getId()]))
         );
+
+        // The alert email shows the product, the old and the new price.
+        $send = new EmailSendEvent(null, [
+            'content' => '<a href="{ecommerce_alert_product_url}">{ecommerce_alert_product}</a> {ecommerce_alert_product_old_price} {ecommerce_alert_product_price}',
+            'lead'    => ['id' => $viewer->getId()],
+        ]);
+        static::getContainer()->get(EventDispatcherInterface::class)->dispatch($send, EmailEvents::EMAIL_ON_DISPLAY);
+        $tokens = $send->getTokens();
+        Assert::assertSame('Lavender Candle', $tokens['{ecommerce_alert_product}']);
+        Assert::assertSame('https://shop.example/candle', $tokens['{ecommerce_alert_product_url}']);
+        Assert::assertStringContainsString('27', $tokens['{ecommerce_alert_product_old_price}']);
+        Assert::assertStringContainsString('20', $tokens['{ecommerce_alert_product_price}']);
     }
 
     /**
