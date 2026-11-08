@@ -113,13 +113,12 @@ class AbandonmentDetector
         }
 
         try {
-            $this->campaignSubscriber->triggerAbandonment($event);
+            // Campaign failures are logged by the subscriber and reported as false.
+            return $this->campaignSubscriber->triggerAbandonment($event);
         } catch (\Throwable $exception) {
             $this->logger->error('Ecommerce abandonment could not be processed: '.$exception->getMessage(), ['event_id' => $eventId]);
 
             return false;
         }
-
-        return true;
     }
 }

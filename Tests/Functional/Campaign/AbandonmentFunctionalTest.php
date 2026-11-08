@@ -110,6 +110,7 @@ class AbandonmentFunctionalTest extends MauticMysqlTestCase
             'CONTENT_TYPE'                      => 'application/json',
             'HTTP_X_MAUTIC_ECOMMERCE_SIGNATURE' => hash_hmac('sha256', $body, self::WEBHOOK_SECRET),
         ], $body);
+        $this->assertSame(204, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
     }
 
     private function createContact(string $email): Lead

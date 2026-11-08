@@ -161,10 +161,12 @@ final class CampaignSubscriber implements EventSubscriberInterface
 
     /**
      * Called by the abandonment detector for an event that has been abandoned.
+     *
+     * @return bool false when the campaign run failed (already logged)
      */
-    public function triggerAbandonment(EcommerceEvent $event): void
+    public function triggerAbandonment(EcommerceEvent $event): bool
     {
-        $this->runDecision(self::ABANDONMENT_DECISIONS[$event->getEventType()], $event->getLead(), $event, $event->getId());
+        return $this->runDecision(self::ABANDONMENT_DECISIONS[$event->getEventType()], $event->getLead(), $event, $event->getId());
     }
 
     public function onStorefrontDecision(CampaignExecutionEvent $event): ?CampaignExecutionEvent
@@ -194,20 +196,37 @@ final class CampaignSubscriber implements EventSubscriberInterface
 
     /**
      * Webhook, API and cron triggers have no tracked visitor; run the decision for the contact.
+     *
+     * The order or event is already stored when this runs, so a failing campaign must not fail the
+     * request: the shop would retry, the retry is ignored as a duplicate and the campaign never runs.
+     * The failure is logged with enough context to find the contact and the order or event.
+     *
+     * @return bool false when the campaign run failed
      */
-    private function runDecision(string $decision, Lead $lead, object $passthrough, ?int $channelId): void
+    private function runDecision(string $decision, Lead $lead, object $passthrough, ?int $channelId): bool
     {
         if (!$lead->getId()) {
-            return;
+            return true;
         }
 
         $this->contactTracker->setSystemContact($lead);
 
         try {
             $this->realTimeExecutioner->execute($decision, $passthrough, 'ecommerce', $channelId);
+        } catch (\Throwable $exception) {
+            $this->logger->error('Ecommerce campaign decision could not be run: '.$exception->getMessage(), [
+                'decision'   => $decision,
+                'contact_id' => $lead->getId(),
+                'channel_id' => $channelId,
+                'exception'  => $exception,
+            ]);
+
+            return false;
         } finally {
             $this->contactTracker->setSystemContact(null);
         }
+
+        return true;
     }
 
     public function onOrderPlacedDecision(CampaignExecutionEvent $event): ?CampaignExecutionEvent

@@ -23,18 +23,21 @@ class CampaignSubscriberTest extends TestCase
 
     private ContactTracker&MockObject $contactTracker;
 
+    private LoggerInterface&MockObject $logger;
+
     private CampaignSubscriber $subscriber;
 
     protected function setUp(): void
     {
         $this->executioner    = $this->createMock(RealTimeExecutioner::class);
         $this->contactTracker = $this->createMock(ContactTracker::class);
+        $this->logger         = $this->createMock(LoggerInterface::class);
 
         $this->subscriber = new CampaignSubscriber(
             $this->executioner,
             $this->contactTracker,
             $this->createMock(PurchaseHistoryQuery::class),
-            $this->createMock(LoggerInterface::class),
+            $this->logger,
             $this->createMock(EcommerceOrderRepository::class),
         );
     }
@@ -56,6 +59,28 @@ class CampaignSubscriberTest extends TestCase
         $this->executioner->expects($this->once())
             ->method('execute')
             ->with(CampaignSubscriber::DECISION_ORDER_PLACED, $order, 'ecommerce', 7);
+
+        $this->subscriber->onOrderRecorded(new EcommerceOrderEvent($order));
+    }
+
+    public function testFailingCampaignIsLoggedAndDoesNotFailTheOrder(): void
+    {
+        $lead = new Lead();
+        $lead->setId(42);
+        $order = $this->createOrder('49.00', 'web', [['sku-1', 'Candle', 'Candles']], $lead);
+        (new \ReflectionProperty(EcommerceOrder::class, 'id'))->setValue($order, 7);
+
+        $this->executioner->method('execute')->willThrowException(new \RuntimeException('boom'));
+        $this->contactTracker->expects($this->exactly(2))->method('setSystemContact');
+        $this->logger->expects($this->once())
+            ->method('error')
+            ->with(
+                $this->stringContains('boom'),
+                $this->callback(static fn (array $context): bool => CampaignSubscriber::DECISION_ORDER_PLACED === $context['decision']
+                    && 42 === $context['contact_id']
+                    && 7 === $context['channel_id']
+                    && $context['exception'] instanceof \RuntimeException)
+            );
 
         $this->subscriber->onOrderRecorded(new EcommerceOrderEvent($order));
     }

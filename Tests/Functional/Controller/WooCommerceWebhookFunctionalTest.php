@@ -152,6 +152,7 @@ class WooCommerceWebhookFunctionalTest extends MauticMysqlTestCase
             'HTTP_X_WC_WEBHOOK_ID'        => '17',
             'HTTP_X_WC_WEBHOOK_SIGNATURE' => base64_encode(hash_hmac('sha256', $body, self::WEBHOOK_SECRET, true)),
         ], $body);
+        $this->assertSame(204, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
     }
 
     /**

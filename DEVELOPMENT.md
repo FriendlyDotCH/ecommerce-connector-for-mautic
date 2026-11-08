@@ -72,7 +72,7 @@ Commands: `mautic:ecommerce:recalculate` (daily), `mautic:ecommerce:exchange-rat
 * **Schema:** one migration class per version in `Migrations/`, idempotent through `isApplicable()`. Mirror every change in `Tests/Functional/InstallsEcommerceSchema.php`. Migrations only run when the plugin version changes.
 * **Webhooks** always answer 204, also on rejection; the reason is logged as a warning to Mautic's log. Plugin services log to the `mautic` channel (bound in `Config/services.php`).
 * **Contacts are never created** from orders or events; only existing contacts (email or ID) are linked.
-* **Campaign triggers** from webhooks, API and cron set the contact as system contact around `RealTimeExecutioner::execute()` and reset it afterwards. Orders and events more than a day old never trigger.
+* **Campaign triggers** from webhooks, API and cron set the contact as system contact around `RealTimeExecutioner::execute()` and reset it afterwards. Orders and events more than a day old never trigger. A failing campaign run is logged as an error (decision, contact, order or event ID) and never fails the request: the order is already stored, and a 500 would make the shop retry into the duplicate check. Functional test helpers assert the 204.
 * **Privacy:** storefront events are off by default, identified contacts only, DNT/GPC honoured for browser events, retention through maintenance cleanup.
 
 ## Testing
@@ -87,7 +87,7 @@ rm -rf ../../var/cache/test   # the test container is not rebuilt automatically 
 ../../vendor/bin/phpunit -c ../plugins/EcommerceConnectorBundle/phpunit.xml.dist --testsuite Unit
 ```
 
-Run the whole suite before every deploy. 172 tests passed on `feature/1.7.0` against Mautic 7.2.2 (8 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
+Run the whole suite before every deploy. 173 tests passed on `feature/1.7.0` against Mautic 7.2.2 (8 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
 
 ## Mautic 7.2 compatibility
 

@@ -80,6 +80,9 @@ trait ConfiguresEcommerceIntegration
             ],
             $body
         );
+
+        // Webhooks always answer 204; anything else means a listener failed after the order was stored.
+        $this->assertSame(204, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
     }
 
     private function getPluginEntity(): Plugin
