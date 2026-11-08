@@ -33,7 +33,7 @@ Work continues on `feature/1.7.0`, which runs on Mautic 7.2.2 (see "Mautic 7.2 c
 | G5 Base currency | Done (1.5.0) | Manual or ECB rates, rate fixed at order date |
 | G6 Storefront events | Done (1.6.0) | Webhook, API, mtc.js; identified contacts only; off by default |
 | G7 Abandonment | Done (1.6.0) | Six decisions, No order within, cart tokens, detector command |
-| G8 WooCommerce connector | Partly | Mautic side done: native WooCommerce webhooks for orders, refunds and products (no store plugin), and the standard endpoints a connector uses. The store plugin itself is next. |
+| G8 WooCommerce connector | Mostly | Native WooCommerce webhooks (no store plugin), and the store plugin 0.3.0 (see Next steps). |
 | G9 Product catalog | Partly (1.7.0) | Catalog table, WooCommerce product webhooks, signed `/ecommerce/product`, categories filled in on order lines. Not done: catalog page in Mautic, catalog API, Shopify/Magento adapters. |
 | G10 to G21 | Not started | Phases 3 to 5 |
 
@@ -43,7 +43,7 @@ Deliberately out of scope (from the gap analysis): checkout and payments, course
 
 Agreed direction (7 November 2026): Mautic stays platform-neutral. Each shop platform gets a native-webhook adapter in Mautic (`Platform/`, WooCommerce done) for zero-install setups, plus a thin store connector that sends the standard formats to `/ecommerce/order`, `/ecommerce/event` and `/ecommerce/product`. Target platforms: WooCommerce, Shopify, Magento. The REST import from Mautic (option B) is dropped in favour of the connector pushing the catalog and order history.
 
-1. **WooCommerce connector plugin (G8)**, repository `FriendlyDotCH/mautic-ecommerce-woocommerce`, 0.2.0 built and tested end to end against a local shop (not pushed): orders, refunds with per-line refunded quantity, cancellations, products, storefront events (views, cart with 60 s debounce, checkout) for known shoppers with consent (WP Consent API or "always"; DNT/GPC honoured), restore-cart links, WP-CLI sync. Open: admin "sync now" button, a settings "test connection", automated plugin tests, guest identification beyond the checkout email.
+1. **WooCommerce connector plugin (G8)**, repository `FriendlyDotCH/mautic-ecommerce-woocommerce`, 0.3.0 (8 November 2026, not pushed): orders, refunds with per-line refunded quantity, cancellations, products, storefront events for known shoppers with consent (WP Consent API or "always"; DNT/GPC honoured), restore-cart links, WP-CLI sync and test. 0.3.0 added Test connection (uses `/ecommerce/ping`), Sync now in the background, guests identified from Mautic email links (`ct`, resolved by tracking hash here) and integration tests (wp-phpunit with WooCommerce, 27 tests, own database `woo_test`). Open: send the email link's `ct` with orders too, for revenue attribution of guest orders.
 2. **Shopify adapter** (`X-Shopify-Hmac-Sha256`, orders/refunds/products webhooks; category from product type or taxonomy) and a Shopify app for customer events; **Magento** needs an extension (no native webhooks in Open Source).
 3. **Rest of Phase 3:** catalog page in Mautic, back-in-stock / price-drop / low-inventory triggers (G10), product blocks and tokens in emails (G11).
 
