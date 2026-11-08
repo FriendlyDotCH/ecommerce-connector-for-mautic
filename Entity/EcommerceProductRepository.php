@@ -252,4 +252,31 @@ class EcommerceProductRepository extends CommonRepository
 
         return ['products' => $products, 'total' => $total];
     }
+
+    /**
+     * Category names in the catalog (main and all categories), for pickers.
+     *
+     * @return list<string>
+     */
+    public function findCategoryNames(int $limit = 500): array
+    {
+        $rows = $this->getEntityManager()->getConnection()->fetchAllAssociative(
+            'SELECT DISTINCT category, categories FROM '.MAUTIC_TABLE_PREFIX.'ecommerce_products WHERE category IS NOT NULL OR categories IS NOT NULL'
+        );
+
+        $names = [];
+        foreach ($rows as $row) {
+            $decoded = is_string($row['categories']) ? json_decode($row['categories'], true) : null;
+            foreach ([$row['category'], ...(is_array($decoded) ? $decoded : [])] as $name) {
+                if (is_string($name) && '' !== trim($name)) {
+                    $names[trim($name)] = true;
+                }
+            }
+        }
+
+        $names = array_map('strval', array_keys($names));
+        natcasesort($names);
+
+        return array_slice(array_values($names), 0, $limit);
+    }
 }

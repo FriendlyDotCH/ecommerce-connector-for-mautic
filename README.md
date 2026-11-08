@@ -439,6 +439,8 @@ Alert emails can list all products of the alert with `{ecommerce_alert_products}
 
 `limit` is 1 to 12 (default 3); `category="Candles"` limits `recommended` and `best_sellers` to a category. Out-of-stock and unpublished products are not offered (except under `last_purchased`, which leaves out unpublished ones only). Previews without a contact show best sellers; contact-based blocks are empty there. The email builder lists the four sources under the ecommerce tokens.
 
+In the email builder (GrapesJS, MJML and HTML emails), drag the **Products** block from the **Ecommerce** group into a column instead of typing the token. Its settings pick the products (recommended, cross-sell, best sellers, recently viewed, last purchased, or the products of a product alert), the number (1 to 12) and, for recommended and best sellers, a category from the catalog. The canvas shows example cards from the catalog; recently viewed, last purchased, cross-sell and alert blocks show best sellers there, since each contact gets their own. The email keeps only the token (in a text block with the CSS class `ecommerce-products`), so it sends the same with or without the block, and a token typed into a text block with that class opens as a block.
+
 ## WooCommerce without a plugin
 
 Orders and refunds can come straight from WooCommerce's built-in webhooks:
@@ -626,6 +628,11 @@ This software is provided **as is**, without warranty of any kind, express or im
 You are solely responsible for how you deploy and use this plugin, including compliance with applicable laws and data protection obligations.
 
 ## Changelog
+
+### 1.9.1
+```
+* Added: Products block in the email builder: pick the source, number and category in the block settings, with example product cards in the canvas.
+```
 
 ### 1.9.0
 ```
