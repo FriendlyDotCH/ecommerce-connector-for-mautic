@@ -43,7 +43,7 @@ Deliberately out of scope (from the gap analysis): checkout and payments, course
 
 Agreed direction (7 November 2026): Mautic stays platform-neutral. Each shop platform gets a native-webhook adapter in Mautic (`Platform/`, WooCommerce done) for zero-install setups, plus a thin store connector that sends the standard formats to `/ecommerce/order`, `/ecommerce/event` and `/ecommerce/product`. Target platforms: WooCommerce, Shopify, Magento. The REST import from Mautic (option B) is dropped in favour of the connector pushing the catalog and order history.
 
-1. **WooCommerce connector plugin (G8)**, repository `FriendlyDotCH/mautic-ecommerce-woocommerce`, 0.3.0 (8 November 2026, not pushed): orders, refunds with per-line refunded quantity, cancellations, products, storefront events for known shoppers with consent (WP Consent API or "always"; DNT/GPC honoured), restore-cart links, WP-CLI sync and test. 0.3.0 added Test connection (uses `/ecommerce/ping`), Sync now in the background, guests identified from Mautic email links (`ct`, resolved by tracking hash here) and integration tests (wp-phpunit with WooCommerce, 27 tests, own database `woo_test`). Open: send the email link's `ct` with orders too, for revenue attribution of guest orders.
+1. **WooCommerce connector plugin (G8)**, repository `FriendlyDotCH/mautic-ecommerce-woocommerce`, 0.3.0 (8 November 2026, not pushed): orders, refunds with per-line refunded quantity, cancellations, products, storefront events for known shoppers with consent (WP Consent API or "always"; DNT/GPC honoured), restore-cart links, WP-CLI sync and test. 0.3.0 added Test connection (uses `/ecommerce/ping`), Sync now in the background, guests identified from Mautic email links (`ct`, resolved by tracking hash here) and integration tests (wp-phpunit with WooCommerce, 27 tests, own database `woo_test`). Orders carry the email link (`ct`) for attribution.
 2. **Shopify adapter** (`X-Shopify-Hmac-Sha256`, orders/refunds/products webhooks; category from product type or taxonomy) and a Shopify app for customer events; **Magento** needs an extension (no native webhooks in Open Source).
 3. **Rest of Phase 3:** catalog page in Mautic, back-in-stock / price-drop / low-inventory triggers (G10), product blocks and tokens in emails (G11).
 
@@ -87,7 +87,7 @@ rm -rf ../../var/cache/test   # the test container is not rebuilt automatically 
 ../../vendor/bin/phpunit -c ../plugins/EcommerceConnectorBundle/phpunit.xml.dist --testsuite Unit
 ```
 
-Run the whole suite before every deploy. 175 tests passed on `feature/1.7.0` against Mautic 7.2.2 (8 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
+Run the whole suite before every deploy. 177 tests passed on `feature/1.7.0` against Mautic 7.2.2 (8 November 2026). The WooCommerce tests use a realistic order fixture in `Tests/Fixtures/woocommerce-order.json`.
 
 ## Mautic 7.2 compatibility
 

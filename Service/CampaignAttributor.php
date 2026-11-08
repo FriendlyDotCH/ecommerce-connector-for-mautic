@@ -20,6 +20,26 @@ class CampaignAttributor
     }
 
     /**
+     * The email of the send named by the click token's tracking hash. Unlike the "email" in the
+     * token, which anyone can change, the random hash is only known to the email's recipient.
+     *
+     * @param array<string, mixed>|null $clickthrough
+     */
+    public function resolveEmailId(?array $clickthrough): ?int
+    {
+        if (!isset($clickthrough['stat']) || !is_string($clickthrough['stat']) || '' === $clickthrough['stat']) {
+            return null;
+        }
+
+        $emailId = $this->connection->fetchOne(
+            'SELECT email_id FROM '.MAUTIC_TABLE_PREFIX.'email_stats WHERE tracking_hash = ? LIMIT 1',
+            [$clickthrough['stat']]
+        );
+
+        return false !== $emailId && null !== $emailId ? (int) $emailId : null;
+    }
+
+    /**
      * @param array<string, mixed>|null $clickthrough
      */
     public function resolveCampaignId(?Email $email, ?Lead $lead, ?array $clickthrough = null): ?int

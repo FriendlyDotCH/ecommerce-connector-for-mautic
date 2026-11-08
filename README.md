@@ -545,6 +545,7 @@ You are solely responsible for how you deploy and use this plugin, including com
 * Added: Signed POST /ecommerce/ping for connection tests.
 * Added: Storefront events identify guests from a Mautic email by the link's tracking hash (`ct` or `stat`).
 * Changed: Supports Mautic 7.2; a failing campaign run is logged and no longer fails the webhook.
+* Changed: An order's `ct` is attributed by its tracking hash (email and campaign of that send); a malformed `ct` no longer fails the order.
 ```
 
 ### 1.6.0

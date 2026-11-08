@@ -115,9 +115,14 @@ class OrderPayloadParser
         $clickthrough = null;
 
         if (!$emailId && isset($input['ct'])) {
-            $clickthrough = is_array($input['ct'])
-                ? $input['ct']
-                : ClickthroughHelper::decodeArrayFromUrl((string) $input['ct']);
+            try {
+                $clickthrough = is_array($input['ct'])
+                    ? $input['ct']
+                    : ClickthroughHelper::decodeArrayFromUrl((string) $input['ct']);
+            } catch (\Throwable) {
+                // A malformed link parameter must not lose the order; it just carries no attribution.
+                $clickthrough = null;
+            }
 
             if (is_array($clickthrough) && isset($clickthrough['email'])) {
                 $emailId = (int) $clickthrough['email'];

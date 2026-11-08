@@ -48,6 +48,11 @@ class EcommerceOrderTracker
             return null;
         }
 
+        // A click from a Mautic email, verified by its tracking hash, beats both guesses below.
+        if (null === $email && null !== ($statEmailId = $this->campaignAttributor->resolveEmailId($payload->clickthrough))) {
+            $email = $this->entityManager->getRepository(Email::class)->find($statEmailId);
+        }
+
         if (null === $email && null !== $lead && $this->config->isAttributeLastEmailEnabled()) {
             $email = $this->resolveEmailFromLead($lead);
         }

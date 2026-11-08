@@ -6,6 +6,7 @@ namespace MauticPlugin\EcommerceConnectorBundle\Tests\Functional\Service;
 
 use Mautic\CampaignBundle\Entity\Campaign;
 use Mautic\CampaignBundle\Entity\Event;
+use Mautic\CoreBundle\Helper\ClickthroughHelper;
 use Mautic\CoreBundle\Test\MauticMysqlTestCase;
 use Mautic\DashboardBundle\Entity\Widget;
 use Mautic\DashboardBundle\Factory\WidgetDetailEventFactory;
@@ -17,11 +18,13 @@ use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrder;
 use MauticPlugin\EcommerceConnectorBundle\EventSubscriber\DashboardSubscriber;
 use MauticPlugin\EcommerceConnectorBundle\Service\EcommerceAnalytics;
 use MauticPlugin\EcommerceConnectorBundle\Service\EcommerceOrderTracker;
+use MauticPlugin\EcommerceConnectorBundle\Tests\Functional\ConfiguresEcommerceIntegration;
 use MauticPlugin\EcommerceConnectorBundle\Tests\Functional\InstallsEcommerceSchema;
 use PHPUnit\Framework\Assert;
 
 class RevenueAttributionFunctionalTest extends MauticMysqlTestCase
 {
+    use ConfiguresEcommerceIntegration;
     use InstallsEcommerceSchema;
 
     protected $useCleanupRollback = false;
@@ -71,6 +74,46 @@ class RevenueAttributionFunctionalTest extends MauticMysqlTestCase
         $this->stat->setTrackingHash('hash-winback-1');
         $this->em->persist($this->stat);
         $this->em->flush();
+    }
+
+    public function testWebhookOrderFromAnEmailLinkIsAttributedByTheTrackingHash(): void
+    {
+        $this->configureIntegration();
+        $other = new Email();
+        $other->setName('Unrelated');
+        $other->setSubject('Unrelated');
+        $this->em->persist($other);
+        $this->em->flush();
+
+        // The "email" in the link names another email; the tracking hash decides.
+        $this->postSignedJsonOrder([
+            'order_id'     => 'ct-1',
+            'order_total'  => '60',
+            'order_source' => 'web',
+            'email'        => 'attributed@example.com',
+            'ct'           => ClickthroughHelper::encodeArrayForUrl(['source' => ['email', $other->getId()], 'email' => $other->getId(), 'stat' => 'hash-winback-1']),
+        ]);
+
+        $row = $this->connection->fetchAssociative('SELECT email_id, campaign_id FROM '.MAUTIC_TABLE_PREFIX."ecommerce_orders WHERE order_id = 'ct-1'");
+        Assert::assertSame($this->email->getId(), (int) $row['email_id']);
+        Assert::assertSame($this->campaign->getId(), (int) $row['campaign_id']);
+    }
+
+    public function testMalformedLinkParameterDoesNotLoseTheOrder(): void
+    {
+        $this->configureIntegration();
+
+        $this->postSignedJsonOrder([
+            'order_id'     => 'ct-bad',
+            'order_total'  => '60',
+            'order_source' => 'web',
+            'email'        => 'attributed@example.com',
+            'ct'           => base64_encode('not a serialized array'),
+        ]);
+
+        $row = $this->connection->fetchAssociative('SELECT email_id, campaign_id FROM '.MAUTIC_TABLE_PREFIX."ecommerce_orders WHERE order_id = 'ct-bad'");
+        Assert::assertIsArray($row);
+        Assert::assertNull($row['campaign_id']);
     }
 
     public function testOrdersAreAttributedToTheCampaignAndReported(): void
