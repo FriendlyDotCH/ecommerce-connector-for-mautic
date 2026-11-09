@@ -154,30 +154,31 @@ return [
     ],
     'menu' => [
         'main' => [
-            'mautic.plugin.ecommerce.catalog.menu' => [
-                'id'        => 'mautic_ecommerce_catalog_index',
-                'route'     => 'mautic_ecommerce_catalog_index',
-                'iconClass' => 'ri-store-2-line',
-                'access'    => 'lead:leads:viewown',
-                'parent'    => 'mautic.core.components',
-                'priority'  => 5,
-            ],
-            'mautic.plugin.ecommerce.opportunity.menu' => [
-                'id'        => 'mautic_ecommerce_opportunity_index',
-                'route'     => 'mautic_ecommerce_opportunity_index',
-                'iconClass' => 'ri-lightbulb-line',
-                'access'    => 'lead:leads:viewown',
-                'parent'    => 'mautic.core.components',
-                'priority'  => 4,
-            ],
-        ],
-        'admin' => [
-            'mautic.plugin.ecommerce.behaviour.menu' => [
-                'id'        => 'mautic_ecommerce_behaviour_index',
-                'route'     => 'mautic_ecommerce_behaviour_index',
-                'iconClass' => 'ri-shopping-bag-3-line',
-                'access'    => 'lead:fields:full',
-                'priority'  => 45,
+            'mautic.plugin.ecommerce.menu.root' => [
+                'id'        => 'mautic_ecommerce_root',
+                'iconClass' => 'ri-shopping-cart-2-fill',
+                'access'    => ['lead:leads:viewown', 'lead:fields:full'],
+                'priority'  => 55,
+                'children'  => [
+                    'mautic.plugin.ecommerce.catalog.menu' => [
+                        'id'       => 'mautic_ecommerce_catalog_index',
+                        'route'    => 'mautic_ecommerce_catalog_index',
+                        'access'   => 'lead:leads:viewown',
+                        'priority' => 30,
+                    ],
+                    'mautic.plugin.ecommerce.opportunity.menu' => [
+                        'id'       => 'mautic_ecommerce_opportunity_index',
+                        'route'    => 'mautic_ecommerce_opportunity_index',
+                        'access'   => 'lead:leads:viewown',
+                        'priority' => 20,
+                    ],
+                    'mautic.plugin.ecommerce.behaviour.menu' => [
+                        'id'       => 'mautic_ecommerce_behaviour_index',
+                        'route'    => 'mautic_ecommerce_behaviour_index',
+                        'access'   => 'lead:fields:full',
+                        'priority' => 10,
+                    ],
+                ],
             ],
         ],
     ],
