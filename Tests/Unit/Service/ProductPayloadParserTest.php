@@ -36,6 +36,7 @@ class ProductPayloadParserTest extends TestCase
             'stock_status'   => 'InStock',
             'stock_quantity' => '7',
             'updated_at'     => '2026-11-02T10:14:51+01:00',
+            'created_at'     => 1790000000,
         ]);
 
         $this->assertSame('woocommerce', $parsed['store']);
@@ -51,6 +52,7 @@ class ProductPayloadParserTest extends TestCase
         $this->assertSame('instock', $product['stock_status']);
         $this->assertSame(7, $product['stock_quantity']);
         $this->assertSame('2026-11-02 09:14:51', $product['date_modified']);
+        $this->assertSame(gmdate('Y-m-d H:i:s', 1790000000), $product['date_created']);
     }
 
     public function testCategoriesAsTextAndExplicitMainCategory(): void

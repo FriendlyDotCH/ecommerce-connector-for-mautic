@@ -59,6 +59,11 @@ class ProductBlockAjaxFunctionalTest extends MauticMysqlTestCase
         Assert::assertStringContainsString('Lavender Candle', $viewed['html']);
 
         Assert::assertSame('', $this->ajax('productBlockPreview', ['source' => 'best_sellers', 'category' => 'Unknown'])['html']);
+
+        $new = $this->ajax('productBlockPreview', ['source' => 'new_arrivals', 'limit' => '3', 'category' => 'diffusers']);
+        Assert::assertFalse($new['example'], 'New arrivals are the same for everyone.');
+        Assert::assertStringContainsString('Cedar Diffuser', $new['html']);
+        Assert::assertStringNotContainsString('Lavender Candle', $new['html']);
     }
 
     /**

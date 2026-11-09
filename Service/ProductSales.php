@@ -70,6 +70,34 @@ class ProductSales
     }
 
     /**
+     * Catalog row IDs of the newest products that are for sale: by the store's created date,
+     * else (products not synced since 1.9.2) by when Mautic first saw them.
+     *
+     * @param list<int> $excludeProductIds
+     *
+     * @return list<int>
+     */
+    public function newArrivals(int $limit, ?string $category = null, array $excludeProductIds = []): array
+    {
+        $prefix = MAUTIC_TABLE_PREFIX;
+        $where  = 'WHERE '.self::FOR_SALE.' AND p.id NOT IN (:exclude)';
+        $params = ['exclude' => $excludeProductIds ?: [0], 'hidden' => ProductChangeDetector::HIDDEN_STATUSES];
+        $types  = ['exclude' => ArrayParameterType::INTEGER, 'hidden' => ArrayParameterType::STRING];
+
+        if (null !== $category && '' !== $category) {
+            $where .= ' AND (p.category = :category OR JSON_CONTAINS(p.categories, JSON_QUOTE(:category)))';
+            $params['category'] = $category;
+        }
+
+        return array_map('intval', $this->connection->fetchFirstColumn(
+            "SELECT p.id FROM {$prefix}ecommerce_products p {$where}
+             ORDER BY COALESCE(p.date_created, p.date_added) DESC, p.id DESC LIMIT ".max(1, min($limit, 50)),
+            $params,
+            $types
+        ));
+    }
+
+    /**
      * Catalog row IDs of what the contact bought, most recent first.
      *
      * @return list<int>

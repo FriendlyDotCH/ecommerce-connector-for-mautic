@@ -123,6 +123,7 @@ class ShopifyPlatform implements StorePlatformInterface
             'stock_quantity' => $stockQuantity,
             'status'         => isset($product['status']) ? mb_substr((string) $product['status'], 0, 32) : null,
             'date_modified'  => self::utc($product['updated_at'] ?? null),
+            'date_created'   => self::utc($product['created_at'] ?? null),
         ];
     }
 

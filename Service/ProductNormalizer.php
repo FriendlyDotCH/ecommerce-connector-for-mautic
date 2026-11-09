@@ -35,6 +35,7 @@ class ProductNormalizer
             'stock_status'   => $product->getStockStatus(),
             'stock_quantity' => $product->getStockQuantity(),
             'status'         => $product->getStatus(),
+            'created_at'     => self::formatDate($product->getDateCreated()),
             'updated_at'     => self::formatDate($product->getDateModified()),
             'date_added'     => self::formatDate($product->getDateAdded()),
             'date_updated'   => self::formatDate($product->getDateUpdated()),

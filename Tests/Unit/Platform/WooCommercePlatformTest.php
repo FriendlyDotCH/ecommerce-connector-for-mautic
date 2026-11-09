@@ -36,6 +36,7 @@ class WooCommercePlatformTest extends TestCase
         $this->assertSame('HUF', $product['currency']);
         $this->assertSame('instock', $product['stock_status']);
         $this->assertSame('2026-11-02 09:14:51', $product['date_modified']);
+        $this->assertSame('2026-09-15 08:00:00', $product['date_created']);
         $this->assertSame('https://shop.example/wp-content/uploads/diffuser.jpg', $product['image_url']);
     }
 

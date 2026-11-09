@@ -49,7 +49,7 @@ final class AjaxController extends CommonAjaxController
         }
 
         $source   = (string) $request->query->get('source', ProductBlocks::SOURCE_RECOMMENDED);
-        $personal = !in_array($source, [ProductBlocks::SOURCE_RECOMMENDED, ProductBlocks::SOURCE_BEST_SELLERS], true);
+        $personal = !in_array($source, [ProductBlocks::SOURCE_RECOMMENDED, ProductBlocks::SOURCE_BEST_SELLERS, ProductBlocks::SOURCE_NEW_ARRIVALS], true);
         $products = $productBlocks->products([
             'source'   => $personal ? ProductBlocks::SOURCE_BEST_SELLERS : $source,
             'limit'    => (string) $request->query->getInt('limit', ProductBlocks::DEFAULT_LIMIT),

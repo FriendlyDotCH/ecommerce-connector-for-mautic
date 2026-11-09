@@ -97,6 +97,29 @@ class ProductTokenSubscriberFunctionalTest extends MauticMysqlTestCase
         Assert::assertStringNotContainsString('Candle', $recommended);
     }
 
+    public function testNewArrivalsByStoreCreatedDate(): void
+    {
+        $products = static::getContainer()->get(EcommerceProductRepository::class);
+        foreach ([['155', '2026-03-01 00:00:00'], ['156', '2026-01-01 00:00:00'], ['157', '2026-09-01 00:00:00'], ['170', '2026-10-01 00:00:00']] as [$id, $created]) {
+            $products->upsertProduct('woocommerce', [
+                'external_id' => $id, 'name' => 'P'.$id, 'category' => 'Candles', 'categories' => ['Candles'], 'price' => '10',
+                'stock_status' => '157' === $id ? 'outofstock' : 'instock', 'status' => '170' === $id ? 'draft' : 'publish', 'date_created' => $created,
+            ]);
+        }
+        // An update without the created date keeps it.
+        $products->upsertProduct('woocommerce', ['external_id' => '156', 'name' => 'P156', 'category' => 'Candles', 'categories' => ['Candles'], 'price' => '10', 'stock_status' => 'instock']);
+
+        // 160 has no created date: it goes by when Mautic got it (today), so it is the newest.
+        $html = $this->send('{ecommerce_products source="new_arrivals" limit="5"}|{ecommerce_products source="new_arrivals" limit="5" category="Candles"}', null);
+        [$all, $candles] = explode('|', $html);
+
+        Assert::assertMatchesRegularExpression('/Reed Diffuser.*P155.*P156/s', $all);
+        Assert::assertStringNotContainsString('P157', $all, 'Out of stock is not offered.');
+        Assert::assertStringNotContainsString('P170', $all, 'Unpublished products are not offered.');
+        Assert::assertMatchesRegularExpression('/P155.*P156/s', $candles);
+        Assert::assertStringNotContainsString('Reed Diffuser', $candles);
+    }
+
     public function testPlainTextBlock(): void
     {
         $event = new EmailSendEvent(null, [

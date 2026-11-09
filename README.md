@@ -377,7 +377,7 @@ Under Mautic's API (`/api`, Basic Auth or OAuth, API enabled in the configuratio
 | `POST` | `/api/ecommerce/products/batch` | Create or update products by `store` + shop product ID, and delete products: the same body as `POST /ecommerce/product` (see [Product catalog](#product-catalog)), up to 250 products and deletions. Returns `products` (as saved), `deleted` (with `existed`) and `errors` (`index` in `products`, or `deleted.N`, and `message`); `400` when nothing could be applied. Changes fire product alerts like a store update. |
 | `DELETE` | `/api/ecommerce/products/{id}/delete` | Delete a product |
 
-Edits and deletes update the commerce fields and behaviours of the contacts involved. Products come back with the fields below, plus `id` (Mautic's), `external_id` (the shop's), `updated_at` (the shop's last change), `date_added` and `date_updated` (in Mautic).
+Edits and deletes update the commerce fields and behaviours of the contacts involved. Products come back with the fields below, plus `id` (Mautic's), `external_id` (the shop's), `created_at` and `updated_at` (in the shop), `date_added` and `date_updated` (in Mautic).
 
 ## Product catalog
 
@@ -398,6 +398,7 @@ Store connectors push products signed like orders, to `POST /ecommerce/product`:
 | `price`, `regular_price`, `sale_price`, `currency` | Prices; currency defaults to the default currency |
 | `stock_status`, `stock_quantity` | `instock`, `outofstock` or `onbackorder`; quantity |
 | `status`, `updated_at` | The store's product status; last change (ISO 8601 or Unix timestamp) |
+| `created_at` | When the product was created in the store (ISO 8601 or Unix timestamp), for new arrivals; kept when an update leaves it out |
 
 ```json
 {"store":"woocommerce","products":[{"id":160,"sku":"DIF-REED","name":"Reed Diffuser","categories":["Diffusers","Gifts"],"variation_ids":[164,165],"url":"https://shop.example/product/reed-diffuser/","image_url":"https://shop.example/img/diffuser.jpg","price":"12990","stock_status":"instock"}]}
@@ -434,12 +435,13 @@ Alert emails can list all products of the alert with `{ecommerce_alert_products}
 | `cross_sell` | Best sellers in the contact's cross-sell category that they have not bought (see Cross-sell) |
 | `recommended` (default) | Best sellers in the contact's favourite categories (from purchases and views) that they have not bought, topped up with overall best sellers |
 | `best_sellers` | Most units sold in the last 90 days, net of refunds |
+| `new_arrivals` | The newest products, by the date they were created in the store (WooCommerce and Shopify webhooks send it; connectors send `created_at`). Products not updated since 1.9.2 go by when Mautic first received them. |
 | `viewed` | The contact's recently viewed products |
 | `last_purchased` | The contact's most recent purchases |
 
-`limit` is 1 to 12 (default 3); `category="Candles"` limits `recommended` and `best_sellers` to a category. Out-of-stock and unpublished products are not offered (except under `last_purchased`, which leaves out unpublished ones only). Previews without a contact show best sellers; contact-based blocks are empty there. The email builder lists the four sources under the ecommerce tokens.
+`limit` is 1 to 12 (default 3); `category="Candles"` limits `recommended`, `best_sellers` and `new_arrivals` to a category. Out-of-stock and unpublished products are not offered (except under `last_purchased`, which leaves out unpublished ones only). Previews without a contact show best sellers and new arrivals; contact-based blocks are empty there. The email builder lists the sources under the ecommerce tokens.
 
-In the email builder (GrapesJS, MJML and HTML emails), drag the **Products** block from the **Ecommerce** group into a column instead of typing the token. Its settings pick the products (recommended, cross-sell, best sellers, recently viewed, last purchased, or the products of a product alert), the number (1 to 12) and, for recommended and best sellers, a category from the catalog. The canvas shows example cards from the catalog; recently viewed, last purchased, cross-sell and alert blocks show best sellers there, since each contact gets their own. The email keeps only the token (in a text block with the CSS class `ecommerce-products`), so it sends the same with or without the block, and a token typed into a text block with that class opens as a block.
+In the email builder (GrapesJS, MJML and HTML emails), drag the **Products** block from the **Ecommerce** group into a column instead of typing the token. Its settings pick the products (recommended, cross-sell, best sellers, new arrivals, recently viewed, last purchased, or the products of a product alert), the number (1 to 12) and, for recommended, best sellers and new arrivals, a category from the catalog. The canvas shows example cards from the catalog; recently viewed, last purchased, cross-sell and alert blocks show best sellers there, since each contact gets their own. The email keeps only the token (in a text block with the CSS class `ecommerce-products`), so it sends the same with or without the block, and a token typed into a text block with that class opens as a block.
 
 ## WooCommerce without a plugin
 
@@ -628,6 +630,12 @@ This software is provided **as is**, without warranty of any kind, express or im
 You are solely responsible for how you deploy and use this plugin, including compliance with applicable laws and data protection obligations.
 
 ## Changelog
+
+### 1.9.2
+```
+* Added: new_arrivals product block source ({ecommerce_products source="new_arrivals"}, and in the email builder's Products block): the newest products for sale, optionally in a category.
+* Added: Catalog products keep the store's created date (WooCommerce date_created_gmt, Shopify created_at, created_at from connectors and the API). Existing products get it on their next update from the store (or re-send them through POST /api/ecommerce/products/batch); until then new arrivals go by when Mautic first received them.
+```
 
 ### 1.9.1
 ```

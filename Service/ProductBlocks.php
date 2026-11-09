@@ -13,7 +13,9 @@ use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
  *
  * Sources: last_purchased, viewed, best_sellers (last 90 days, for sale) and recommended (best
  * sellers in the contact's favourite categories that they have not bought, then overall best
- * sellers), cross_sell (best sellers in the contact's cross-sell category). Without a contact (previews, web view of a test send) only best sellers render.
+ * sellers), cross_sell (best sellers in the contact's cross-sell category), new_arrivals (newest
+ * products for sale). Without a contact (previews, web view of a test send) only best sellers and
+ * new arrivals render.
  */
 class ProductBlocks
 {
@@ -22,8 +24,9 @@ class ProductBlocks
     public const SOURCE_BEST_SELLERS   = 'best_sellers';
     public const SOURCE_RECOMMENDED    = 'recommended';
     public const SOURCE_CROSS_SELL     = 'cross_sell';
+    public const SOURCE_NEW_ARRIVALS   = 'new_arrivals';
 
-    public const SOURCES = [self::SOURCE_RECOMMENDED, self::SOURCE_CROSS_SELL, self::SOURCE_BEST_SELLERS, self::SOURCE_VIEWED, self::SOURCE_LAST_PURCHASED];
+    public const SOURCES = [self::SOURCE_RECOMMENDED, self::SOURCE_CROSS_SELL, self::SOURCE_BEST_SELLERS, self::SOURCE_NEW_ARRIVALS, self::SOURCE_VIEWED, self::SOURCE_LAST_PURCHASED];
 
     public const DEFAULT_LIMIT = 3;
     public const MAX_LIMIT     = 12;
@@ -71,6 +74,7 @@ class ProductBlocks
             self::SOURCE_LAST_PURCHASED => null !== $leadId ? $this->sales->lastPurchased($leadId, $limit) : [],
             self::SOURCE_VIEWED         => null !== $leadId ? $this->sales->recentlyViewed($leadId, $limit) : [],
             self::SOURCE_BEST_SELLERS   => $this->sales->bestSellers($limit, ProductSales::DEFAULT_DAYS, $category),
+            self::SOURCE_NEW_ARRIVALS   => $this->sales->newArrivals($limit, $category),
             self::SOURCE_CROSS_SELL     => $this->crossSell($leadId, $limit),
             default                     => $this->recommended($leadId, $limit, $category),
         };

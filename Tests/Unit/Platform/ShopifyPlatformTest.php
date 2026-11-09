@@ -45,6 +45,7 @@ class ShopifyPlatformTest extends TestCase
         $this->assertSame(7, $product['stock_quantity']);
         $this->assertSame('active', $product['status']);
         $this->assertSame('2026-11-02 09:14:51', $product['date_modified'], 'In UTC.');
+        $this->assertSame('2026-10-01 07:00:00', $product['date_created'], 'In UTC.');
     }
 
     public function testProductDetailsWithoutTypeStockOrValidDomain(): void

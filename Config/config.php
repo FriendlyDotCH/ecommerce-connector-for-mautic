@@ -3,7 +3,7 @@
 return [
     'name'        => 'Ecommerce Connector',
     'description' => 'Track eCommerce orders from your store and attribute revenue to Mautic emails. Configure the webhook secret and endpoint under Plugins > Ecommerce Connector.',
-    'version'     => '1.9.1',
+    'version'     => '1.9.2',
     'author'      => 'Dog Byte Marketing',
     'routes'      => [
         'main' => [

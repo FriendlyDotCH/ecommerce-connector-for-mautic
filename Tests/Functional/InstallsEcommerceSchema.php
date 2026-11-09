@@ -145,6 +145,7 @@ trait InstallsEcommerceSchema
                 stock_quantity INT DEFAULT NULL,
                 status VARCHAR(32) DEFAULT NULL,
                 date_modified DATETIME DEFAULT NULL,
+                date_created DATETIME DEFAULT NULL,
                 date_added DATETIME NOT NULL,
                 date_updated DATETIME NOT NULL,
                 UNIQUE INDEX ecommerce_product_store_external (store, external_id),

@@ -12,8 +12,8 @@
     var MARKER = 'ecommerce-products';
     var DEFAULT_LIMIT = 3;
     var MAX_LIMIT = 12;
-    var SOURCES = ['recommended', 'cross_sell', 'best_sellers', 'viewed', 'last_purchased', 'alert'];
-    var CATEGORY_SOURCES = ['recommended', 'best_sellers'];
+    var SOURCES = ['recommended', 'cross_sell', 'best_sellers', 'new_arrivals', 'viewed', 'last_purchased', 'alert'];
+    var CATEGORY_SOURCES = ['recommended', 'best_sellers', 'new_arrivals'];
     var TOKEN_RE = /\{ecommerce_(alert_products|products)((?:\s+[a-z_]+=(?:"[^"{}]*"|'[^'{}]*'))*)\s*\}/i;
     var ATTRIBUTE_RE = /([a-z_]+)=(?:"([^"]*)"|'([^']*)')/gi;
 
@@ -207,7 +207,7 @@
                         {
                             type: 'select',
                             name: 'ecCategory',
-                            label: translate('mautic.plugin.ecommerce.builder.category', 'Category (recommended, best sellers)'),
+                            label: translate('mautic.plugin.ecommerce.builder.category', 'Category (recommended, best sellers, new arrivals)'),
                             changeProp: true,
                             options: categoryOptions([], '')
                         }

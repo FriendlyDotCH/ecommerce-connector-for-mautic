@@ -109,9 +109,8 @@ class WooCommercePlatform implements StorePlatformInterface
             'stock_status'   => isset($product['stock_status']) ? mb_substr((string) $product['stock_status'], 0, 32) : null,
             'stock_quantity' => isset($product['stock_quantity']) && is_numeric($product['stock_quantity']) ? (int) $product['stock_quantity'] : null,
             'status'         => isset($product['status']) ? mb_substr((string) $product['status'], 0, 32) : null,
-            'date_modified'  => isset($product['date_modified_gmt']) && is_string($product['date_modified_gmt'])
-                ? str_replace('T', ' ', substr($product['date_modified_gmt'], 0, 19))
-                : null,
+            'date_modified'  => self::gmt($product['date_modified_gmt'] ?? null),
+            'date_created'   => self::gmt($product['date_created_gmt'] ?? null),
         ];
     }
 
@@ -123,6 +122,13 @@ class WooCommercePlatform implements StorePlatformInterface
     private static function amount(mixed $value): ?string
     {
         return is_scalar($value) && '' !== $value && is_numeric($value) ? number_format((float) $value, 4, '.', '') : null;
+    }
+
+    private static function gmt(mixed $value): ?string
+    {
+        return is_string($value) && 1 === preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/', $value)
+            ? str_replace('T', ' ', substr($value, 0, 19))
+            : null;
     }
 
     private static function url(mixed $value): ?string

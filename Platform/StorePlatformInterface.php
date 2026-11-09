@@ -55,7 +55,7 @@ interface StorePlatformInterface
     /**
      * Maps a product to a catalog row: external_id, sku, name, url, image_url, price,
      * regular_price, sale_price, currency, category, categories, variation_ids, stock_status,
-     * stock_quantity, status, date_modified.
+     * stock_quantity, status, date_modified, date_created.
      *
      * @param array<string, mixed> $product
      * @param Request|null         $request the webhook, for platforms that send details in headers

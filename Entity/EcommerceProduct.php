@@ -58,6 +58,9 @@ class EcommerceProduct
 
     private ?\DateTimeInterface $dateModified = null;
 
+    /** When the product was created in the store. */
+    private ?\DateTimeInterface $dateCreated = null;
+
     private \DateTimeInterface $dateAdded;
 
     private \DateTimeInterface $dateUpdated;
@@ -90,6 +93,7 @@ class EcommerceProduct
         $builder->addNullableField('stockQuantity', 'integer', 'stock_quantity');
         $builder->addField('status', 'string', ['length' => 32, 'nullable' => true]);
         $builder->addNamedField('dateModified', 'datetime', 'date_modified', true);
+        $builder->addNamedField('dateCreated', 'datetime', 'date_created', true);
         $builder->addNamedField('dateAdded', 'datetime', 'date_added');
         $builder->addNamedField('dateUpdated', 'datetime', 'date_updated');
     }
@@ -198,5 +202,10 @@ class EcommerceProduct
     public function getDateModified(): ?\DateTimeInterface
     {
         return $this->dateModified;
+    }
+
+    public function getDateCreated(): ?\DateTimeInterface
+    {
+        return $this->dateCreated;
     }
 }

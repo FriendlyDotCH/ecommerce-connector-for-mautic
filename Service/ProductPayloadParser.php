@@ -77,6 +77,7 @@ class ProductPayloadParser
                 'stock_quantity' => isset($input['stock_quantity']) && is_numeric($input['stock_quantity']) ? (int) $input['stock_quantity'] : null,
                 'status'         => $this->text($input['status'] ?? null, 32),
                 'date_modified'  => $this->date($input['updated_at'] ?? null),
+                'date_created'   => $this->date($input['created_at'] ?? null),
             ],
         ];
     }

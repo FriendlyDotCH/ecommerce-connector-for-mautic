@@ -14,7 +14,7 @@ class EcommerceProductRepository extends CommonRepository
 {
     private const COLUMNS = [
         'sku', 'name', 'url', 'image_url', 'price', 'regular_price', 'sale_price', 'currency',
-        'category', 'categories', 'variation_ids', 'stock_status', 'stock_quantity', 'status', 'date_modified',
+        'category', 'categories', 'variation_ids', 'stock_status', 'stock_quantity', 'status', 'date_modified', 'date_created',
     ];
 
     /**
@@ -34,7 +34,10 @@ class EcommerceProductRepository extends CommonRepository
 
         $columns = array_keys($values);
         $updates = array_map(
-            static fn (string $column): string => sprintf('%1$s = VALUES(%1$s)', $column),
+            // An update without the created date (older connectors) keeps the one we have.
+            static fn (string $column): string => 'date_created' === $column
+                ? 'date_created = COALESCE(VALUES(date_created), date_created)'
+                : sprintf('%1$s = VALUES(%1$s)', $column),
             array_merge(self::COLUMNS, ['date_updated'])
         );
 
