@@ -329,6 +329,8 @@ Change the thresholds under **Lifecycle stages** on the plugin's Validation tab.
 
 **RFM score** combines recency, frequency and monetary value, each scored 1 (lowest) to 5 (highest) by quintile across all customers, for example `545`. The single scores are also stored as **RFM recency**, **RFM frequency** and **RFM monetary**. The quintile cutoffs and the VIP spend cutoff are refreshed by the daily recalculation and reused when a single contact is rescored after an order.
 
+**RFM: count orders of the last (days)** (Validation tab, with the lifecycle settings) limits frequency and monetary to orders from that many days back, for example 365, so someone who spent a lot years ago does not keep a top score. Customers with no order in the window score 1 on both. Recency always uses the last order, and lifecycle stages (including the VIP spend rule) still use all orders. 0, the default, counts all orders. A change applies to everyone in the next daily recalculation, and to a contact straight away when they order.
+
 Cancelled and fully refunded orders do not count; amounts are net of refunds. Contacts without counting orders have no stage or score.
 
 ## Cross-sell
@@ -654,6 +656,11 @@ This software is provided **as is**, without warranty of any kind, express or im
 You are solely responsible for how you deploy and use this plugin, including compliance with applicable laws and data protection obligations.
 
 ## Changelog
+
+### 1.12.0
+```
+* Added: RFM window setting: count orders of the last N days for RFM frequency and monetary (0 = all orders, the default).
+```
 
 ### 1.11.0
 ```

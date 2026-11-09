@@ -23,6 +23,8 @@ class Config
         'lifecycle_single_order_days'  => 90,
         'lifecycle_vip_top_percent'    => 10,
         'lifecycle_vip_min_orders'     => 5,
+        // RFM frequency and monetary count orders of the last this many days; 0 counts all.
+        'rfm_window_days'              => 0,
     ];
 
     public const DEFAULT_EVENT_RETENTION_DAYS = 90;

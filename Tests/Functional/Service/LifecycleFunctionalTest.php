@@ -11,12 +11,14 @@ use MauticPlugin\EcommerceConnectorBundle\Service\CommerceRecalculator;
 use MauticPlugin\EcommerceConnectorBundle\Service\EcommerceOrderTracker;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldDefinition as F;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldInstaller;
+use MauticPlugin\EcommerceConnectorBundle\Tests\Functional\ConfiguresEcommerceIntegration;
 use MauticPlugin\EcommerceConnectorBundle\Tests\Functional\InstallsEcommerceSchema;
 use Mautic\LeadBundle\Entity\LeadField;
 use PHPUnit\Framework\Assert;
 
 class LifecycleFunctionalTest extends MauticMysqlTestCase
 {
+    use ConfiguresEcommerceIntegration;
     use InstallsEcommerceSchema;
 
     protected $useCleanupRollback = false;
@@ -73,6 +75,37 @@ class LifecycleFunctionalTest extends MauticMysqlTestCase
         // A new order rescoring a single contact uses the cached cutoffs.
         $this->recordOrder($contacts[9], 'rfm-9b', '50', 'now');
         Assert::assertSame('active', $this->value($contacts[9], F::LIFECYCLE_STAGE));
+    }
+
+    public function testRfmWindowLimitsFrequencyAndMonetaryButNotStages(): void
+    {
+        $contacts = [];
+        // Ten customers spending 100 ... 900 recently; customer 10 spent 5000 two years ago and
+        // 10 last week.
+        for ($i = 1; $i <= 9; ++$i) {
+            $contacts[$i] = $this->createContact("window{$i}@example.com");
+            $this->recordOrder($contacts[$i], "w-{$i}", (string) ($i * 100), '-'.(5 * $i).' days');
+        }
+        $contacts[10] = $this->createContact('window10@example.com');
+        $this->recordOrder($contacts[10], 'w-10a', '5000', '-700 days');
+        $this->recordOrder($contacts[10], 'w-10b', '10', '-6 days');
+
+        $this->configureIntegration(['rfm_window_days' => 0]);
+        static::getContainer()->get(CommerceRecalculator::class)->recalculateAll();
+        Assert::assertSame(5, (int) $this->value($contacts[10], F::RFM_MONETARY), 'All orders count.');
+        Assert::assertSame(5, (int) $this->value($contacts[10], F::RFM_FREQUENCY));
+
+        // With a 365-day window the old spend no longer counts. A single contact rescored right
+        // after the change already uses cutoffs for the new window.
+        $this->configureIntegration(['rfm_window_days' => 365]);
+        $this->recordOrder($contacts[9], 'w-9b', '1', '-1 day');
+        Assert::assertSame(5, (int) $this->value($contacts[9], F::RFM_MONETARY), '901 is the most spent within the window.');
+
+        static::getContainer()->get(CommerceRecalculator::class)->recalculateAll();
+        Assert::assertSame(1, (int) $this->value($contacts[10], F::RFM_MONETARY));
+        Assert::assertSame(1, (int) $this->value($contacts[10], F::RFM_FREQUENCY), 'One order within the window, like most.');
+        Assert::assertSame(4, (int) $this->value($contacts[10], F::RFM_RECENCY), 'Recency is the last order (6 days ago), not the old one.');
+        Assert::assertSame('vip', $this->value($contacts[10], F::LIFECYCLE_STAGE), 'Stages still use all orders.');
     }
 
     private function createContact(string $email): Lead

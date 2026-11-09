@@ -198,7 +198,7 @@
                 {%- if form.featureSettings.lifecycle_lapsed_days is defined -%}
                     <h4 class="mt-lg mb-sm">{{ 'mautic.plugin.ecommerce.lifecycle.header'|trans }}</h4>
                     <p class="text-secondary">{{ 'mautic.plugin.ecommerce.lifecycle.help'|trans }}</p>
-                    {%- for key in ['lifecycle_lapsed_days', 'lifecycle_at_risk_factor', 'lifecycle_at_risk_min_days', 'lifecycle_single_order_days', 'lifecycle_vip_top_percent', 'lifecycle_vip_min_orders'] -%}
+                    {%- for key in ['lifecycle_lapsed_days', 'lifecycle_at_risk_factor', 'lifecycle_at_risk_min_days', 'lifecycle_single_order_days', 'lifecycle_vip_top_percent', 'lifecycle_vip_min_orders', 'rfm_window_days'] -%}
                         {{- form_row(attribute(form.featureSettings, key)) -}}
                     {%- endfor -%}
                 {%- endif -%}

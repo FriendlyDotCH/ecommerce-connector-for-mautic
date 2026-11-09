@@ -19,7 +19,7 @@ The branches are stacked; each builds on the previous one. All are pushed to `or
 | `feature/1.5.0` | 1.5.0 | Phase 1: G1 to G5 |
 | `feature/1.6.0` | 1.6.0 | Phase 2: G6, G7, native WooCommerce order webhooks |
 | `feature/1.8.0` | 1.8.4 | Unique coupons (G13), cross-sell groups (G12), order items and shopping activity on the contact, combined product alerts |
-| `feature/1.9.0` | 1.11.0 | G8/G9: catalog REST API; Products block in the email builder; new arrivals; Shop opportunities page |
+| `feature/1.9.0` | 1.12.0 | G8/G9: catalog REST API; Products block in the email builder; new arrivals; Shop opportunities page |
 | `feature/1.7.0` | 1.7.1 | Phase 3: product catalog and catalog page, platform adapters, signed product endpoint, product alerts (G10), product blocks and tokens (G11) |
 
 Work continues on `feature/1.9.0` (branched from `feature/1.8.0`, itself from `feature/1.7.0`), which runs on Mautic 7.2.2 (see "Mautic 7.2 compatibility" below).

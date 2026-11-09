@@ -131,8 +131,8 @@ class LifecycleCalculator
             }
 
             $recency   = [] !== $thresholds['recency'] ? self::quintileScore($customer['days_since'], $thresholds['recency'], true) : null;
-            $frequency = [] !== $thresholds['frequency'] ? self::quintileScore($customer['orders'], $thresholds['frequency']) : null;
-            $monetary  = [] !== $thresholds['monetary'] ? self::quintileScore($customer['monetary'], $thresholds['monetary']) : null;
+            $frequency = [] !== $thresholds['frequency'] ? self::quintileScore($customer['rfm_orders'], $thresholds['frequency']) : null;
+            $monetary  = [] !== $thresholds['monetary'] ? self::quintileScore($customer['rfm_monetary'], $thresholds['monetary']) : null;
 
             $rows[$leadId] = [
                 F::LIFECYCLE_STAGE => self::stage($customer, $settings, $thresholds['vip_cutoff']),
@@ -177,7 +177,7 @@ class LifecycleCalculator
     }
 
     /**
-     * @return array{vip_cutoff: ?float, recency: list<float>, frequency: list<float>, monetary: list<float>}
+     * @return array{vip_cutoff: ?float, recency: list<float>, frequency: list<float>, monetary: list<float>, rfm_window_days: int}
      */
     public function refreshThresholds(?\DateTimeInterface $now = null): array
     {
@@ -196,8 +196,9 @@ class LifecycleCalculator
         $thresholds = [
             'vip_cutoff' => $vipCutoff,
             'recency'    => self::quintileCutoffs(array_map('floatval', array_column($customers, 'days_since'))),
-            'frequency'  => self::quintileCutoffs(array_map('floatval', array_column($customers, 'orders'))),
-            'monetary'   => self::quintileCutoffs($monetary),
+            'frequency'  => self::quintileCutoffs(array_map('floatval', array_column($customers, 'rfm_orders'))),
+            'monetary'   => self::quintileCutoffs(array_column($customers, 'rfm_monetary')),
+            'rfm_window_days' => $this->rfmWindowDays(),
         ];
 
         $item = $this->cache->getItem(self::CACHE_KEY);
@@ -209,29 +210,42 @@ class LifecycleCalculator
     }
 
     /**
-     * @return array{vip_cutoff: ?float, recency: list<float>, frequency: list<float>, monetary: list<float>}
+     * @return array{vip_cutoff: ?float, recency: list<float>, frequency: list<float>, monetary: list<float>, rfm_window_days: int}
      */
     private function getThresholds(?\DateTimeInterface $now): array
     {
-        $item = $this->cache->getItem(self::CACHE_KEY);
+        $item   = $this->cache->getItem(self::CACHE_KEY);
+        $cached = $item->isHit() && is_array($item->get()) ? $item->get() : null;
 
-        return $item->isHit() && is_array($item->get()) ? $item->get() : $this->refreshThresholds($now);
+        // A changed RFM window makes the cached cutoffs meaningless.
+        return null !== $cached && ($cached['rfm_window_days'] ?? 0) === $this->rfmWindowDays() ? $cached : $this->refreshThresholds($now);
     }
 
     /**
      * @param int[]|null $leadIds null for all customers
      *
-     * @return array<int, array{orders: int, days_since: int, avg_gap: ?float, monetary: float}>
+     * @return array<int, array{orders: int, days_since: int, avg_gap: ?float, monetary: float, rfm_orders: int, rfm_monetary: float}>
      */
     private function loadCustomers(?array $leadIds, ?\DateTimeInterface $now): array
     {
         $query = $this->connection->createQueryBuilder();
-        $query->select('eo.lead_id', 'COUNT(eo.id) AS orders', 'MIN(eo.order_date) AS first_order', 'MAX(eo.order_date) AS last_order', 'SUM('.EcommerceOrder::baseNetSql().') AS monetary')
+        $window = $this->rfmWindowDays();
+        $since  = \DateTimeImmutable::createFromInterface($now ?? new \DateTimeImmutable())->setTimezone(new \DateTimeZone('UTC'))->modify(sprintf('-%d days', $window))->format('Y-m-d H:i:s');
+        $inWindow = $window > 0 ? 'eo.order_date >= :rfmSince' : '1 = 1';
+
+        $query->select(
+            'eo.lead_id', 'COUNT(eo.id) AS orders', 'MIN(eo.order_date) AS first_order', 'MAX(eo.order_date) AS last_order', 'SUM('.EcommerceOrder::baseNetSql().') AS monetary',
+            "SUM(CASE WHEN {$inWindow} THEN 1 ELSE 0 END) AS rfm_orders",
+            "SUM(CASE WHEN {$inWindow} THEN ".EcommerceOrder::baseNetSql().' ELSE 0 END) AS rfm_monetary'
+        )
             ->from(MAUTIC_TABLE_PREFIX.'ecommerce_orders', 'eo')
             ->where('eo.lead_id IS NOT NULL')
             ->andWhere($query->expr()->in('eo.status', ':counted'))
             ->setParameter('counted', EcommerceOrder::COUNTED_STATUSES, ArrayParameterType::STRING)
             ->groupBy('eo.lead_id');
+        if ($window > 0) {
+            $query->setParameter('rfmSince', $since);
+        }
 
         if (null !== $leadIds) {
             $query->andWhere($query->expr()->in('eo.lead_id', ':leadIds'))
@@ -252,10 +266,21 @@ class LifecycleCalculator
                 'days_since' => max(0, (int) floor(($today - $last) / 86400)),
                 'avg_gap'    => $orders > 1 && $last > $first ? ($last - $first) / 86400 / ($orders - 1) : null,
                 'monetary'   => round((float) $row['monetary'], 4),
+                // RFM frequency and monetary: within the RFM window (everything without one).
+                'rfm_orders'   => (int) $row['rfm_orders'],
+                'rfm_monetary' => round((float) $row['rfm_monetary'], 4),
             ];
         }
 
         return $customers;
+    }
+
+    /**
+     * Days of orders RFM frequency and monetary count; 0 for all orders.
+     */
+    private function rfmWindowDays(): int
+    {
+        return (int) $this->config->getLifecycleSettings()['rfm_window_days'];
     }
 
     private function columnsExist(): bool
