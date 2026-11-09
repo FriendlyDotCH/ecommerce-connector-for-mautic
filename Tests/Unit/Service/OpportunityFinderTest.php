@@ -30,6 +30,16 @@ class OpportunityFinderTest extends TestCase
         $this->assertSame([1, 1], OpportunityFinder::secondOrderWindow([0, 0, 0, 0, 0]));
     }
 
+    public function testBigSpenderCutoffMatchesRfmQuintiles(): void
+    {
+        $values = [100.0, 200.0, 300.0, 400.0, 500.0, 600.0, 700.0, 800.0, 900.0, 1000.0];
+
+        // Same cutoff the RFM monetary score uses for 4 and up.
+        $this->assertSame(\MauticPlugin\EcommerceConnectorBundle\Service\LifecycleCalculator::quintileCutoffs($values)[2], OpportunityFinder::percentileCutoff($values, 60));
+        $this->assertSame(700.0, OpportunityFinder::percentileCutoff(array_reverse($values), 60));
+        $this->assertNull(OpportunityFinder::percentileCutoff([], 60));
+    }
+
     public function testSegmentAliasIsStableAndDistinct(): void
     {
         $this->assertSame(OpportunitySegments::alias('cross_sell:Rózsa'), OpportunitySegments::alias('cross_sell:Rózsa'));

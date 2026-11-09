@@ -32,7 +32,8 @@ class OpportunityFunctionalTest extends MauticMysqlTestCase
         parent::setUp();
 
         $this->installEcommerceSchema($this->connection);
-        $this->configureIntegration(['enable_storefront_events' => 1]);
+        // A short RFM window must not change who counts as a big spender.
+        $this->configureIntegration(['enable_storefront_events' => 1, 'rfm_window_days' => 30]);
         static::getContainer()->get(LeadCommerceFieldInstaller::class)->installFields();
     }
 
@@ -87,6 +88,7 @@ class OpportunityFunctionalTest extends MauticMysqlTestCase
         Assert::assertSame(40.0, $found['cross_sell:Diffusers']['typical_order'], 'Average order containing diffusers.');
         Assert::assertArrayHasKey('vip_slipping', $found);
         Assert::assertSame(500.0, $found['vip_slipping']['typical_order']);
+        Assert::assertSame('1', $this->field($big, 'ecommerce_rfm_monetary'), 'Nothing spent within the RFM window.');
 
         $crawler = $this->client->request(Request::METHOD_GET, '/s/ecommerce/opportunities');
         Assert::assertSame(200, $this->client->getResponse()->getStatusCode());

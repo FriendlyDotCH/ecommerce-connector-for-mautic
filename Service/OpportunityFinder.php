@@ -6,6 +6,7 @@ namespace MauticPlugin\EcommerceConnectorBundle\Service;
 
 use Doctrine\DBAL\Connection;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceOrder;
+use MauticPlugin\EcommerceConnectorBundle\Integration\Config;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldDefinition as F;
 
 /**
@@ -31,8 +32,12 @@ class OpportunityFinder
     /** Due to reorder: the expected next order fell within this many days, up to today. */
     public const DUE_WINDOW_DAYS = 30;
 
-    /** RFM monetary score from which an at-risk customer counts as a big spender (top 40%). */
-    public const VIP_MIN_MONETARY = 4;
+    /**
+     * Big spenders: lifetime value above this percentile of all customers (the top 40%, what
+     * RFM monetary 4 or 5 means when RFM counts all orders). All-time on purpose: an RFM window
+     * would take the spend score away from exactly the customers who stopped buying.
+     */
+    public const BIG_SPENDER_PERCENTILE = 60;
 
     /** Repeat customers needed before the second-order window comes from the shop's own data. */
     public const SECOND_ORDER_MIN_SAMPLES = 5;
@@ -43,6 +48,8 @@ class OpportunityFinder
     public function __construct(
         private Connection $connection,
         private CrossSellCalculator $crossSell,
+        private CurrencyFormatter $formatter,
+        private Config $config,
     ) {
     }
 
@@ -61,7 +68,7 @@ class OpportunityFinder
             array_filter([
                 $has(F::NEXT_ORDER_DATE, F::LIFECYCLE_STAGE) ? $this->dueToReorder() : null,
                 $has(F::ORDER_COUNT, F::DAYS_SINCE_LAST_ORDER) ? $this->secondOrder() : null,
-                $has(F::LIFECYCLE_STAGE, F::RFM_MONETARY) ? $this->vipSlipping() : null,
+                $has(F::LIFECYCLE_STAGE, F::LIFETIME_VALUE, F::ORDER_COUNT) ? $this->vipSlipping() : null,
                 $has(F::INTEREST_PRODUCT) ? $this->interested() : null,
                 $has(F::LAPSED_CATEGORY) ? $this->lapsedCategory() : null,
             ])
@@ -106,6 +113,24 @@ class OpportunityFinder
         $to   = (int) ceil(self::percentile($gaps, 0.75));
 
         return [max(1, $from), max(max(1, $from), $to)];
+    }
+
+    /**
+     * The value a customer must beat to be in the top (100 - $percentile)%, picked the same way
+     * as the RFM quintile cutoffs; null without customers.
+     *
+     * @param list<float> $values
+     */
+    public static function percentileCutoff(array $values, int $percentile): ?float
+    {
+        if ([] === $values) {
+            return null;
+        }
+
+        sort($values);
+        $count = count($values);
+
+        return (float) $values[min($count - 1, (int) floor($percentile * $count / 100))];
     }
 
     /**
@@ -214,18 +239,28 @@ class OpportunityFinder
 
     private function vipSlipping(): ?array
     {
-        $stage    = $this->connection->quoteIdentifier(F::LIFECYCLE_STAGE);
-        $monetary = $this->connection->quoteIdentifier(F::RFM_MONETARY);
-        $row      = $this->connection->fetchAssociative(
+        $stage  = $this->connection->quoteIdentifier(F::LIFECYCLE_STAGE);
+        $value  = $this->connection->quoteIdentifier(F::LIFETIME_VALUE);
+        $count  = $this->connection->quoteIdentifier(F::ORDER_COUNT);
+        $values = array_map('floatval', $this->connection->fetchFirstColumn(
+            'SELECT '.$value.' FROM '.MAUTIC_TABLE_PREFIX."leads WHERE {$count} > 0 AND {$value} IS NOT NULL"
+        ));
+        $cutoff = self::percentileCutoff($values, self::BIG_SPENDER_PERCENTILE);
+        if (null === $cutoff) {
+            return null;
+        }
+
+        $row = $this->connection->fetchAssociative(
             'SELECT COUNT(*) AS contacts, '.$this->typicalOrderSql().' AS typical FROM '.MAUTIC_TABLE_PREFIX."leads
-             WHERE {$stage} = ? AND {$monetary} >= ?",
-            [F::STAGE_AT_RISK, self::VIP_MIN_MONETARY]
+             WHERE {$stage} = ? AND {$count} > 0 AND {$value} > ?",
+            [F::STAGE_AT_RISK, $cutoff]
         ) ?: ['contacts' => 0, 'typical' => 0];
 
+        // The segment keeps this amount: a fixed, readable filter.
         return $this->opportunity(self::TYPE_VIP_SLIPPING, self::TYPE_VIP_SLIPPING, (int) $row['contacts'], (float) $row['typical'], [
             $this->filter(F::LIFECYCLE_STAGE, '=', F::STAGE_AT_RISK, 'select'),
-            $this->filter(F::RFM_MONETARY, 'gte', (string) self::VIP_MIN_MONETARY, 'number'),
-        ], ['%score%' => self::VIP_MIN_MONETARY]);
+            $this->filter(F::LIFETIME_VALUE, 'gt', number_format($cutoff, 2, '.', ''), 'number'),
+        ], ['%amount%' => $this->formatter->format($this->config->getBaseCurrency(), $cutoff)]);
     }
 
     private function interested(): array

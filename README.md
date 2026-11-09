@@ -353,7 +353,7 @@ One campaign covers every pair: a segment on **Cross-sell category** is not empt
 | Cross-sell: ready for a category | One row per **Cross-sell category** (see above), with the rule behind it, such as "86% of Candles buyers also bought Diffusers" |
 | Due to reorder | Repeat customers whose **Expected next order** fell within the last 30 days, with no order since (not lapsed) |
 | Ready for a second order | One-time customers whose first order is as old as most second orders: the 25th to 75th percentile of days between first and second order, measured once 5 customers have ordered twice (20 to 60 days until then) |
-| Big spenders slipping away | Lifecycle stage **At risk** with **RFM monetary** 4 or 5 |
+| Big spenders slipping away | Lifecycle stage **At risk** with lifetime value in the top 40% of customers (all orders, whatever the RFM window). The segment keeps the amount from when it was created |
 | Interested, not bought yet | **Interested in (not bought)** is set: in the last 30 days the contact viewed a product on two different days or put it in a cart, and never bought it. Needs storefront events |
 | Stopped buying a category | **Lapsed category** is set: a category bought on at least 2 days, last bought longer ago than twice the usual gap between those purchases (at least 60 days) |
 
@@ -660,6 +660,7 @@ You are solely responsible for how you deploy and use this plugin, including com
 ### 1.12.0
 ```
 * Added: RFM window setting: count orders of the last N days for RFM frequency and monetary (0 = all orders, the default).
+* Changed: The "Big spenders slipping away" opportunity uses all-time lifetime value (top 40%) instead of RFM monetary, so an RFM window does not empty it.
 ```
 
 ### 1.11.0
