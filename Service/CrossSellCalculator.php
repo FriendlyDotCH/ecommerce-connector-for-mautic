@@ -73,7 +73,8 @@ class CrossSellCalculator
     }
 
     /**
-     * After one contact's order changed, with the last model (rebuilt nightly).
+     * After one contact's order changed, with the last model (rebuilt nightly, or now if the
+     * cache lost it).
      *
      * @param list<int> $leadIds
      */
@@ -84,11 +85,7 @@ class CrossSellCalculator
             return;
         }
 
-        $model = $this->loadModel();
-        if (null === $model) {
-            return;
-        }
-
+        $model            = $this->model();
         $categoriesByLead = $this->loadCategories($leadIds);
         $rows             = [];
         foreach ($leadIds as $leadId) {
@@ -105,7 +102,7 @@ class CrossSellCalculator
      */
     public function rules(): array
     {
-        $model = $this->loadModel() ?? ['rules' => []];
+        $model = $this->model();
         $rules = [];
         foreach ($model['rules'] as $from => $targets) {
             foreach ($targets as $to => $rule) {
@@ -237,6 +234,22 @@ class CrossSellCalculator
         $item->set($model);
         $item->expiresAfter(3 * 86400);
         $this->cache->save($item);
+    }
+
+    /**
+     * The nightly model, or a fresh one when the cache lost it (a cache clear on deploy).
+     *
+     * @return array{customers: int, rules: array<string, array<string, array{customers: int, confidence: float, lift: float}>>}
+     */
+    private function model(): array
+    {
+        $model = $this->loadModel();
+        if (null === $model) {
+            $model = self::buildModel($this->loadCategories(null));
+            $this->saveModel($model);
+        }
+
+        return $model;
     }
 
     /**

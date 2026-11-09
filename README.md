@@ -342,6 +342,23 @@ Customers count once per category, from paid orders, without fully refunded line
 
 One campaign covers every pair: a segment on **Cross-sell category** is not empty, an email with `{contactfield=ecommerce_cross_sell_category}` and `{ecommerce_products source="cross_sell"}` (best sellers in that category that the contact has not bought). With **Create cross-sell segments** on (Validation tab), the recalculation also creates one segment per category, "Cross-sell: Diffusers", up to 20 per run; they are never changed or removed afterwards, and Mautic's segment update cron fills them.
 
+## Shop opportunities
+
+**Components → Shop opportunities** lists audiences worth contacting now, found in what customers bought, largest potential first:
+
+| Opportunity | Who |
+|-------------|-----|
+| Cross-sell: ready for a category | One row per **Cross-sell category** (see above), with the rule behind it, such as "86% of Candles buyers also bought Diffusers" |
+| Due to reorder | Repeat customers whose **Expected next order** fell within the last 30 days, with no order since (not lapsed) |
+| Ready for a second order | One-time customers whose first order is as old as most second orders: the 25th to 75th percentile of days between first and second order, measured once 5 customers have ordered twice (20 to 60 days until then) |
+| Big spenders slipping away | Lifecycle stage **At risk** with **RFM monetary** 4 or 5 |
+
+Each row shows the number of contacts, the typical order (their average net order value; for cross-sell, the average order containing that category) and the potential (contacts × typical order, if each orders once), in the base currency. Audiences can overlap.
+
+**Create segment** makes a segment with the same filters ("Opportunity: Due to reorder"), so it holds the contacts the page counts; Mautic's segment update cron fills it. Segments are created once and never changed afterwards. A cross-sell row links to the segment from **Create cross-sell segments** when there is one. Creating segments needs the permission to create segments; the page itself needs permission to view contacts.
+
+Everything comes from the computed contact fields, so the page and its segments change with the daily recalculation.
+
 ## Behaviours
 
 **Settings → Ecommerce behaviours** (requires the permission to manage custom fields) defines rolling purchase measures. Each behaviour keeps its own number contact field, for example `ecb_candle_spend_90d`, which you can use in segments, campaign conditions and email tokens like any contact field.
@@ -630,6 +647,12 @@ This software is provided **as is**, without warranty of any kind, express or im
 You are solely responsible for how you deploy and use this plugin, including compliance with applicable laws and data protection obligations.
 
 ## Changelog
+
+### 1.10.0
+```
+* Added: Shop opportunities page (Components): cross-sell, due to reorder, second order and big spenders slipping away, with contacts, typical order and potential; Create segment makes a segment with the same filters.
+* Fixed: After a cache clear (for example on deploy) the cross-sell model is rebuilt from the orders. Before, new orders did not update Cross-sell category until the next nightly recalculation.
+```
 
 ### 1.9.2
 ```

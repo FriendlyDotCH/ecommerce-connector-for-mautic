@@ -3,7 +3,7 @@
 return [
     'name'        => 'Ecommerce Connector',
     'description' => 'Track eCommerce orders from your store and attribute revenue to Mautic emails. Configure the webhook secret and endpoint under Plugins > Ecommerce Connector.',
-    'version'     => '1.9.2',
+    'version'     => '1.10.0',
     'author'      => 'Dog Byte Marketing',
     'routes'      => [
         'main' => [
@@ -22,6 +22,16 @@ return [
                 'method'       => 'GET',
                 'defaults'     => ['page' => 1],
                 'requirements' => ['page' => '\\d+'],
+            ],
+            'mautic_ecommerce_opportunity_index' => [
+                'path'       => '/ecommerce/opportunities',
+                'controller' => 'MauticPlugin\\EcommerceConnectorBundle\\Controller\\OpportunityController::indexAction',
+                'method'     => 'GET',
+            ],
+            'mautic_ecommerce_opportunity_segment' => [
+                'path'       => '/ecommerce/opportunities/segment',
+                'controller' => 'MauticPlugin\\EcommerceConnectorBundle\\Controller\\OpportunityController::segmentAction',
+                'method'     => 'POST',
             ],
             'mautic_ecommerce_behaviour_index' => [
                 'path'       => '/ecommerce/behaviours',
@@ -151,6 +161,14 @@ return [
                 'access'    => 'lead:leads:viewown',
                 'parent'    => 'mautic.core.components',
                 'priority'  => 5,
+            ],
+            'mautic.plugin.ecommerce.opportunity.menu' => [
+                'id'        => 'mautic_ecommerce_opportunity_index',
+                'route'     => 'mautic_ecommerce_opportunity_index',
+                'iconClass' => 'ri-lightbulb-line',
+                'access'    => 'lead:leads:viewown',
+                'parent'    => 'mautic.core.components',
+                'priority'  => 4,
             ],
         ],
         'admin' => [

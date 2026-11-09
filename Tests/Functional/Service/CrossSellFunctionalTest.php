@@ -70,7 +70,14 @@ class CrossSellFunctionalTest extends MauticMysqlTestCase
         $this->order($candleOnly, 'C-2', [['160', 'Diffusers']]);
         Assert::assertNull($field($candleOnly, 'ecommerce_cross_sell_category'), 'Bought diffusers now.');
 
-        // The block shows best-selling diffusers to someone with that opportunity.
+        // A cache clear (deploy) loses the nightly model: it is rebuilt, not skipped.
+        static::getContainer()->get('cache.app')->clear();
+        $late = $this->contact('late@example.com');
+        $this->order($late, 'L-1', [['155', 'Candles']]);
+        Assert::assertSame('Diffusers', $field($late, 'ecommerce_cross_sell_category'));
+        Assert::assertNotEmpty(static::getContainer()->get(\MauticPlugin\EcommerceConnectorBundle\Service\CrossSellCalculator::class)->rules());
+
+                // The block shows best-selling diffusers to someone with that opportunity.
         $other = $this->contact('candle2@example.com');
         $this->order($other, 'C-3', [['155', 'Candles']]);
         $send = new EmailSendEvent(null, ['content' => '<div>{ecommerce_products source="cross_sell" limit="2"}</div>', 'lead' => ['id' => $other->getId()]]);

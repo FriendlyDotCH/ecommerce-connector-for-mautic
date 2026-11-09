@@ -19,7 +19,7 @@ The branches are stacked; each builds on the previous one. All are pushed to `or
 | `feature/1.5.0` | 1.5.0 | Phase 1: G1 to G5 |
 | `feature/1.6.0` | 1.6.0 | Phase 2: G6, G7, native WooCommerce order webhooks |
 | `feature/1.8.0` | 1.8.4 | Unique coupons (G13), cross-sell groups (G12), order items and shopping activity on the contact, combined product alerts |
-| `feature/1.9.0` | 1.9.1 | G8/G9: catalog REST API; Products block in the email builder |
+| `feature/1.9.0` | 1.10.0 | G8/G9: catalog REST API; Products block in the email builder; new arrivals; Shop opportunities page |
 | `feature/1.7.0` | 1.7.1 | Phase 3: product catalog and catalog page, platform adapters, signed product endpoint, product alerts (G10), product blocks and tokens (G11) |
 
 Work continues on `feature/1.9.0` (branched from `feature/1.8.0`, itself from `feature/1.7.0`), which runs on Mautic 7.2.2 (see "Mautic 7.2 compatibility" below).
@@ -41,6 +41,7 @@ Work continues on `feature/1.9.0` (branched from `feature/1.8.0`, itself from `f
 | G11 Product content in emails | Done (1.7.1) | `{ecommerce_products source=recommended\|best_sellers\|new_arrivals\|viewed\|last_purchased}` written into the content before link tracking, so links are tracked; alert product tokens. Recommended = best sellers in the contact's categories not bought yet (no co-purchase model; that is G12). `new_arrivals` (1.9.2) sorts by the store's created date (`date_created`), else `date_added` |
 | G13 Unique coupons | Done (1.8.0) | Issue coupon action (batch, `PendingEvent`; never passes without a coupon: shop down = retry in 15 min, refusal = retry hourly; Mautic retries without limit), code made in Mautic, created by the connector's signed `/wp-json/mautic-ecommerce/v1/coupon` (opt-in, timestamped); `ecommerce_coupons`; redeemed from the order's `coupons`; Coupon used condition; tokens. Not done: Shopify (needs an app) |
 | G12 Cross-sell groups | Done (1.8.1) | `CrossSellCalculator`: category co-purchase by customer (support 5, lift > 1, best confidence); fields `ecommerce_cross_sell_category` / `_from`; model cached from the nightly run, contact rescored after orders; opt-in auto-segments (`CrossSellSegments`, created once, never changed); block source `cross_sell`. Product-level pairs not done (categories are more robust on small shops) |
+| Opportunities page | Done (1.10.0) | `Service/OpportunityFinder` (cross-sell, due to reorder, second order, big spenders slipping; all from computed contact fields, each also a segment filter list), `Service/OpportunitySegments` (alias `ecommerce-opportunity-…`, created once), `Controller/OpportunityController` (Components → Shop opportunities; segment creation ajax-only for the CSRF header). Planned next: browsed or carted but never bought (storefront events), lapsed in a category. Demo data: 60 contacts / 100 orders, see `/var/www/html/mautic/git/demo-data/` on the dev server |
 | G14 to G21 | Not started | G14 loyalty and G15 POS need client systems |
 
 Deliberately out of scope (from the gap analysis): checkout and payments, courses and communities, apps, affiliates, reviews, WhatsApp, Instagram capture, AI assistants.

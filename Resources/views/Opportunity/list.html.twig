@@ -1,0 +1,84 @@
+{#
+  Variables
+    - items: opportunities, largest potential first (see OpportunityFinder::findAll), plus
+      typical_formatted and potential_formatted
+    - segments: opportunity key => {id, alias, name} for opportunities that have a segment
+    - canSegment: whether the user may create segments
+    - totalContacts, totalPotential, currency
+#}
+{% extends '@MauticCore/Default/content.html.twig' %}
+
+{% block mauticContent %}ecommerceopportunity{% endblock %}
+
+{% block headerTitle %}{{ 'mautic.plugin.ecommerce.opportunity.header'|trans }}{% endblock %}
+
+{% block content %}
+<div id="page-list-wrapper" class="panel panel-default">
+    <div class="panel-body">
+        <p class="text-secondary">{{ 'mautic.plugin.ecommerce.opportunity.intro'|trans }}</p>
+        {% if items|length > 0 %}
+            <p><strong>{{ 'mautic.plugin.ecommerce.opportunity.summary'|trans({'%count%': items|length, '%contacts%': totalContacts, '%potential%': totalPotential}) }}</strong></p>
+        {% endif %}
+    </div>
+    <div class="page-list">
+    {% if items|length > 0 %}
+        <div class="table-responsive">
+            <table class="table table-hover" id="ecommerceOpportunityTable">
+                <thead>
+                <tr>
+                    <th>{{ 'mautic.plugin.ecommerce.opportunity.column.opportunity'|trans }}</th>
+                    <th class="text-right">{{ 'mautic.plugin.ecommerce.opportunity.column.contacts'|trans }}</th>
+                    <th class="text-right visible-md visible-lg">{{ 'mautic.plugin.ecommerce.opportunity.column.typical'|trans }}</th>
+                    <th class="text-right">{{ 'mautic.plugin.ecommerce.opportunity.column.potential'|trans }}</th>
+                    <th>{{ 'mautic.plugin.ecommerce.opportunity.column.segment'|trans }}</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for item in items %}
+                    {% set prefix = 'mautic.plugin.ecommerce.opportunity.type.' ~ item.type %}
+                    {% set segment = segments[item.key] ?? null %}
+                    <tr data-opportunity="{{ item.key }}">
+                        <td>
+                            <span class="label label-gray mr-xs">{{ (prefix ~ '.label')|trans }}</span>
+                            <strong>{{ (prefix ~ '.title')|trans(item.params) }}</strong>
+                            <div class="text-secondary small">
+                                {{ (prefix ~ '.description')|trans(item.params) }}
+                                {% if item.type == 'cross_sell' and item.params['%confidence%'] > 0 %}
+                                    {{ 'mautic.plugin.ecommerce.opportunity.type.cross_sell.evidence'|trans(item.params) }}
+                                {% elseif item.type == 'second_order' %}
+                                    {{ ('mautic.plugin.ecommerce.opportunity.type.second_order.basis.' ~ item.params['%basis%'])|trans }}
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="text-right">{{ item.contacts }}</td>
+                        <td class="text-right visible-md visible-lg" style="white-space: nowrap">{{ item.typical_formatted }}</td>
+                        <td class="text-right" style="white-space: nowrap">{{ item.potential_formatted }}</td>
+                        <td style="white-space: nowrap">
+                            {% if segment %}
+                                <a href="{{ path('mautic_segment_action', {'objectAction': 'view', 'objectId': segment.id}) }}" data-toggle="ajax" class="ecommerce-opportunity-segment">{{ segment.name }}</a>
+                                <div class="small"><a href="{{ path('mautic_contact_index', {'search': 'segment:' ~ segment.alias}) }}" data-toggle="ajax">{{ 'mautic.plugin.ecommerce.opportunity.view_contacts'|trans }}</a></div>
+                            {% elseif canSegment %}
+                                {{ include('@MauticCore/Helper/confirm.html.twig', {
+                                    'message': 'mautic.plugin.ecommerce.opportunity.confirm_segment'|trans({'%title%': (prefix ~ '.title')|trans(item.params)}),
+                                    'confirmText': 'mautic.plugin.ecommerce.opportunity.create_segment'|trans,
+                                    'confirmAction': path('mautic_ecommerce_opportunity_segment', {'key': item.key}),
+                                    'btnText': 'mautic.plugin.ecommerce.opportunity.create_segment'|trans,
+                                    'btnClass': 'btn btn-ghost btn-sm ecommerce-opportunity-create',
+                                    'iconClass': 'ri-group-line',
+                                }) }}
+                            {% else %}
+                                <span class="text-secondary">&ndash;</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="panel-footer text-secondary small">{{ 'mautic.plugin.ecommerce.opportunity.footnote'|trans({'%currency%': currency}) }}</div>
+    {% else %}
+        {{ include('@MauticCore/Helper/noresults.html.twig', {'tip': 'mautic.plugin.ecommerce.opportunity.empty'}) }}
+    {% endif %}
+    </div>
+</div>
+{% endblock %}
