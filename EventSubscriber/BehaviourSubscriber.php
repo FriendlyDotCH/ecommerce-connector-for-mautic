@@ -8,11 +8,13 @@ use Mautic\LeadBundle\Event\LeadMergeEvent;
 use Mautic\LeadBundle\LeadEvents;
 use MauticPlugin\EcommerceConnectorBundle\EcommerceEvents;
 use MauticPlugin\EcommerceConnectorBundle\Event\EcommerceOrderEvent;
+use MauticPlugin\EcommerceConnectorBundle\Event\StorefrontEventRecordedEvent;
 use MauticPlugin\EcommerceConnectorBundle\Service\CommerceRecalculator;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
- * Keeps computed contact values (timing metrics and behaviours) current after order changes.
+ * Keeps computed contact values (timing metrics, behaviours, interest) current after order changes
+ * and storefront events.
  */
 final class BehaviourSubscriber implements EventSubscriberInterface
 {
@@ -26,6 +28,7 @@ final class BehaviourSubscriber implements EventSubscriberInterface
         return [
             // Before CampaignSubscriber, so campaign steps see the updated values.
             EcommerceEvents::ORDER_RECORDED => ['onOrderRecorded', 10],
+            EcommerceEvents::STOREFRONT_EVENT_RECORDED => ['onStorefrontEvent', 10],
             LeadEvents::LEAD_POST_MERGE     => ['onLeadMerge', -10],
         ];
     }
@@ -35,6 +38,14 @@ final class BehaviourSubscriber implements EventSubscriberInterface
         $leadId = $event->getOrder()->getLead()?->getId();
         if (null !== $leadId) {
             $this->commerceRecalculator->recalculateForLead((int) $leadId);
+        }
+    }
+
+    public function onStorefrontEvent(StorefrontEventRecordedEvent $event): void
+    {
+        $leadId = $event->getStorefrontEvent()->getLead()->getId();
+        if (null !== $leadId) {
+            $this->commerceRecalculator->recalculateInterestForLead((int) $leadId);
         }
     }
 

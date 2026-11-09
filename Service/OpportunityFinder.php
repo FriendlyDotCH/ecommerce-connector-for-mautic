@@ -20,8 +20,13 @@ class OpportunityFinder
     public const TYPE_DUE_REORDER  = 'due_reorder';
     public const TYPE_SECOND_ORDER = 'second_order';
     public const TYPE_VIP_SLIPPING = 'vip_slipping';
+    public const TYPE_INTERESTED   = 'interested';
+    public const TYPE_LAPSED_CATEGORY = 'lapsed_category';
 
-    public const TYPES = [self::TYPE_CROSS_SELL, self::TYPE_DUE_REORDER, self::TYPE_SECOND_ORDER, self::TYPE_VIP_SLIPPING];
+    public const TYPES = [self::TYPE_CROSS_SELL, self::TYPE_DUE_REORDER, self::TYPE_SECOND_ORDER, self::TYPE_VIP_SLIPPING, self::TYPE_INTERESTED, self::TYPE_LAPSED_CATEGORY];
+
+    /** Products or categories named in a row's description. */
+    public const TOP_EXAMPLES = 3;
 
     /** Due to reorder: the expected next order fell within this many days, up to today. */
     public const DUE_WINDOW_DAYS = 30;
@@ -48,13 +53,18 @@ class OpportunityFinder
      */
     public function findAll(): array
     {
-        if (!$this->columnsExist()) {
-            return [];
-        }
+        $columns = $this->existingColumns();
+        $has     = static fn (string ...$names): bool => [] === array_diff($names, $columns);
 
         $opportunities = array_merge(
-            $this->crossSell(),
-            array_filter([$this->dueToReorder(), $this->secondOrder(), $this->vipSlipping()])
+            $has(F::CROSS_SELL_CATEGORY, F::CROSS_SELL_FROM) ? $this->crossSell() : [],
+            array_filter([
+                $has(F::NEXT_ORDER_DATE, F::LIFECYCLE_STAGE) ? $this->dueToReorder() : null,
+                $has(F::ORDER_COUNT, F::DAYS_SINCE_LAST_ORDER) ? $this->secondOrder() : null,
+                $has(F::LIFECYCLE_STAGE, F::RFM_MONETARY) ? $this->vipSlipping() : null,
+                $has(F::INTEREST_PRODUCT) ? $this->interested() : null,
+                $has(F::LAPSED_CATEGORY) ? $this->lapsedCategory() : null,
+            ])
         );
 
         $opportunities = array_values(array_filter($opportunities, static fn (array $o): bool => $o['contacts'] > 0));
@@ -218,6 +228,49 @@ class OpportunityFinder
         ], ['%score%' => self::VIP_MIN_MONETARY]);
     }
 
+    private function interested(): array
+    {
+        $product = $this->connection->quoteIdentifier(F::INTEREST_PRODUCT);
+        $top     = $this->top(F::INTEREST_PRODUCT);
+        // Worth: the price of the product they are interested in, from the catalog.
+        $row     = $this->connection->fetchAssociative(
+            'SELECT COUNT(*) AS contacts, COALESCE(AVG(p.price), 0) AS typical FROM '.MAUTIC_TABLE_PREFIX."leads l
+             LEFT JOIN (SELECT name, MAX(price) AS price FROM ".MAUTIC_TABLE_PREFIX."ecommerce_products GROUP BY name) p ON p.name = l.{$product}
+             WHERE l.{$product} IS NOT NULL AND l.{$product} <> ''"
+        ) ?: ['contacts' => 0, 'typical' => 0];
+
+        return $this->opportunity(self::TYPE_INTERESTED, self::TYPE_INTERESTED, (int) $row['contacts'], (float) $row['typical'], [
+            $this->filter(F::INTEREST_PRODUCT, '!empty', '', 'text'),
+        ], ['%days%' => InterestCalculator::DAYS, '%examples%' => $top]);
+    }
+
+    private function lapsedCategory(): array
+    {
+        $category = $this->connection->quoteIdentifier(F::LAPSED_CATEGORY);
+        $row      = $this->connection->fetchAssociative(
+            'SELECT COUNT(*) AS contacts, '.$this->typicalOrderSql().' AS typical FROM '.MAUTIC_TABLE_PREFIX."leads
+             WHERE {$category} IS NOT NULL AND {$category} <> ''"
+        ) ?: ['contacts' => 0, 'typical' => 0];
+
+        return $this->opportunity(self::TYPE_LAPSED_CATEGORY, self::TYPE_LAPSED_CATEGORY, (int) $row['contacts'], (float) $row['typical'], [
+            $this->filter(F::LAPSED_CATEGORY, '!empty', '', 'text'),
+        ], ['%factor%' => (int) CategoryLapseCalculator::FACTOR, '%min%' => CategoryLapseCalculator::MIN_DAYS, '%examples%' => $this->top(F::LAPSED_CATEGORY)]);
+    }
+
+    /**
+     * The most common values of a field, with counts: "Rose gift set (4), Bath bomb (2)".
+     */
+    private function top(string $field): string
+    {
+        $column = $this->connection->quoteIdentifier($field);
+        $rows   = $this->connection->fetchAllNumeric(
+            "SELECT {$column}, COUNT(*) AS n FROM ".MAUTIC_TABLE_PREFIX."leads
+             WHERE {$column} IS NOT NULL AND {$column} <> '' GROUP BY {$column} ORDER BY n DESC, {$column} LIMIT ".self::TOP_EXAMPLES
+        );
+
+        return implode(', ', array_map(static fn (array $row): string => sprintf('%s (%d)', $row[0], $row[1]), $rows));
+    }
+
     /**
      * Days between first and second counted order, per repeat customer.
      *
@@ -309,16 +362,13 @@ class OpportunityFinder
         ];
     }
 
-    private function columnsExist(): bool
+    /**
+     * Computed fields present on the contacts table; an opportunity needs its fields installed.
+     *
+     * @return list<string>
+     */
+    private function existingColumns(): array
     {
-        $columns = array_change_key_case($this->connection->createSchemaManager()->listTableColumns(MAUTIC_TABLE_PREFIX.'leads'));
-
-        foreach ([F::CROSS_SELL_CATEGORY, F::NEXT_ORDER_DATE, F::LIFECYCLE_STAGE, F::RFM_MONETARY, F::DAYS_SINCE_LAST_ORDER] as $column) {
-            if (!isset($columns[$column])) {
-                return false;
-            }
-        }
-
-        return true;
+        return array_map('strval', array_keys(array_change_key_case($this->connection->createSchemaManager()->listTableColumns(MAUTIC_TABLE_PREFIX.'leads'))));
     }
 }

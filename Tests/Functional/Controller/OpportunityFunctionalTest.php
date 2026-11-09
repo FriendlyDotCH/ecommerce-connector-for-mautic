@@ -8,7 +8,10 @@ use Mautic\CoreBundle\Test\MauticMysqlTestCase;
 use Mautic\LeadBundle\Entity\Lead;
 use MauticPlugin\EcommerceConnectorBundle\DTO\OrderItemPayload;
 use MauticPlugin\EcommerceConnectorBundle\DTO\OrderPayload;
+use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceProductRepository;
 use MauticPlugin\EcommerceConnectorBundle\Service\EcommerceOrderTracker;
+use MauticPlugin\EcommerceConnectorBundle\Service\StorefrontEventParser;
+use MauticPlugin\EcommerceConnectorBundle\Service\StorefrontEventRecorder;
 use MauticPlugin\EcommerceConnectorBundle\Service\LeadCommerceFieldInstaller;
 use MauticPlugin\EcommerceConnectorBundle\Service\OpportunityFinder;
 use MauticPlugin\EcommerceConnectorBundle\Service\OpportunitySegments;
@@ -29,7 +32,7 @@ class OpportunityFunctionalTest extends MauticMysqlTestCase
         parent::setUp();
 
         $this->installEcommerceSchema($this->connection);
-        $this->configureIntegration();
+        $this->configureIntegration(['enable_storefront_events' => 1]);
         static::getContainer()->get(LeadCommerceFieldInstaller::class)->installFields();
     }
 
@@ -53,7 +56,25 @@ class OpportunityFunctionalTest extends MauticMysqlTestCase
         $this->order($big, 'B-1', 'Soap', '500', 200);
         $this->order($big, 'B-2', 'Soap', '500', 150);
 
+        // Interest: views on two days (updated straight away), a cart from a contact without
+        // orders, and views of something already bought (no interest).
+        static::getContainer()->get(EcommerceProductRepository::class)->upsertProduct('woocommerce', ['external_id' => '160', 'name' => 'Reed Diffuser', 'price' => '30', 'category' => 'Diffusers', 'stock_status' => 'instock']);
+        $this->event($single, ['event' => 'viewed_product', 'product_id' => '160', 'product_name' => 'Reed Diffuser', 'category' => 'Diffusers', 'occurred_at' => gmdate(DATE_ATOM, strtotime('-3 days'))]);
+        $this->event($single, ['event' => 'viewed_product', 'product_id' => '160', 'product_name' => 'Reed Diffuser', 'category' => 'Diffusers', 'occurred_at' => gmdate(DATE_ATOM, strtotime('-2 days'))]);
+        Assert::assertSame('Reed Diffuser', $this->field($single, 'ecommerce_interest_product'));
+        $browser = $this->contact('browser@example.com');
+        $this->event($browser, ['event' => 'added_to_cart', 'cart_id' => 'c-1', 'occurred_at' => gmdate(DATE_ATOM, strtotime('-4 days')), 'items' => [['item_id' => 'SKU-RD', 'item_name' => 'Reed Diffuser', 'qty' => 1, 'unit_price' => '30', 'category' => 'Diffusers']]]);
+        $pair = $this->em->getRepository(Lead::class)->findOneBy(['email' => 'pair1@example.com']);
+        $this->event($pair, ['event' => 'viewed_product', 'product_name' => 'Candles item', 'occurred_at' => gmdate(DATE_ATOM, strtotime('-3 days'))]);
+        $this->event($pair, ['event' => 'viewed_product', 'product_name' => 'Candles item', 'occurred_at' => gmdate(DATE_ATOM, strtotime('-2 days'))]);
+
         $this->testSymfonyCommand('mautic:ecommerce:recalculate');
+
+        Assert::assertSame('Diffusers', $this->field($browser, 'ecommerce_interest_category'));
+        Assert::assertNull($this->field($pair, 'ecommerce_interest_product'), 'Already bought.');
+        Assert::assertSame('Soap', $this->field($big, 'ecommerce_lapsed_category'));
+        Assert::assertSame('150', $this->field($big, 'ecommerce_lapsed_category_days'));
+        Assert::assertNull($this->field($due, 'ecommerce_lapsed_category'), 'Within the 60-day minimum.');
 
         $found = [];
         foreach (static::getContainer()->get(OpportunityFinder::class)->findAll() as $opportunity) {
@@ -71,7 +92,10 @@ class OpportunityFunctionalTest extends MauticMysqlTestCase
         Assert::assertSame(200, $this->client->getResponse()->getStatusCode());
         $rows = $crawler->filter('#ecommerceOpportunityTable tbody tr');
         Assert::assertCount(count($found), $rows);
-        Assert::assertSame('vip_slipping', $rows->eq(0)->attr('data-opportunity'), 'Largest potential first.');
+        $potentials = array_map(static fn (string $key): float => $found[$key]['potential'], $rows->each(static fn ($row): string => (string) $row->attr('data-opportunity')));
+        $sorted     = $potentials;
+        rsort($sorted);
+        Assert::assertSame($sorted, $potentials, 'Largest potential first.');
         $trans = static::getContainer()->get('translator');
         Assert::assertStringContainsString($trans->trans('mautic.plugin.ecommerce.opportunity.type.cross_sell.title', ['%category%' => 'Diffusers']), $crawler->filter('tr[data-opportunity="cross_sell:Diffusers"]')->text());
         Assert::assertCount(count($found), $crawler->filter('.ecommerce-opportunity-create'));
@@ -101,6 +125,12 @@ class OpportunityFunctionalTest extends MauticMysqlTestCase
         Assert::assertSame([(int) $single->getId()], $members('second_order'));
         Assert::assertContains((int) $big->getId(), $members('vip_slipping'));
         Assert::assertContains((int) $single->getId(), $members('cross_sell:Diffusers'));
+        $interested = $members('interested');
+        sort($interested);
+        Assert::assertSame([(int) $single->getId(), (int) $browser->getId()], $interested);
+        Assert::assertSame([(int) $big->getId()], $members('lapsed_category'));
+        Assert::assertSame(30.0, $found['interested']['typical_order'], 'The price of the product.');
+        Assert::assertSame('Reed Diffuser (2)', $found['interested']['params']['%examples%']);
 
         // Asking again finds the segment; the page links it.
         $this->client->request(Request::METHOD_POST, '/s/ecommerce/opportunities/segment?key=due_reorder', [], [], $this->createAjaxHeaders());
@@ -120,6 +150,23 @@ class OpportunityFunctionalTest extends MauticMysqlTestCase
         $this->client->request(Request::METHOD_GET, '/s/ecommerce/opportunities');
         Assert::assertSame(200, $this->client->getResponse()->getStatusCode());
         Assert::assertStringContainsString('mautic:ecommerce:recalculate', (string) $this->client->getResponse()->getContent());
+    }
+
+    /**
+     * @param array<string, mixed> $input
+     */
+    private function event(Lead $lead, array $input): void
+    {
+        $payload = static::getContainer()->get(StorefrontEventParser::class)->parse($input);
+        Assert::assertNotNull($payload);
+        static::getContainer()->get(StorefrontEventRecorder::class)->record($payload, $this->em->getRepository(Lead::class)->find($lead->getId()));
+    }
+
+    private function field(Lead $lead, string $column): ?string
+    {
+        $value = $this->connection->fetchOne('SELECT '.$column.' FROM '.MAUTIC_TABLE_PREFIX.'leads WHERE id = ?', [$lead->getId()]);
+
+        return false === $value || null === $value ? null : (string) $value;
     }
 
     private function contact(string $email): Lead

@@ -7,7 +7,8 @@ namespace MauticPlugin\EcommerceConnectorBundle\Service;
 use MauticPlugin\EcommerceConnectorBundle\Entity\EcommerceBehaviourRepository;
 
 /**
- * The one entry point for computed contact values: timing, lifecycle, cross-sell and behaviours, for one
+ * The one entry point for computed contact values: timing, lifecycle, cross-sell, interest, lapsed
+ * category and behaviours, for one
  * contact after an order change, or for everyone from the daily job.
  */
 class CommerceRecalculator
@@ -19,6 +20,8 @@ class CommerceRecalculator
         private EcommerceBehaviourRepository $behaviourRepository,
         private CrossSellCalculator $crossSellCalculator,
         private CrossSellSegments $crossSellSegments,
+        private InterestCalculator $interestCalculator,
+        private CategoryLapseCalculator $categoryLapseCalculator,
     ) {
     }
 
@@ -31,7 +34,19 @@ class CommerceRecalculator
         $this->metricsCalculator->write([$leadId]);
         $this->lifecycleCalculator->write([$leadId]);
         $this->crossSellCalculator->write([$leadId]);
+        $this->interestCalculator->write([$leadId]);
+        $this->categoryLapseCalculator->write([$leadId]);
         $this->behaviourCalculator->recalculateForLead($leadId);
+    }
+
+    /**
+     * After a storefront event: only interest depends on those.
+     */
+    public function recalculateInterestForLead(int $leadId): void
+    {
+        if ($leadId > 0) {
+            $this->interestCalculator->write([$leadId]);
+        }
     }
 
     /**
@@ -43,6 +58,8 @@ class CommerceRecalculator
             'commerce fields' => $this->metricsCalculator->recalculateAll($now),
             'lifecycle'       => $this->lifecycleCalculator->recalculateAll($now),
             'cross-sell'      => $this->crossSellCalculator->recalculateAll(),
+            'interest'        => $this->interestCalculator->recalculateAll($now),
+            'lapsed category' => $this->categoryLapseCalculator->recalculateAll($now),
         ];
 
         $segments = $this->crossSellSegments->sync();

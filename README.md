@@ -352,12 +352,19 @@ One campaign covers every pair: a segment on **Cross-sell category** is not empt
 | Due to reorder | Repeat customers whose **Expected next order** fell within the last 30 days, with no order since (not lapsed) |
 | Ready for a second order | One-time customers whose first order is as old as most second orders: the 25th to 75th percentile of days between first and second order, measured once 5 customers have ordered twice (20 to 60 days until then) |
 | Big spenders slipping away | Lifecycle stage **At risk** with **RFM monetary** 4 or 5 |
+| Interested, not bought yet | **Interested in (not bought)** is set: in the last 30 days the contact viewed a product on two different days or put it in a cart, and never bought it. Needs storefront events |
+| Stopped buying a category | **Lapsed category** is set: a category bought on at least 2 days, last bought longer ago than twice the usual gap between those purchases (at least 60 days) |
 
-Each row shows the number of contacts, the typical order (their average net order value; for cross-sell, the average order containing that category) and the potential (contacts × typical order, if each orders once), in the base currency. Audiences can overlap.
+Each row shows the number of contacts, the typical order (their average net order value; for cross-sell, the average order containing that category; for interest, the product's catalog price) and the potential (contacts × typical order, if each orders once), in the base currency. Audiences can overlap.
 
 **Create segment** makes a segment with the same filters ("Opportunity: Due to reorder"), so it holds the contacts the page counts; Mautic's segment update cron fills it. Segments are created once and never changed afterwards. A cross-sell row links to the segment from **Create cross-sell segments** when there is one. Creating segments needs the permission to create segments; the page itself needs permission to view contacts.
 
 Everything comes from the computed contact fields, so the page and its segments change with the daily recalculation.
+
+The fields behind the last two rows are useful in emails too:
+
+* **Interested in (not bought)** and **Interest category**: the product with the most interest (one point per day viewed, two per cart; ties go to the most recent), for example "Still thinking about {contactfield=ecommerce_interest_product}?". Updated daily, after each storefront event and after orders: buying the product clears it. A product counts as bought when its product ID, SKU or name matches a paid order line.
+* **Lapsed category** and **Days since lapsed category**: with several lapsed categories, the one bought most often. Updated daily and after orders.
 
 ## Behaviours
 
@@ -647,6 +654,12 @@ This software is provided **as is**, without warranty of any kind, express or im
 You are solely responsible for how you deploy and use this plugin, including compliance with applicable laws and data protection obligations.
 
 ## Changelog
+
+### 1.11.0
+```
+* Added: Shop opportunities "Interested, not bought yet" (storefront views on two days or a cart in the last 30 days, product never bought) and "Stopped buying a category" (twice the usual gap, at least 60 days).
+* Added: Contact fields Interested in (not bought), Interest category, Lapsed category and Days since lapsed category, filled by the daily recalculation; interest also after each storefront event.
+```
 
 ### 1.10.0
 ```

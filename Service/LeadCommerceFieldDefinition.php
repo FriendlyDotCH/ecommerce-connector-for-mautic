@@ -38,6 +38,16 @@ final class LeadCommerceFieldDefinition
     /** The category they bought that points to it. */
     public const CROSS_SELL_FROM = 'ecommerce_cross_sell_from';
 
+    /** The product the contact viewed or carted lately without buying it (see InterestCalculator). */
+    public const INTEREST_PRODUCT = 'ecommerce_interest_product';
+
+    public const INTEREST_CATEGORY = 'ecommerce_interest_category';
+
+    /** A category the contact used to buy regularly and stopped (see CategoryLapseCalculator). */
+    public const LAPSED_CATEGORY = 'ecommerce_lapsed_category';
+
+    public const LAPSED_CATEGORY_DAYS = 'ecommerce_lapsed_category_days';
+
     public const STAGE_NEW     = 'new';
     public const STAGE_ACTIVE  = 'active';
     public const STAGE_VIP     = 'vip';
@@ -127,6 +137,26 @@ final class LeadCommerceFieldDefinition
                 'label' => 'mautic.plugin.ecommerce.field.cross_sell_from',
                 'type'  => 'text',
                 'alias' => self::CROSS_SELL_FROM,
+            ],
+            self::INTEREST_PRODUCT => [
+                'label' => 'mautic.plugin.ecommerce.field.interest_product',
+                'type'  => 'text',
+                'alias' => self::INTEREST_PRODUCT,
+            ],
+            self::INTEREST_CATEGORY => [
+                'label' => 'mautic.plugin.ecommerce.field.interest_category',
+                'type'  => 'text',
+                'alias' => self::INTEREST_CATEGORY,
+            ],
+            self::LAPSED_CATEGORY => [
+                'label' => 'mautic.plugin.ecommerce.field.lapsed_category',
+                'type'  => 'text',
+                'alias' => self::LAPSED_CATEGORY,
+            ],
+            self::LAPSED_CATEGORY_DAYS => [
+                'label' => 'mautic.plugin.ecommerce.field.lapsed_category_days',
+                'type'  => 'number',
+                'alias' => self::LAPSED_CATEGORY_DAYS,
             ],
         ];
     }
